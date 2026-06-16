@@ -67,9 +67,9 @@ function EventPage({ id }) {
   const [error, setError] = useState(null)
 
   const fetchData = useCallback(async () => {
-    const { data: ev, error: evErr } = await supabase.from('events').select('*').eq('id', id).single()
+    const { data: ev, error: evErr } = await supabase.from('vol_events').select('*').eq('id', id).single()
     if (evErr) { setError(evErr.message); setLoading(false); return }
-    const { data: res } = await supabase.from('event_responses').select('*').eq('event_id', id).order('created_at')
+    const { data: res } = await supabase.from('vol_event_responses').select('*').eq('event_id', id).order('created_at')
     setEvent(ev)
     setResponses(res || [])
     setLoading(false)
@@ -79,7 +79,7 @@ function EventPage({ id }) {
     fetchData()
     const channel = supabase
       .channel(`event-responses-${id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event_responses', filter: `event_id=eq.${id}` },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vol_event_responses', filter: `event_id=eq.${id}` },
         payload => setResponses(prev => [...prev, payload.new])
       )
       .subscribe()
@@ -88,7 +88,7 @@ function EventPage({ id }) {
 
   const handleRSVP = async (response) => {
     if (!name.trim()) return
-    const { error } = await supabase.from('event_responses').insert({ event_id: id, name: name.trim(), response })
+    const { error } = await supabase.from('vol_event_responses').insert({ event_id: id, name: name.trim(), response })
     if (!error) setSubmitted(true)
   }
 
@@ -160,8 +160,8 @@ function PollPage({ id }) {
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
-    const { data: p } = await supabase.from('polls').select('*').eq('id', id).single()
-    const { data: v } = await supabase.from('poll_votes').select('*').eq('poll_id', id).order('created_at')
+    const { data: p } = await supabase.from('vol_polls').select('*').eq('id', id).single()
+    const { data: v } = await supabase.from('vol_poll_votes').select('*').eq('poll_id', id).order('created_at')
     setPoll(p)
     setVotes(v || [])
     setLoading(false)
@@ -171,7 +171,7 @@ function PollPage({ id }) {
     fetchData()
     const channel = supabase
       .channel(`poll-votes-${id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'poll_votes', filter: `poll_id=eq.${id}` },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vol_poll_votes', filter: `poll_id=eq.${id}` },
         payload => setVotes(prev => [...prev, payload.new])
       )
       .subscribe()
@@ -180,7 +180,7 @@ function PollPage({ id }) {
 
   const handleVote = async (option) => {
     if (!name.trim()) return
-    const { error } = await supabase.from('poll_votes').insert({ poll_id: id, name: name.trim(), option })
+    const { error } = await supabase.from('vol_poll_votes').insert({ poll_id: id, name: name.trim(), option })
     if (!error) setSubmitted(true)
   }
 
@@ -274,8 +274,8 @@ function ShiftPage({ id }) {
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
-    const { data: s } = await supabase.from('shifts').select('*').eq('id', id).single()
-    const { data: sg } = await supabase.from('shift_signups').select('*').eq('shift_id', id).order('created_at')
+    const { data: s } = await supabase.from('vol_shifts').select('*').eq('id', id).single()
+    const { data: sg } = await supabase.from('vol_shift_signups').select('*').eq('shift_id', id).order('created_at')
     setShift(s)
     setSignups(sg || [])
     setLoading(false)
@@ -285,7 +285,7 @@ function ShiftPage({ id }) {
     fetchData()
     const channel = supabase
       .channel(`shift-signups-${id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shift_signups', filter: `shift_id=eq.${id}` },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vol_shift_signups', filter: `shift_id=eq.${id}` },
         payload => setSignups(prev => [...prev, payload.new])
       )
       .subscribe()
@@ -294,7 +294,7 @@ function ShiftPage({ id }) {
 
   const handleSignup = async () => {
     if (!name.trim()) return
-    const { error } = await supabase.from('shift_signups').insert({ shift_id: id, name: name.trim() })
+    const { error } = await supabase.from('vol_shift_signups').insert({ shift_id: id, name: name.trim() })
     if (!error) setSubmitted(true)
   }
 
@@ -377,9 +377,9 @@ function AdminDashboard() {
 
   const fetchAll = useCallback(async () => {
     const [{ data: ev }, { data: po }, { data: sh }] = await Promise.all([
-      supabase.from('events').select('*, event_responses(count)').order('created_at', { ascending: false }),
-      supabase.from('polls').select('*, poll_votes(count)').order('created_at', { ascending: false }),
-      supabase.from('shifts').select('*, shift_signups(count)').order('created_at', { ascending: false }),
+      supabase.from('vol_events').select('*, vol_event_responses(count)').order('created_at', { ascending: false }),
+      supabase.from('vol_polls').select('*, vol_poll_votes(count)').order('created_at', { ascending: false }),
+      supabase.from('vol_shifts').select('*, vol_shift_signups(count)').order('created_at', { ascending: false }),
     ])
     setEvents(ev || [])
     setPolls(po || [])
@@ -391,7 +391,7 @@ function AdminDashboard() {
   const createEvent = async () => {
     if (!eventForm.title.trim()) return
     setSaving('event')
-    await supabase.from('events').insert(eventForm)
+    await supabase.from('vol_events').insert(eventForm)
     setEventForm({ title: '', date: '', time: '', description: '' })
     await fetchAll()
     setSaving(null)
@@ -401,7 +401,7 @@ function AdminDashboard() {
     if (!pollForm.question.trim()) return
     setSaving('poll')
     const options = pollForm.options.filter(o => o.trim())
-    await supabase.from('polls').insert({ question: pollForm.question, options })
+    await supabase.from('vol_polls').insert({ question: pollForm.question, options })
     setPollForm({ question: '', options: ['', ''] })
     await fetchAll()
     setSaving(null)
@@ -410,24 +410,24 @@ function AdminDashboard() {
   const createShift = async () => {
     if (!shiftForm.title.trim()) return
     setSaving('shift')
-    await supabase.from('shifts').insert({ ...shiftForm, spots: shiftForm.spots ? Number(shiftForm.spots) : null })
+    await supabase.from('vol_shifts').insert({ ...shiftForm, spots: shiftForm.spots ? Number(shiftForm.spots) : null })
     setShiftForm({ title: '', date: '', time: '', duration: '', role: '', spots: '' })
     await fetchAll()
     setSaving(null)
   }
 
   const deleteEvent = async (id) => {
-    await supabase.from('events').delete().eq('id', id)
+    await supabase.from('vol_events').delete().eq('id', id)
     setEvents(prev => prev.filter(e => e.id !== id))
   }
 
   const deletePoll = async (id) => {
-    await supabase.from('polls').delete().eq('id', id)
+    await supabase.from('vol_polls').delete().eq('id', id)
     setPolls(prev => prev.filter(p => p.id !== id))
   }
 
   const deleteShift = async (id) => {
-    await supabase.from('shifts').delete().eq('id', id)
+    await supabase.from('vol_shifts').delete().eq('id', id)
     setShifts(prev => prev.filter(s => s.id !== id))
   }
 
@@ -438,7 +438,7 @@ function AdminDashboard() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  const count = (item, key) => item[key]?.[0]?.count ?? 0
+  const count = (item, key) => item[`vol_${key}`]?.[0]?.count ?? 0
 
   return (
     <div className="min-h-screen bg-[#faf8f4]" style={SANS}>
