@@ -70,6 +70,23 @@ alter table vol_slot_signups enable row level security;
 alter table vol_polls enable row level security;
 alter table vol_poll_votes enable row level security;
 
+-- Drop existing policies so this script is safe to re-run
+drop policy if exists "public read"   on vol_events;
+drop policy if exists "public insert" on vol_events;
+drop policy if exists "public delete" on vol_events;
+drop policy if exists "public read"   on vol_event_responses;
+drop policy if exists "public insert" on vol_event_responses;
+drop policy if exists "public read"   on vol_shift_slots;
+drop policy if exists "public insert" on vol_shift_slots;
+drop policy if exists "public delete" on vol_shift_slots;
+drop policy if exists "public read"   on vol_slot_signups;
+drop policy if exists "public insert" on vol_slot_signups;
+drop policy if exists "public read"   on vol_polls;
+drop policy if exists "public insert" on vol_polls;
+drop policy if exists "public delete" on vol_polls;
+drop policy if exists "public read"   on vol_poll_votes;
+drop policy if exists "public insert" on vol_poll_votes;
+
 create policy "public read"   on vol_events           for select using (true);
 create policy "public insert" on vol_events           for insert with check (true);
 create policy "public delete" on vol_events           for delete using (true);
