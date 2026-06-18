@@ -103,7 +103,21 @@ create policy "public delete" on vol_polls            for delete using (true);
 create policy "public read"   on vol_poll_votes       for select using (true);
 create policy "public insert" on vol_poll_votes       for insert with check (true);
 
--- Realtime
-alter publication supabase_realtime add table vol_event_responses;
-alter publication supabase_realtime add table vol_slot_signups;
-alter publication supabase_realtime add table vol_poll_votes;
+-- Realtime (safe to re-run)
+do $$
+begin
+  alter publication supabase_realtime add table vol_event_responses;
+exception when others then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table vol_slot_signups;
+exception when others then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table vol_poll_votes;
+exception when others then null;
+end $$;
