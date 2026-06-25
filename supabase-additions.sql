@@ -3,9 +3,11 @@
 -- Safe to run multiple times.
 
 -- Links Supabase Auth users to their record in "2026 Volunteers"
-create table if not exists volunteer_auth_links (
-  auth_user_id uuid primary key references auth.users(id) on delete cascade,
-  volunteer_id uuid,
+-- NOTE: "2026 Volunteers".id is a bigint, so volunteer_id must be bigint too
+drop table if exists volunteer_auth_links cascade;
+create table volunteer_auth_links (
+  auth_user_id uuid    primary key references auth.users(id) on delete cascade,
+  volunteer_id bigint  not null,
   created_at   timestamptz default now()
 );
 
@@ -28,27 +30,34 @@ alter table vol_feedback         enable row level security;
 drop policy if exists "read own link"   on volunteer_auth_links;
 drop policy if exists "insert own link" on volunteer_auth_links;
 drop policy if exists "update own link" on volunteer_auth_links;
-create policy "read own link"   on volunteer_auth_links for select using (auth.uid() = auth_user_id);
-create policy "insert own link" on volunteer_auth_links for insert with check (auth.uid() = auth_user_id);
-create policy "update own link" on volunteer_auth_links for update using (auth.uid() = auth_user_id);
+create policy "read own link"   on volunteer_auth_links for select to authenticated using (auth.uid() = auth_user_id);
+create policy "insert own link" on volunteer_auth_links for insert to authenticated with check (auth.uid() = auth_user_id);
+create policy "update own link" on volunteer_auth_links for update to authenticated using (auth.uid() = auth_user_id);
 
--- vol_feedback: volunteers can insert their own; no public read (admins use service role)
+-- vol_feedback: volunteers can insert; no public read (admins use service role)
 drop policy if exists "insert feedback" on vol_feedback;
-create policy "insert feedback" on vol_feedback for insert with check (auth.uid() = auth_user_id);
+create policy "insert feedback" on vol_feedback for insert to authenticated with check (auth.uid() = auth_user_id);
 
--- oot_notices: allow authenticated users to insert their own OOT notice
--- (run only if RLS is already enabled on oot_notices — check first)
--- drop policy if exists "authenticated insert oot" on oot_notices;
--- create policy "authenticated insert oot" on oot_notices for insert to authenticated with check (true);
+-- "2026 Volunteers" update policy (allows volunteers to edit their own record)
+drop policy if exists "Volunteers can update own record" on "2026 Volunteers";
+create policy "Volunteers can update own record"
+  on "2026 Volunteers"
+  for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.volunteer_auth_links
+      where volunteer_auth_links.auth_user_id = auth.uid()
+      and   volunteer_auth_links.volunteer_id  = "2026 Volunteers".id
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.volunteer_auth_links
+      where volunteer_auth_links.auth_user_id = auth.uid()
+      and   volunteer_auth_links.volunteer_id  = "2026 Volunteers".id
+    )
+  );
 
--- "2026 Volunteers" — if RLS is enabled, add policies for authenticated volunteers:
--- Read all active volunteers (for directory, birthdays, etc.)
--- drop policy if exists "authenticated read volunteers" on "2026 Volunteers";
--- create policy "authenticated read volunteers" on "2026 Volunteers"
---   for select to authenticated using (true);
---
--- Update only their own record (matched via volunteer_auth_links)
--- drop policy if exists "update own volunteer record" on "2026 Volunteers";
--- create policy "update own volunteer record" on "2026 Volunteers"
---   for update to authenticated
---   using (id = (select volunteer_id from volunteer_auth_links where auth_user_id = auth.uid()));
+-- New column for volunteer future vision (safe to run if already added)
+alter table "2026 Volunteers" add column if not exists "NSH Future Vision" text;
