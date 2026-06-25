@@ -39,12 +39,26 @@ function TeamBadge({ team }) {
   );
 }
 
-function InfoRow({ label, value }) {
-  if (!value) return null;
+function ViewRow({ label, value, onEdit, note, labelColor, shaded, last }) {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div className="label">{label}</div>
-      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{value}</div>
+    <div style={{
+      marginBottom: last ? 0 : 12,
+      background: shaded ? '#fafafa' : 'transparent',
+      border: shaded ? '0.5px solid var(--border-light)' : 'none',
+      borderRadius: shaded ? 8 : 0,
+      padding: shaded ? '10px 12px' : 0,
+    }}>
+      <div className="label" style={{ marginBottom: 3, color: labelColor || 'var(--muted)' }}>
+        {label}
+        {note && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--muted)', fontSize: 10 }}> — {note}</span>}
+      </div>
+      {value ? (
+        <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{value}</div>
+      ) : (
+        <button onClick={onEdit} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--gold)', cursor: 'pointer', fontStyle: 'italic' }}>
+          Tap Edit to add →
+        </button>
+      )}
     </div>
   );
 }
@@ -320,12 +334,9 @@ export default function Profile() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Contact Info</div>
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
-              <InfoRow label="Phone"   value={vol['Phone Number']} />
-              <InfoRow label="Email"   value={vol['Email']} />
-              <InfoRow label="Address" value={vol['Address']} />
-              {!vol['Phone Number'] && !vol['Email'] && !vol['Address'] && (
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No contact info yet. Tap Edit to add yours.</div>
-              )}
+              <ViewRow label="Phone"   value={vol['Phone Number']} onEdit={startEdit} />
+              <ViewRow label="Email"   value={vol['Email']}        onEdit={startEdit} />
+              <ViewRow label="Address" value={vol['Address']}      onEdit={startEdit} />
             </div>
 
             {/* Personal Info */}
@@ -334,12 +345,9 @@ export default function Profile() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Personal Info</div>
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
-              <InfoRow label="Birthday"         value={fmtBirthday(vol['Birthday'])} />
-              <InfoRow label="NSH Anniversary"  value={fmtAnniversary(vol['Volunteer Anniversary'])} />
-              <InfoRow label="Emergency Contact" value={vol['Emergency Contact']} />
-              {!vol['Birthday'] && !vol['Volunteer Anniversary'] && !vol['Emergency Contact'] && (
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>Tap Edit to fill in your personal info.</div>
-              )}
+              <ViewRow label="Birthday"          value={fmtBirthday(vol['Birthday'])}                  onEdit={startEdit} />
+              <ViewRow label="NSH Anniversary"   value={fmtAnniversary(vol['Volunteer Anniversary'])}  onEdit={startEdit} />
+              <ViewRow label="Emergency Contact" value={vol['Emergency Contact']}                       onEdit={startEdit} last />
             </div>
 
             {/* About */}
@@ -348,34 +356,10 @@ export default function Profile() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>About</div>
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
-              {vol['What they want to see at NSH'] ? (
-                <div style={{ marginBottom: 12 }}>
-                  <div className="label" style={{ marginBottom: 4 }}>About / Bio</div>
-                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{vol['What they want to see at NSH']}</div>
-                </div>
-              ) : (
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginBottom: 8 }}>
-                  Add a short bio so teammates know you better. <span style={{ color: 'var(--gold)', cursor: 'pointer' }} onClick={startEdit}>Add now →</span>
-                </div>
-              )}
-              {vol['NSH Future Vision'] && (
-                <div style={{ marginBottom: 10 }}>
-                  <div className="label" style={{ marginBottom: 4 }}>Future of NSH</div>
-                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{vol['NSH Future Vision']}</div>
-                </div>
-              )}
-              {vol['Allergies'] && (
-                <div style={{ marginBottom: 10 }}>
-                  <div className="label" style={{ marginBottom: 4, color: '#c0392b' }}>⚠ Allergies <span style={{ color: 'var(--muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— visible to others</span></div>
-                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{vol['Allergies']}</div>
-                </div>
-              )}
-              {vol['Special Considerations'] && (
-                <div style={{ background: '#fafafa', border: '0.5px solid var(--border-light)', borderRadius: 8, padding: '10px 12px' }}>
-                  <div className="label" style={{ marginBottom: 4 }}>🔒 Special Considerations <span style={{ color: 'var(--muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— only visible to you & coordinators</span></div>
-                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{vol['Special Considerations']}</div>
-                </div>
-              )}
+              <ViewRow label="About / Bio"           value={vol['What they want to see at NSH']} onEdit={startEdit} />
+              <ViewRow label="Future of NSH"         value={vol['NSH Future Vision']}            onEdit={startEdit} />
+              <ViewRow label="⚠ Allergies"           value={vol['Allergies']}                    onEdit={startEdit} note="visible to others in directory" labelColor="#c0392b" />
+              <ViewRow label="🔒 Special Considerations" value={vol['Special Considerations']}   onEdit={startEdit} note="only visible to you & coordinators" shaded last />
             </div>
           </>
         )}
