@@ -186,11 +186,11 @@ export default function Profile() {
     EDITABLE_FIELDS.forEach(({ name }) => { patch[name] = form[name] || null; });
     const updated = await updateVolunteer(volunteer.id, patch);
     if (updated && !updated.code) {
-      setVolunteer({ ...volunteer, ...patch, ...updated });
+      setVolunteer({ ...volunteer, ...patch });
       setEditing(false);
       setSaved(true);
     } else {
-      setErr('Failed to save. Please try again.');
+      setErr(updated?.message || 'Failed to save. Please try again.');
     }
     setSaving(false);
   }
