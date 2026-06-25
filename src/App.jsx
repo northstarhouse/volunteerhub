@@ -94,7 +94,7 @@ function AuthScreen() {
 
 // ── Set Password Screen (after invite/reset link) ─────────────────────────────
 
-function SetPasswordScreen() {
+function SetPasswordScreen({ onDone }) {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -109,6 +109,7 @@ function SetPasswordScreen() {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) { setErr(error.message); setBusy(false); return; }
     setDone(true); setBusy(false);
+    setTimeout(() => onDone?.(), 1500);
   }
 
   return (
@@ -169,10 +170,19 @@ function NoProfileScreen({ email, onSignOut }) {
 export default function App() {
   const [session, setSession]             = useState(undefined);
   const [authEvent, setAuthEvent]         = useState(null);
+  const [needsPassword, setNeedsPassword] = useState(false);
   const [volunteer, setVolunteer]         = useState(null);
   const [linkError, setLinkError]         = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [view, setView]                   = useState('dashboard');
+
+  // Detect invite or recovery link in URL hash on first load
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+      setNeedsPassword(true);
+    }
+  }, []);
 
   // Init auth
   useEffect(() => {
@@ -182,6 +192,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
       setAuthEvent(event);
       setSession(sess ?? null);
+      if (event === 'PASSWORD_RECOVERY') setNeedsPassword(true);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -190,6 +201,7 @@ export default function App() {
   useEffect(() => {
     if (session === undefined) return;
     if (!session) { setVolunteer(null); setLinkError(false); return; }
+    if (needsPassword) return; // don't load profile until password is set
 
     setProfileLoading(true);
     setLinkError(false);
@@ -218,17 +230,18 @@ export default function App() {
     }
 
     resolveProfile();
-  }, [session]);
+  }, [session, needsPassword]);
 
   async function signOut() {
     await supabase.auth.signOut();
     setVolunteer(null);
     setLinkError(false);
+    setNeedsPassword(false);
     setView('dashboard');
   }
 
   if (session === undefined) return <Spinner />;
-  if (authEvent === 'PASSWORD_RECOVERY') return <SetPasswordScreen />;
+  if (needsPassword && session) return <SetPasswordScreen onDone={() => { setNeedsPassword(false); window.history.replaceState(null, '', window.location.pathname); }} />;
   if (!session) return <AuthScreen />;
   if (profileLoading) return <Spinner message="Loading your profile…" />;
   if (linkError) return <NoProfileScreen email={session.user.email} onSignOut={signOut} />;
