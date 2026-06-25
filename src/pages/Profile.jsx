@@ -94,16 +94,12 @@ function DateSelector({ label, name, form, onChange, yearOptional = false }) {
             <option key={n} value={n}>{n}</option>
           ))}
         </select>
-        <input
-          className="input"
-          type="number"
-          placeholder={yearOptional ? 'Year' : 'Year *'}
-          value={yr}
-          onChange={e => notify(mn, dy, e.target.value)}
-          min={1900}
-          max={new Date().getFullYear()}
-          style={{ flex: 2, padding: '9px 8px' }}
-        />
+        <select {...sel} style={{ ...sel.style, flex: 2 }} value={yr} onChange={e => notify(mn, dy, e.target.value)}>
+          <option value="">{yearOptional ? 'Year' : 'Year *'}</option>
+          {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
