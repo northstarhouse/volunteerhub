@@ -1,4 +1,5 @@
 import { useVol } from '../App.jsx';
+import { photoUrl } from '../lib/db.js';
 
 const TABS = [
   { id: 'dashboard', label: 'Home',      icon: HomeIcon },
@@ -90,7 +91,7 @@ export default function Nav({ view, setView }) {
         >
           {volunteer?.['Picture URL'] ? (
             <img
-              src={volunteer['Picture URL']}
+              src={photoUrl(volunteer['Picture URL'])}
               alt={initials}
               style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: view === 'profile' ? '1.5px solid var(--gold)' : '1.5px solid var(--border)' }}
             />
