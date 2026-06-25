@@ -39,7 +39,7 @@ function TeamBadge({ team }) {
   );
 }
 
-function ViewRow({ label, value, onEdit, note, labelColor, shaded, last }) {
+function ViewRow({ label, value, onEdit, note, labelColor, shaded, last, preferred }) {
   return (
     <div style={{
       marginBottom: last ? 0 : 12,
@@ -48,8 +48,9 @@ function ViewRow({ label, value, onEdit, note, labelColor, shaded, last }) {
       borderRadius: shaded ? 8 : 0,
       padding: shaded ? '10px 12px' : 0,
     }}>
-      <div className="label" style={{ marginBottom: 3, color: labelColor || 'var(--muted)' }}>
+      <div className="label" style={{ marginBottom: 3, color: labelColor || 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
         {label}
+        {preferred && <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0, color: 'var(--gold)', fontSize: 10, background: '#f0ebe2', padding: '1px 7px', borderRadius: 10 }}>preferred</span>}
         {note && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--muted)', fontSize: 10 }}> — {note}</span>}
       </div>
       {value ? (
@@ -121,8 +122,40 @@ function DateSelector({ label, name, form, onChange, yearOptional = false, noDay
   );
 }
 
-function Field({ label, name, form, onChange, type = 'text', placeholder = '', yearOptional = false }) {
-  if (type === 'date') return <DateSelector label={label} name={name} form={form} onChange={onChange} yearOptional={yearOptional} />;
+function PreferredContact({ form, onChange }) {
+  const val = form['Preferred Contact'] || '';
+  const hasPhone = val === 'phone' || val === 'both';
+  const hasEmail = val === 'email' || val === 'both';
+
+  function toggle(method) {
+    const phoneOn = method === 'phone' ? !hasPhone : hasPhone;
+    const emailOn = method === 'email' ? !hasEmail : hasEmail;
+    const next = phoneOn && emailOn ? 'both' : phoneOn ? 'phone' : emailOn ? 'email' : '';
+    onChange('Preferred Contact', next || null);
+  }
+
+  return (
+    <div style={{ marginBottom: 12, background: 'var(--light)', borderRadius: 8, padding: '10px 12px' }}>
+      <div className="label" style={{ marginBottom: 8 }}>Preferred Contact Method</div>
+      <div style={{ display: 'flex', gap: 16 }}>
+        {[['phone', 'Phone'], ['email', 'Email']].map(([method, lbl]) => {
+          const checked = method === 'phone' ? hasPhone : hasEmail;
+          return (
+            <label key={method} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: 13 }}>
+              <input type="checkbox" checked={checked} onChange={() => toggle(method)}
+                style={{ width: 15, height: 15, accentColor: 'var(--gold)', cursor: 'pointer' }} />
+              <span style={{ color: checked ? 'var(--gold)' : 'var(--text)', fontWeight: checked ? 600 : 400 }}>{lbl}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, name, form, onChange, type = 'text', placeholder = '', yearOptional = false, noDay = false }) {
+  if (type === 'preferred') return <PreferredContact form={form} onChange={onChange} />;
+  if (type === 'date') return <DateSelector label={label} name={name} form={form} onChange={onChange} yearOptional={yearOptional} noDay={noDay} />;
   const value = form[name] ?? '';
   return (
     <div style={{ marginBottom: 12 }}>
@@ -196,6 +229,7 @@ function ChangePassword() {
 const EDITABLE_FIELDS = [
   { name: 'Phone Number',                   label: 'Phone',                                  type: 'tel' },
   { name: 'Email',                           label: 'Email',                                  type: 'email' },
+  { name: 'Preferred Contact',              label: 'Preferred Contact',                      type: 'preferred' },
   { name: 'Address',                         label: 'Address',                                type: 'text' },
   { name: 'Birthday',              label: 'Birthday',        type: 'date', yearOptional: true },
   { name: 'Volunteer Anniversary', label: 'NSH Anniversary', type: 'date', yearOptional: false, noDay: true },
@@ -334,8 +368,8 @@ export default function Profile() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Contact Info</div>
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
-              <ViewRow label="Phone"   value={vol['Phone Number']} onEdit={startEdit} />
-              <ViewRow label="Email"   value={vol['Email']}        onEdit={startEdit} />
+              <ViewRow label="Phone"   value={vol['Phone Number']} onEdit={startEdit} preferred={vol['Preferred Contact'] === 'phone' || vol['Preferred Contact'] === 'both'} />
+              <ViewRow label="Email"   value={vol['Email']}        onEdit={startEdit} preferred={vol['Preferred Contact'] === 'email' || vol['Preferred Contact'] === 'both'} />
               <ViewRow label="Address" value={vol['Address']}      onEdit={startEdit} />
             </div>
 

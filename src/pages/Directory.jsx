@@ -65,13 +65,23 @@ function VolCard({ vol, expanded, onClick }) {
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '0.5px solid var(--border-light)' }}>
           {vol['Email'] && (
             <div style={{ marginBottom: 8 }}>
-              <div className="label">Email</div>
+              <div className="label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                Email
+                {(vol['Preferred Contact'] === 'email' || vol['Preferred Contact'] === 'both') && (
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--gold)', background: '#f0ebe2', padding: '1px 7px', borderRadius: 10, textTransform: 'none', letterSpacing: 0 }}>preferred</span>
+                )}
+              </div>
               <a href={`mailto:${vol['Email']}`} style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none' }}>{vol['Email']}</a>
             </div>
           )}
           {vol['Phone Number'] && (
             <div style={{ marginBottom: 8 }}>
-              <div className="label">Phone</div>
+              <div className="label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                Phone
+                {(vol['Preferred Contact'] === 'phone' || vol['Preferred Contact'] === 'both') && (
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--gold)', background: '#f0ebe2', padding: '1px 7px', borderRadius: 10, textTransform: 'none', letterSpacing: 0 }}>preferred</span>
+                )}
+              </div>
               <a href={`tel:${vol['Phone Number']}`} style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none' }}>{vol['Phone Number']}</a>
             </div>
           )}
