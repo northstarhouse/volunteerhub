@@ -104,14 +104,12 @@ export async function fetchVolunteerByEmail(email) {
 }
 
 export async function updateVolunteer(id, patch_data) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('2026 Volunteers')
     .update(patch_data)
-    .eq('id', id)
-    .select()
-    .single();
+    .eq('id', id);
   if (error) return { code: error.code, message: error.message };
-  return data;
+  return patch_data;
 }
 
 // ── Out-of-Town ───────────────────────────────────────────────────────────────
