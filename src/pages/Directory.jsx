@@ -76,9 +76,15 @@ function VolCard({ vol, expanded, onClick }) {
             </div>
           )}
           {vol['What they want to see at NSH'] && (
-            <div>
+            <div style={{ marginBottom: 8 }}>
               <div className="label">About</div>
               <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>{vol['What they want to see at NSH']}</div>
+            </div>
+          )}
+          {vol['Allergies'] && (
+            <div style={{ marginBottom: 8 }}>
+              <div className="label" style={{ color: '#c0392b' }}>⚠ Allergies</div>
+              <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>{vol['Allergies']}</div>
             </div>
           )}
           {!vol['Email'] && !vol['Phone Number'] && (

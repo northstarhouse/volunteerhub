@@ -188,6 +188,8 @@ const EDITABLE_FIELDS = [
   { name: 'Emergency Contact',               label: 'Emergency Contact',                      type: 'text', placeholder: 'Name & phone number' },
   { name: 'What they want to see at NSH',   label: 'About / Bio',                            type: 'textarea', placeholder: 'Tell others about yourself and what you enjoy at NSH…' },
   { name: 'NSH Future Vision',              label: 'What I Want for the Future of NSH',      type: 'textarea', placeholder: 'Share your hopes and ideas for NSH…' },
+  { name: 'Allergies',                      label: 'Allergies',                              type: 'textarea', placeholder: 'Food, environmental, or medical allergies others should know about…' },
+  { name: 'Special Considerations',         label: 'Special Considerations',                 type: 'textarea', placeholder: 'Sensitive info only visible to you and coordinators…' },
 ];
 
 function fmtAnniversary(iso) {
@@ -291,8 +293,16 @@ export default function Profile() {
             {/* About */}
             <div className="card" style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', marginBottom: 14 }}>About</div>
-              {EDITABLE_FIELDS.filter(f => ['What they want to see at NSH','NSH Future Vision'].includes(f.name)).map(f => (
-                <Field key={f.name} {...f} form={form} onChange={handleChange} />
+              {EDITABLE_FIELDS.filter(f => ['What they want to see at NSH','NSH Future Vision','Allergies','Special Considerations'].includes(f.name)).map(f => (
+                <div key={f.name}>
+                  {f.name === 'Allergies' && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4, fontStyle: 'italic' }}>Visible to all volunteers in the directory.</div>
+                  )}
+                  {f.name === 'Special Considerations' && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4, fontStyle: 'italic' }}>🔒 Private — only visible to you and coordinators.</div>
+                  )}
+                  <Field {...f} form={form} onChange={handleChange} />
+                </div>
               ))}
             </div>
 
@@ -349,14 +359,21 @@ export default function Profile() {
                 </div>
               )}
               {vol['NSH Future Vision'] && (
-                <div>
+                <div style={{ marginBottom: 10 }}>
                   <div className="label" style={{ marginBottom: 4 }}>Future of NSH</div>
                   <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{vol['NSH Future Vision']}</div>
                 </div>
               )}
-              {!vol['NSH Future Vision'] && (
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
-                  Share your vision for NSH's future. <span style={{ color: 'var(--gold)', cursor: 'pointer' }} onClick={startEdit}>Add now →</span>
+              {vol['Allergies'] && (
+                <div style={{ marginBottom: 10 }}>
+                  <div className="label" style={{ marginBottom: 4, color: '#c0392b' }}>⚠ Allergies <span style={{ color: 'var(--muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— visible to others</span></div>
+                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{vol['Allergies']}</div>
+                </div>
+              )}
+              {vol['Special Considerations'] && (
+                <div style={{ background: '#fafafa', border: '0.5px solid var(--border-light)', borderRadius: 8, padding: '10px 12px' }}>
+                  <div className="label" style={{ marginBottom: 4 }}>🔒 Special Considerations <span style={{ color: 'var(--muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— only visible to you & coordinators</span></div>
+                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{vol['Special Considerations']}</div>
                 </div>
               )}
             </div>
