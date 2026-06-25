@@ -235,6 +235,7 @@ const EDITABLE_FIELDS = [
   { name: 'Volunteer Anniversary', label: 'North Star House Anniversary', type: 'date', yearOptional: false, noDay: true },
   { name: 'Emergency Contact',               label: 'Emergency Contact',                      type: 'text', placeholder: 'Name & phone number' },
   { name: 'What they want to see at NSH',   label: 'About / Bio',                            type: 'textarea', placeholder: 'Tell others about yourself and what you enjoy at North Star House…' },
+  { name: 'Favorite Quote',                 label: 'Favorite Quote',                         type: 'textarea', placeholder: 'A quote that inspires you…' },
   { name: 'NSH Future Vision',              label: 'What I Want for the Future of North Star House', type: 'textarea', placeholder: 'Share your hopes and ideas for North Star House…' },
   { name: 'Allergies',                      label: 'Allergies',                              type: 'textarea', placeholder: 'Food, environmental, or medical allergies others should know about…' },
   { name: 'Special Considerations',         label: 'Special Considerations',                 type: 'textarea', placeholder: 'Sensitive info only visible to you and coordinators…' },
@@ -341,7 +342,7 @@ export default function Profile() {
             {/* About */}
             <div className="card" style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', marginBottom: 14 }}>About</div>
-              {EDITABLE_FIELDS.filter(f => ['What they want to see at NSH','NSH Future Vision','Allergies','Special Considerations'].includes(f.name)).map(f => (
+              {EDITABLE_FIELDS.filter(f => ['What they want to see at NSH','Favorite Quote','NSH Future Vision','Allergies','Special Considerations'].includes(f.name)).map(f => (
                 <div key={f.name}>
                   {f.name === 'Allergies' && (
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4, fontStyle: 'italic' }}>Visible to all volunteers in the directory.</div>
@@ -391,6 +392,7 @@ export default function Profile() {
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
               <ViewRow label="About / Bio"           value={vol['What they want to see at NSH']} onEdit={startEdit} />
+              <ViewRow label="Favorite Quote"        value={vol['Favorite Quote']}               onEdit={startEdit} />
               <ViewRow label="Future of North Star House" value={vol['NSH Future Vision']}          onEdit={startEdit} />
               <ViewRow label="⚠ Allergies"           value={vol['Allergies']}                    onEdit={startEdit} note="visible to others in directory" labelColor="#c0392b" />
               <ViewRow label="🔒 Special Considerations" value={vol['Special Considerations']}   onEdit={startEdit} note="only visible to you & coordinators" shaded last />
