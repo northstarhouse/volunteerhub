@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useVol } from '../App.jsx';
+import { supabase } from '../supabase.js';
 import { updateVolunteer } from '../lib/db.js';
 
 const EDITABLE = ['Phone Number', 'Email', 'Address', 'What they want to see at NSH'];
@@ -55,6 +56,67 @@ function InfoRow({ label, value }) {
     <div style={{ marginBottom: 10 }}>
       <div className="label">{label}</div>
       <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{value}</div>
+    </div>
+  );
+}
+
+function ChangePassword() {
+  const [open, setOpen]       = useState(false);
+  const [pw, setPw]           = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy]       = useState(false);
+  const [err, setErr]         = useState('');
+  const [done, setDone]       = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (pw !== confirm) { setErr('Passwords do not match.'); return; }
+    if (pw.length < 6)  { setErr('Must be at least 6 characters.'); return; }
+    setBusy(true); setErr('');
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    if (error) { setErr(error.message); setBusy(false); return; }
+    setDone(true); setBusy(false);
+    setTimeout(() => { setOpen(false); setDone(false); setPw(''); setConfirm(''); }, 1800);
+  }
+
+  if (!open) {
+    return (
+      <div className="card" style={{ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>Password</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Change your login password</div>
+        </div>
+        <button onClick={() => setOpen(true)} className="btn-ghost" style={{ fontSize: 11, padding: '5px 14px', flexShrink: 0 }}>
+          Change
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', marginBottom: 14 }}>Change Password</div>
+      {done ? (
+        <div style={{ fontSize: 13, color: '#2e7d32', textAlign: 'center', padding: '8px 0' }}>✓ Password updated!</div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 10 }}>
+            <div className="label">New Password</div>
+            <input className="input" type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="At least 6 characters" required minLength={6} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <div className="label">Confirm New Password</div>
+            <input className="input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat new password" required />
+          </div>
+          {err && <div style={{ color: '#c0392b', fontSize: 12, marginBottom: 10 }}>{err}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={() => { setOpen(false); setPw(''); setConfirm(''); setErr(''); }} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
+            <button type="submit" className="btn-gold" disabled={busy} style={{ flex: 2 }}>
+              {busy ? 'Saving…' : 'Save Password'}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
@@ -210,8 +272,11 @@ export default function Profile() {
           </>
         )}
 
+        {/* Change Password */}
+        <ChangePassword />
+
         {/* Sign out */}
-        <div style={{ marginTop: 8, textAlign: 'center' }}>
+        <div style={{ marginTop: 4, textAlign: 'center' }}>
           <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer', padding: '8px 0' }}>
             Sign Out
           </button>
