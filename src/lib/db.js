@@ -36,6 +36,46 @@ async function post(path, body) {
   return r.json();
 }
 
+// ── Image helpers ────────────────────────────────────────────────────────────
+
+export function driveImg(url) {
+  if (!url) return null;
+  const i = url.indexOf('/d/');
+  if (i === -1) return url;
+  const id = url.substring(i + 3).split('/')[0].split('?')[0];
+  return `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
+}
+
+// ── Calendar ─────────────────────────────────────────────────────────────────
+
+const CALENDAR_ICAL_URL = 'https://calendar.google.com/calendar/ical/thenorthstarhouse%40gmail.com/private-06287b2ca0d9ee6acd4f49f9d4d0d2da/basic.ics';
+
+export async function fetchCalendarEvents() {
+  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(CALENDAR_ICAL_URL);
+  const text = await fetch(proxy).then(r => r.text());
+  const unfolded = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n[ \t]/g, '');
+  const events = [];
+  let current = null;
+  unfolded.split('\n').forEach(line => {
+    if (line === 'BEGIN:VEVENT') { current = {}; }
+    else if (line === 'END:VEVENT') { if (current) events.push(current); current = null; }
+    else if (current) {
+      const ci = line.indexOf(':');
+      if (ci !== -1) { current[line.slice(0, ci).split(';')[0]] = line.slice(ci + 1); }
+    }
+  });
+  return events;
+}
+
+export function parseIcalDate(val) {
+  if (!val) return null;
+  val = val.replace(/[^0-9TZ]/g, '');
+  if (val.length === 8) return new Date(`${val.slice(0,4)}-${val.slice(4,6)}-${val.slice(6,8)}T00:00:00`);
+  const [y, mo, d, h, mi] = [val.slice(0,4), val.slice(4,6), val.slice(6,8), val.slice(9,11), val.slice(11,13)];
+  const s = val.slice(13,15) || '00';
+  return new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}${val.endsWith('Z') ? 'Z' : ''}`);
+}
+
 // ── Volunteers ────────────────────────────────────────────────────────────────
 
 export async function fetchAllActiveVolunteers() {

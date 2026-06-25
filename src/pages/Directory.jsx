@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAllActiveVolunteers } from '../lib/db.js';
+import { fetchAllActiveVolunteers, driveImg } from '../lib/db.js';
 
 const TEAM_COLORS = {
   'Staff':             { bg: '#f3f3f3', color: '#555' },
@@ -41,7 +41,7 @@ function VolCard({ vol, expanded, onClick }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {vol['Picture URL'] ? (
-          <img src={vol['Picture URL']} alt={initials} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          <img src={driveImg(vol['Picture URL'])} alt={initials} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
         ) : (
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: 'var(--gold)', flexShrink: 0 }}>
             {initials || '?'}
