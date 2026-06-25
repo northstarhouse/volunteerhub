@@ -91,3 +91,10 @@ input, textarea, select, button {
   padding: 2px 9px;
   border-radius: 20px;
 }
+
+/* Dashboard two-column layout — collapses to single column on mobile */
+@media (max-width: 700px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

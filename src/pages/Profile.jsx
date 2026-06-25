@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useVol } from '../App.jsx';
 import { supabase } from '../supabase.js';
-import { updateVolunteer, driveImg } from '../lib/db.js';
+import { updateVolunteer, photoUrl } from '../lib/db.js';
 
 const EDITABLE = ['Phone Number', 'Email', 'Address', 'What they want to see at NSH'];
 const LABELS = {
@@ -14,7 +14,7 @@ const LABELS = {
 function Avatar({ vol }) {
   const initials = `${(vol['First Name'] || '')[0] || ''}${(vol['Last Name'] || '')[0] || ''}`.toUpperCase();
   return vol['Picture URL'] ? (
-    <img src={driveImg(vol['Picture URL'])} alt={initials} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }} />
+    <img src={photoUrl(vol['Picture URL'])} alt={initials} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }} />
   ) : (
     <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--light)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: 'var(--gold)' }}>
       {initials || '?'}

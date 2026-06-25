@@ -38,12 +38,21 @@ async function post(path, body) {
 
 // ── Image helpers ────────────────────────────────────────────────────────────
 
-export function driveImg(url) {
-  if (!url) return null;
-  const i = url.indexOf('/d/');
-  if (i === -1) return url;
-  const id = url.substring(i + 3).split('/')[0].split('?')[0];
-  return `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
+export function photoUrl(value) {
+  if (!value) return null;
+  // Full URL already (Supabase storage, Google Drive, etc.)
+  if (value.startsWith('http')) {
+    // Convert old Google Drive share links
+    if (value.includes('drive.google.com')) {
+      const i = value.indexOf('/d/');
+      if (i === -1) return value;
+      const id = value.substring(i + 3).split('/')[0].split('?')[0];
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
+    }
+    return value;
+  }
+  // Bare filename → Supabase team-photos bucket
+  return `${URL}/storage/v1/object/public/team-photos/${value}`;
 }
 
 // ── Calendar ─────────────────────────────────────────────────────────────────
