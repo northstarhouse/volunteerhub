@@ -1,6 +1,8 @@
 // Data helpers — raw fetch against Portal Supabase tables
 // (existing tables use anon key + permissive policies, same as Portal)
 
+import { supabase } from '../supabase.js';
+
 const URL  = import.meta.env.VITE_SUPABASE_URL;
 const KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const VOL  = encodeURIComponent('2026 Volunteers');
@@ -102,8 +104,14 @@ export async function fetchVolunteerByEmail(email) {
 }
 
 export async function updateVolunteer(id, patch_data) {
-  const rows = await patch(`${VOL}?id=eq.${id}`, patch_data);
-  return Array.isArray(rows) ? rows[0] ?? null : null;
+  const { data, error } = await supabase
+    .from('2026 Volunteers')
+    .update(patch_data)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return { code: error.code, message: error.message };
+  return data;
 }
 
 // ── Out-of-Town ───────────────────────────────────────────────────────────────
