@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { supabase } from './supabase.js';
+import { supabase, initialAuthType } from './supabase.js';
 import { fetchVolunteerByEmail, fetchVolunteerById } from './lib/db.js';
 import Nav from './components/Nav.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -170,19 +170,13 @@ function NoProfileScreen({ email, onSignOut }) {
 export default function App() {
   const [session, setSession]             = useState(undefined);
   const [authEvent, setAuthEvent]         = useState(null);
-  const [needsPassword, setNeedsPassword] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(
+    initialAuthType === 'invite' || initialAuthType === 'recovery'
+  );
   const [volunteer, setVolunteer]         = useState(null);
   const [linkError, setLinkError]         = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [view, setView]                   = useState('dashboard');
-
-  // Detect invite or recovery link in URL hash on first load
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes('type=invite') || hash.includes('type=recovery')) {
-      setNeedsPassword(true);
-    }
-  }, []);
 
   // Init auth
   useEffect(() => {
