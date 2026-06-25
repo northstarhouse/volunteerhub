@@ -27,7 +27,10 @@ function AuthScreen() {
     if (!email || !password) return;
     setBusy(true); setErr('');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setErr(error.message); setBusy(false); }
+    if (error) {
+      setErr(error.message || 'Incorrect email or password. Make sure your account has been set up by a coordinator.');
+      setBusy(false);
+    }
   }
 
   async function handleReset(e) {
