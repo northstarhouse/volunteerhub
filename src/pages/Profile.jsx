@@ -55,27 +55,27 @@ const MONTH_OPTS = [
   ['09','September'],['10','October'],['11','November'],['12','December'],
 ];
 
-function DateSelector({ label, name, form, onChange, yearOptional = false }) {
+function DateSelector({ label, name, form, onChange, yearOptional = false, noDay = false }) {
   const raw = form[name] || '';
   const parts = raw.split('-');
   const hasAll = parts.length === 3;
-  const mo  = hasAll ? parts[0] : '';         // stored as MM-DD-YYYY for display
-  // Actually stored as YYYY-MM-DD in DB
-  const yr  = hasAll ? (parts[0] === '0001' ? '' : parts[0]) : '';
-  const mn  = hasAll ? parts[1] : '';
-  const dy  = hasAll ? String(parseInt(parts[2]) || '') : '';
+  const yr = hasAll ? (parts[0] === '0001' ? '' : parts[0]) : '';
+  const mn = hasAll ? parts[1] : '';
+  const dy = hasAll ? String(parseInt(parts[2]) || '') : '';
 
   function notify(month, day, year) {
-    if (!month || !day) { onChange(name, null); return; }
+    if (!month) { onChange(name, null); return; }
     if (!year && !yearOptional) { onChange(name, null); return; }
     const y = String(year || '0001').padStart(4, '0');
     const m = String(month).padStart(2, '0');
-    const d = String(day).padStart(2, '0');
+    const d = noDay ? '01' : (day ? String(day).padStart(2, '0') : null);
+    if (!noDay && !d) { onChange(name, null); return; }
     onChange(name, `${y}-${m}-${d}`);
   }
 
   const daysInMonth = mn ? new Date(2000, parseInt(mn), 0).getDate() : 31;
   const sel = { className: 'input', style: { padding: '9px 8px' } };
+  const currentYear = new Date().getFullYear();
 
   return (
     <div style={{ marginBottom: 12 }}>
@@ -88,15 +88,17 @@ function DateSelector({ label, name, form, onChange, yearOptional = false }) {
           <option value="">Month</option>
           {MONTH_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <select {...sel} style={{ ...sel.style, flex: 2 }} value={dy} onChange={e => notify(mn, e.target.value, yr)}>
-          <option value="">Day</option>
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(n => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
+        {!noDay && (
+          <select {...sel} style={{ ...sel.style, flex: 2 }} value={dy} onChange={e => notify(mn, e.target.value, yr)}>
+            <option value="">Day</option>
+            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        )}
         <select {...sel} style={{ ...sel.style, flex: 2 }} value={yr} onChange={e => notify(mn, dy, e.target.value)}>
           <option value="">{yearOptional ? 'Year' : 'Year *'}</option>
-          {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map(y => (
+          {Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i).map(y => (
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
@@ -182,17 +184,17 @@ const EDITABLE_FIELDS = [
   { name: 'Email',                           label: 'Email',                                  type: 'email' },
   { name: 'Address',                         label: 'Address',                                type: 'text' },
   { name: 'Birthday',              label: 'Birthday',        type: 'date', yearOptional: true },
-  { name: 'Volunteer Anniversary', label: 'NSH Anniversary', type: 'date', yearOptional: false },
+  { name: 'Volunteer Anniversary', label: 'NSH Anniversary', type: 'date', yearOptional: false, noDay: true },
   { name: 'Emergency Contact',               label: 'Emergency Contact',                      type: 'text', placeholder: 'Name & phone number' },
   { name: 'What they want to see at NSH',   label: 'About / Bio',                            type: 'textarea', placeholder: 'Tell others about yourself and what you enjoy at NSH…' },
   { name: 'NSH Future Vision',              label: 'What I Want for the Future of NSH',      type: 'textarea', placeholder: 'Share your hopes and ideas for NSH…' },
 ];
 
-function fmtDate(iso) {
+function fmtAnniversary(iso) {
   if (!iso) return null;
   const parts = iso.split('-');
-  if (parts.length < 3) return iso;
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  if (parts.length < 2) return iso;
+  return new Date(`${parts[0]}-${parts[1]}-01T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 function fmtBirthday(iso) {
   if (!iso) return null;
@@ -323,7 +325,7 @@ export default function Profile() {
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
               <InfoRow label="Birthday"         value={fmtBirthday(vol['Birthday'])} />
-              <InfoRow label="NSH Anniversary"  value={fmtDate(vol['Volunteer Anniversary'])} />
+              <InfoRow label="NSH Anniversary"  value={fmtAnniversary(vol['Volunteer Anniversary'])} />
               <InfoRow label="Emergency Contact" value={vol['Emergency Contact']} />
               {!vol['Birthday'] && !vol['Volunteer Anniversary'] && !vol['Emergency Contact'] && (
                 <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>Tap Edit to fill in your personal info.</div>
