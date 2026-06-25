@@ -49,29 +49,76 @@ function InfoRow({ label, value }) {
   );
 }
 
-function Field({ label, name, form, onChange, type = 'text', placeholder = '' }) {
-  const value = form[name] ?? '';
-  const base = { marginBottom: 12 };
+const MONTH_OPTS = [
+  ['01','January'],['02','February'],['03','March'],['04','April'],
+  ['05','May'],['06','June'],['07','July'],['08','August'],
+  ['09','September'],['10','October'],['11','November'],['12','December'],
+];
+
+function DateSelector({ label, name, form, onChange, yearOptional = false }) {
+  const raw = form[name] || '';
+  const parts = raw.split('-');
+  const hasAll = parts.length === 3;
+  const mo  = hasAll ? parts[0] : '';         // stored as MM-DD-YYYY for display
+  // Actually stored as YYYY-MM-DD in DB
+  const yr  = hasAll ? (parts[0] === '0001' ? '' : parts[0]) : '';
+  const mn  = hasAll ? parts[1] : '';
+  const dy  = hasAll ? String(parseInt(parts[2]) || '') : '';
+
+  function notify(month, day, year) {
+    if (!month || !day) { onChange(name, null); return; }
+    if (!year && !yearOptional) { onChange(name, null); return; }
+    const y = String(year || '0001').padStart(4, '0');
+    const m = String(month).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    onChange(name, `${y}-${m}-${d}`);
+  }
+
+  const daysInMonth = mn ? new Date(2000, parseInt(mn), 0).getDate() : 31;
+  const sel = { className: 'input', style: { padding: '9px 8px' } };
+
   return (
-    <div style={base}>
-      <div className="label">{label}</div>
-      {type === 'textarea' ? (
-        <textarea
-          className="input"
-          rows={3}
-          value={value}
-          onChange={e => onChange(name, e.target.value)}
-          placeholder={placeholder}
-          style={{ resize: 'vertical' }}
-        />
-      ) : (
+    <div style={{ marginBottom: 12 }}>
+      <div className="label" style={{ marginBottom: 4 }}>
+        {label}
+        {yearOptional && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--muted)', fontSize: 11 }}> — year optional</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <select {...sel} style={{ ...sel.style, flex: 3 }} value={mn} onChange={e => notify(e.target.value, dy, yr)}>
+          <option value="">Month</option>
+          {MONTH_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        <select {...sel} style={{ ...sel.style, flex: 2 }} value={dy} onChange={e => notify(mn, e.target.value, yr)}>
+          <option value="">Day</option>
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(n => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
         <input
           className="input"
-          type={type}
-          value={value}
-          onChange={e => onChange(name, e.target.value)}
-          placeholder={placeholder}
+          type="number"
+          placeholder={yearOptional ? 'Year' : 'Year *'}
+          value={yr}
+          onChange={e => notify(mn, dy, e.target.value)}
+          min={1900}
+          max={new Date().getFullYear()}
+          style={{ flex: 2, padding: '9px 8px' }}
         />
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, name, form, onChange, type = 'text', placeholder = '', yearOptional = false }) {
+  if (type === 'date') return <DateSelector label={label} name={name} form={form} onChange={onChange} yearOptional={yearOptional} />;
+  const value = form[name] ?? '';
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div className="label">{label}</div>
+      {type === 'textarea' ? (
+        <textarea className="input" rows={3} value={value} onChange={e => onChange(name, e.target.value)} placeholder={placeholder} style={{ resize: 'vertical' }} />
+      ) : (
+        <input className="input" type={type} value={value} onChange={e => onChange(name, e.target.value)} placeholder={placeholder} />
       )}
     </div>
   );
@@ -138,8 +185,8 @@ const EDITABLE_FIELDS = [
   { name: 'Phone Number',                   label: 'Phone',                                  type: 'tel' },
   { name: 'Email',                           label: 'Email',                                  type: 'email' },
   { name: 'Address',                         label: 'Address',                                type: 'text' },
-  { name: 'Birthday',                        label: 'Birthday',                               type: 'date' },
-  { name: 'Volunteer Anniversary',           label: 'NSH Anniversary',                        type: 'date' },
+  { name: 'Birthday',              label: 'Birthday',        type: 'date', yearOptional: true },
+  { name: 'Volunteer Anniversary', label: 'NSH Anniversary', type: 'date', yearOptional: false },
   { name: 'Emergency Contact',               label: 'Emergency Contact',                      type: 'text', placeholder: 'Name & phone number' },
   { name: 'What they want to see at NSH',   label: 'About / Bio',                            type: 'textarea', placeholder: 'Tell others about yourself and what you enjoy at NSH…' },
   { name: 'NSH Future Vision',              label: 'What I Want for the Future of NSH',      type: 'textarea', placeholder: 'Share your hopes and ideas for NSH…' },
