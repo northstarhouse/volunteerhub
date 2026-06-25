@@ -325,7 +325,7 @@ export default function Profile() {
             {/* Contact */}
             <div className="card" style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', marginBottom: 14 }}>Contact Info</div>
-              {EDITABLE_FIELDS.filter(f => ['Phone Number','Email','Address'].includes(f.name)).map(f => (
+              {EDITABLE_FIELDS.filter(f => ['Phone Number','Email','Preferred Contact','Address'].includes(f.name)).map(f => (
                 <Field key={f.name} {...f} form={form} onChange={handleChange} />
               ))}
             </div>
