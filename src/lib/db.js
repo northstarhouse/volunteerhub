@@ -126,34 +126,55 @@ export async function insertOotNotice(payload) {
   return post('oot_notices', payload);
 }
 
-// ── Hours (Google Apps Script) ────────────────────────────────────────────────
+// ── Hours (Supabase kiosk_logs) ───────────────────────────────────────────────
 
-const HOURS_URL = 'https://script.google.com/macros/s/AKfycbwbVk0SB6geUv4xcbxkps06qXwkggMfrD59GMlC_0gRRjQ8p4rr4FNCqgEeY04RrAU_/exec?action=getHours';
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function buildHoursMap(logs) {
+  const byName = {};
+  for (const log of logs) {
+    const name = (log.name || '').trim();
+    if (!name) continue;
+    if (!byName[name]) byName[name] = [];
+    byName[name].push(log);
+  }
+
+  const map = {};
+  for (const [name, nameLogs] of Object.entries(byName)) {
+    const key = name.toLowerCase();
+    const months = {};
+    let total = 0;
+
+    for (let i = 0; i < nameLogs.length; i++) {
+      if (nameLogs[i].action !== 'check-in') continue;
+      const checkOut = nameLogs.find((l, idx) => idx > i && l.action === 'check-out');
+      if (!checkOut) continue;
+      const hours = (new Date(checkOut.timestamp) - new Date(nameLogs[i].timestamp)) / 3600000;
+      if (hours <= 0 || hours > 24) continue;
+      const m = MONTHS[new Date(nameLogs[i].timestamp).getMonth()];
+      months[m] = (months[m] || 0) + hours;
+      total += hours;
+    }
+
+    if (!map[key]) {
+      map[key] = { total, months };
+    } else {
+      map[key].total += total;
+      MONTHS.forEach(m => { if (months[m]) map[key].months[m] = (map[key].months[m] || 0) + months[m]; });
+    }
+  }
+  return map;
+}
 
 export async function fetchHours() {
   try {
-    const r = await fetch(HOURS_URL);
-    const data = await r.json();
-    if (!data.success || !Array.isArray(data.hours)) return {};
-    const map = {};
-    data.hours.forEach(row => {
-      const name = (row.name || '').trim().toLowerCase();
-      if (!name) return;
-      const months = {};
-      MONTHS.forEach(m => {
-        const v = parseFloat(row[m.toLowerCase()]) || 0;
-        if (v > 0) months[m] = v;
-      });
-      const total = parseFloat(row.total_hours) || 0;
-      if (!map[name]) {
-        map[name] = { total, months };
-      } else {
-        map[name].total += total;
-        MONTHS.forEach(m => { if (months[m]) map[name].months[m] = (map[name].months[m] || 0) + months[m]; });
-      }
-    });
-    return map;
+    const year = new Date().getFullYear();
+    const res = await fetch(
+      `${URL}/rest/v1/kiosk_logs?type=eq.volunteer&timestamp=gte.${year}-01-01T00:00:00.000Z&timestamp=lt.${year + 1}-01-01T00:00:00.000Z&order=name.asc,timestamp.asc&select=timestamp,name,action`,
+      { headers: hdr() }
+    );
+    if (!res.ok) return {};
+    return buildHoursMap(await res.json());
   } catch {
     return {};
   }
@@ -179,4 +200,4 @@ export function getVolunteerHours(hoursMap, firstName, lastName) {
   return found ? merged : null;
 }
 
-export { MONTHS };
+
