@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useVol } from '../App.jsx';
 import { supabase } from '../supabase.js';
-import { updateVolunteer, photoUrl, fetchOotNotices, insertOotNotice } from '../lib/db.js';
+import { updateVolunteer, photoUrl, insertOotNotice } from '../lib/db.js';
 
 const TEAM_COLORS = {
   'Staff':        { bg: '#f3f3f3', color: '#555' },
@@ -258,23 +258,16 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function OutOfTownCard({ vol }) {
   const fullName = `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim();
-  const [notices, setNotices] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm]         = useState({ start_date: today(), end_date: '', notes: '' });
   const [saving, setSaving]     = useState(false);
   const [err, setErr]           = useState('');
-
-  useEffect(() => {
-    fetchOotNotices().then(rows => {
-      setNotices(Array.isArray(rows) ? rows.filter(n => n.name === fullName) : []);
-      setLoading(false);
-    });
-  }, [fullName]);
+  const [submitted, setSubmitted] = useState(false);
 
   function openForm() {
     setForm({ start_date: today(), end_date: '', notes: '' });
     setErr('');
+    setSubmitted(false);
     setShowForm(true);
   }
 
@@ -285,33 +278,27 @@ function OutOfTownCard({ vol }) {
     setSaving(true); setErr('');
     const result = await insertOotNotice({ name: fullName, start_date: form.start_date, end_date: form.end_date, notes: form.notes || null });
     if (Array.isArray(result) && result[0]) {
-      setNotices(prev => [...prev, result[0]].sort((a, b) => a.start_date.localeCompare(b.start_date)));
       setShowForm(false);
+      setSubmitted(true);
     } else {
       setErr('Failed to save. Please try again.');
     }
     setSaving(false);
   }
 
-  const nowStr = today();
-  const upcoming = notices.filter(n => n.end_date >= nowStr);
-
-  function fmtRange(n) {
-    const s = new Date(n.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const e = new Date(n.end_date   + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const active = n.start_date <= nowStr && n.end_date >= nowStr;
-    return `${s} – ${e}${active ? ' ✈️ Currently away' : ''}`;
-  }
-
   return (
     <div className="card" style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showForm || submitted ? 12 : 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Out of Town</div>
-        <button onClick={openForm} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>+ Post Mine</button>
+        {!showForm && <button onClick={openForm} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Submit Out of Town Notice</button>}
       </div>
 
+      {submitted && !showForm && (
+        <div style={{ fontSize: 12, color: '#2e7d32' }}>✓ Your out-of-town notice has been submitted.</div>
+      )}
+
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ marginBottom: upcoming.length ? 14 : 0, background: '#fafafa', border: '0.5px solid var(--border-light)', borderRadius: 8, padding: 12 }}>
+        <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
               <div className="label">Start Date</div>
@@ -329,20 +316,10 @@ function OutOfTownCard({ vol }) {
           {err && <div style={{ color: '#c0392b', fontSize: 12, marginBottom: 10 }}>{err}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={() => setShowForm(false)} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
-            <button type="submit" className="btn-gold" disabled={saving} style={{ flex: 2 }}>{saving ? 'Posting…' : 'Post Notice'}</button>
+            <button type="submit" className="btn-gold" disabled={saving} style={{ flex: 2 }}>{saving ? 'Submitting…' : 'Submit'}</button>
           </div>
         </form>
       )}
-
-      {loading ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>
-      ) : upcoming.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No upcoming out-of-town notices on file.</div>
-      ) : upcoming.map((n, i) => (
-        <div key={i} style={{ fontSize: 12, color: 'var(--text)', marginBottom: i < upcoming.length - 1 ? 6 : 0 }}>
-          {fmtRange(n)}{n.notes ? ` — ${n.notes}` : ''}
-        </div>
-      ))}
     </div>
   );
 }
