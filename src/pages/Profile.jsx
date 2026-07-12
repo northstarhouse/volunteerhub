@@ -324,8 +324,104 @@ function OutOfTownCard({ vol }) {
   );
 }
 
+const FEEDBACK_CATEGORIES = [
+  'General Feedback',
+  'Suggestion or Idea',
+  'Question',
+  'Shout-Out / Recognition',
+  'Issue or Concern',
+];
+
+function FeedbackCard({ vol, session }) {
+  const [showForm, setShowForm]   = useState(false);
+  const [category, setCategory]   = useState('');
+  const [message, setMessage]     = useState('');
+  const [anon, setAnon]           = useState(false);
+  const [busy, setBusy]           = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [err, setErr]             = useState('');
+
+  function openForm() {
+    setCategory('');
+    setMessage('');
+    setAnon(false);
+    setErr('');
+    setSubmitted(false);
+    setShowForm(true);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!message.trim()) { setErr('Please write a message before submitting.'); return; }
+    setBusy(true); setErr('');
+
+    const name = anon ? null : `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim();
+    const { error } = await supabase.from('vol_feedback').insert({
+      auth_user_id:   session.user.id,
+      volunteer_name: name,
+      category:       category || null,
+      message:        message.trim(),
+      anonymous:      anon,
+    });
+
+    if (error) {
+      setErr('Failed to send. Please try again.');
+      setBusy(false);
+      return;
+    }
+
+    setShowForm(false);
+    setSubmitted(true);
+    setBusy(false);
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showForm || submitted ? 12 : 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Feedback</div>
+        {!showForm && <button onClick={openForm} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Submit Feedback</button>}
+      </div>
+
+      {submitted && !showForm && (
+        <div style={{ fontSize: 12, color: '#2e7d32' }}>✓ Your feedback has been sent. Thank you!</div>
+      )}
+
+      {showForm && (
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 10 }}>
+            <div className="label">Category</div>
+            <select className="input" value={category} onChange={e => setCategory(e.target.value)} style={{ appearance: 'auto' }}>
+              <option value="">Select a category (optional)</option>
+              {FEEDBACK_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="label">Message *</div>
+            <textarea className="input" rows={4} value={message} onChange={e => setMessage(e.target.value)} placeholder="Share your feedback, ideas, questions, or shout-outs…" required style={{ resize: 'vertical' }} />
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 12, padding: '10px 12px', background: 'var(--bg)', borderRadius: 8 }}>
+            <input type="checkbox" checked={anon} onChange={e => setAnon(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--gold)' }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>Submit anonymously</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)' }}>Your name won't be attached to this feedback.</div>
+            </div>
+          </label>
+
+          {err && <div style={{ color: '#c0392b', fontSize: 12, marginBottom: 10 }}>{err}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={() => setShowForm(false)} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
+            <button type="submit" className="btn-gold" disabled={busy || !message.trim()} style={{ flex: 2 }}>{busy ? 'Sending…' : 'Send Feedback'}</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function Profile() {
-  const { volunteer, setVolunteer, signOut } = useVol();
+  const { volunteer, setVolunteer, signOut, session } = useVol();
   const [editing, setEditing] = useState(false);
   const [form, setForm]       = useState({});
   const [saving, setSaving]   = useState(false);
@@ -455,8 +551,6 @@ export default function Profile() {
               <ViewRow label="Emergency Contact" value={vol['Emergency Contact']}                       onEdit={startEdit} last />
             </div>
 
-            <OutOfTownCard vol={vol} />
-
             {/* About */}
             <div className="card" style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -469,6 +563,9 @@ export default function Profile() {
               <ViewRow label="⚠ Allergies"           value={vol['Allergies']}                    onEdit={startEdit} note="visible to others in directory" labelColor="#c0392b" />
               <ViewRow label="🔒 Special Considerations" value={vol['Special Considerations']}   onEdit={startEdit} note="only visible to you & coordinators" shaded last />
             </div>
+
+            <OutOfTownCard vol={vol} />
+            <FeedbackCard vol={vol} session={session} />
           </>
         )}
 

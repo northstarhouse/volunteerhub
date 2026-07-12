@@ -6,7 +6,6 @@ import Dashboard from './pages/Dashboard.jsx';
 import Profile from './pages/Profile.jsx';
 import Directory from './pages/Directory.jsx';
 import Hours from './pages/Hours.jsx';
-import Feedback from './pages/Feedback.jsx';
 import OperationalAreas from './pages/OperationalAreas.jsx';
 
 export const VolContext = createContext(null);
@@ -258,7 +257,6 @@ export default function App() {
     profile:   <Profile />,
     directory: <Directory />,
     hours:     <Hours />,
-    feedback:  <Feedback />,
     areas:     <OperationalAreas />,
   };
 

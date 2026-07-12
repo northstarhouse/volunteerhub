@@ -6,7 +6,6 @@ const TABS = [
   { id: 'directory', label: 'Directory', icon: PeopleIcon },
   { id: 'areas',     label: 'My Area',   icon: AreaIcon },
   { id: 'hours',     label: 'Hours',     icon: ClockIcon },
-  { id: 'feedback',  label: 'Feedback',  icon: ChatIcon },
 ];
 
 function HomeIcon({ active }) {
@@ -24,10 +23,6 @@ function AreaIcon({ active }) {
 function ClockIcon({ active }) {
   const c = active ? 'var(--gold)' : '#aaa';
   return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-}
-function ChatIcon({ active }) {
-  const c = active ? 'var(--gold)' : '#aaa';
-  return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
 }
 
 export default function Nav({ view, setView }) {
