@@ -7,23 +7,26 @@ const URL  = import.meta.env.VITE_SUPABASE_URL;
 const KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const VOL  = encodeURIComponent('2026 Volunteers');
 
-const hdr = (extra = {}) => ({
-  apikey: KEY,
-  Authorization: `Bearer ${KEY}`,
-  'Content-Type': 'application/json',
-  Prefer: 'return=representation',
-  ...extra,
-});
+async function hdr(extra = {}) {
+  const { data } = await supabase.auth.getSession();
+  return {
+    apikey: KEY,
+    Authorization: `Bearer ${data.session?.access_token || KEY}`,
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation',
+    ...extra,
+  };
+}
 
 async function get(path) {
-  const r = await fetch(`${URL}/rest/v1/${path}`, { headers: hdr() });
+  const r = await fetch(`${URL}/rest/v1/${path}`, { headers: await hdr() });
   return r.json();
 }
 
 async function patch(path, body) {
   const r = await fetch(`${URL}/rest/v1/${path}`, {
     method: 'PATCH',
-    headers: hdr(),
+    headers: await hdr(),
     body: JSON.stringify(body),
   });
   return r.json();
@@ -32,7 +35,7 @@ async function patch(path, body) {
 async function post(path, body) {
   const r = await fetch(`${URL}/rest/v1/${path}`, {
     method: 'POST',
-    headers: hdr(),
+    headers: await hdr(),
     body: JSON.stringify(body),
   });
   return r.json();
@@ -164,6 +167,55 @@ function buildHoursMap(logs) {
     }
   }
   return map;
+}
+
+export const DUTY_LABELS = {
+  construction:      'Construction',
+  board:              'Board Member',
+  landscape:          'Grounds',
+  docents:            'Docent',
+  interiors:          'Interiors',
+  events:             'Events Team',
+  volunteerExchange:  'Volunteer Exchange',
+  other:              'Other',
+};
+
+function buildLocalIso(dateStr, timeStr) {
+  const value = new Date(`${dateStr}T${timeStr}:00`);
+  return Number.isNaN(value.getTime()) ? null : value.toISOString();
+}
+
+export async function insertManualHours(name, duty, { date, useSpecificTimes, startTime, endTime, hours }) {
+  let checkInIso, checkOutIso;
+
+  if (useSpecificTimes) {
+    checkInIso = buildLocalIso(date, startTime);
+    checkOutIso = buildLocalIso(date, endTime);
+    if (!checkInIso || !checkOutIso || new Date(checkOutIso) <= new Date(checkInIso)) {
+      return { error: 'Invalid start/end time.' };
+    }
+  } else {
+    const enteredHours = Number(hours);
+    if (!Number.isFinite(enteredHours) || enteredHours <= 0 || enteredHours > 12) {
+      return { error: 'Hours must be between 0 and 12.' };
+    }
+    checkInIso = buildLocalIso(date, '09:00');
+    if (!checkInIso) return { error: 'Invalid date.' };
+    checkOutIso = new Date(new Date(checkInIso).getTime() + enteredHours * 3600000).toISOString();
+  }
+
+  const rows = [
+    { timestamp: checkInIso,  name, type: 'volunteer', duty, action: 'check-in',  source: 'manual-hours' },
+    { timestamp: checkOutIso, name, type: 'volunteer', duty, action: 'check-out', source: 'manual-hours' },
+  ];
+
+  const res = await fetch(`${URL}/rest/v1/kiosk_logs`, {
+    method: 'POST',
+    headers: await hdr({ Prefer: 'return=minimal' }),
+    body: JSON.stringify(rows),
+  });
+  if (!res.ok) return { error: 'Failed to save. Please try again.' };
+  return { success: true };
 }
 
 export async function fetchHours() {

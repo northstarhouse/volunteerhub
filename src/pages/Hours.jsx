@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
-import { fetchHours, getVolunteerHours, MONTHS } from '../lib/db.js';
+import { fetchHours, getVolunteerHours, insertManualHours, MONTHS, DUTY_LABELS } from '../lib/db.js';
 
 function Bar({ value, max }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -11,13 +11,118 @@ function Bar({ value, max }) {
   );
 }
 
+const today = () => new Date().toISOString().slice(0, 10);
+
+function AddMissedHoursCard({ vol, onSaved }) {
+  const fullName = `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim();
+  const [showForm, setShowForm]   = useState(false);
+  const [form, setForm]           = useState({ duty: 'other', date: today(), useSpecificTimes: false, hours: '', startTime: '', endTime: '' });
+  const [saving, setSaving]       = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [err, setErr]             = useState('');
+
+  function openForm() {
+    setForm({ duty: 'other', date: today(), useSpecificTimes: false, hours: '', startTime: '', endTime: '' });
+    setErr('');
+    setSubmitted(false);
+    setShowForm(true);
+  }
+
+  const canSubmit = form.date && (form.useSpecificTimes
+    ? form.startTime && form.endTime && form.endTime > form.startTime
+    : Number(form.hours) > 0 && Number(form.hours) <= 12);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setSaving(true); setErr('');
+    const result = await insertManualHours(fullName, DUTY_LABELS[form.duty] || DUTY_LABELS.other, form);
+    if (result.success) {
+      setShowForm(false);
+      setSubmitted(true);
+      onSaved?.();
+    } else {
+      setErr(result.error || 'Failed to save. Please try again.');
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showForm || submitted ? 12 : 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Missed Hours</div>
+        {!showForm && <button onClick={openForm} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Add Missed Hours</button>}
+      </div>
+
+      {submitted && !showForm && (
+        <div style={{ fontSize: 12, color: '#2e7d32' }}>✓ Your hours have been added.</div>
+      )}
+
+      {showForm && (
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 10 }}>
+            <div className="label">Area</div>
+            <select className="input" value={form.duty} onChange={e => setForm(p => ({ ...p, duty: e.target.value }))} style={{ appearance: 'auto' }}>
+              {Object.keys(DUTY_LABELS).map(k => <option key={k} value={k}>{DUTY_LABELS[k]}</option>)}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="label">Date</div>
+            <input className="input" type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} required />
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="label">Entry Type</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={() => setForm(p => ({ ...p, useSpecificTimes: false }))}
+                className={form.useSpecificTimes ? 'btn-ghost' : 'btn-gold'} style={{ flex: 1, fontSize: 12, padding: '7px 0' }}>
+                Date + Hours
+              </button>
+              <button type="button" onClick={() => setForm(p => ({ ...p, useSpecificTimes: true }))}
+                className={form.useSpecificTimes ? 'btn-gold' : 'btn-ghost'} style={{ flex: 1, fontSize: 12, padding: '7px 0' }}>
+                Date + Time
+              </button>
+            </div>
+          </div>
+
+          {form.useSpecificTimes ? (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Start Time</div>
+                <input className="input" type="time" value={form.startTime} onChange={e => setForm(p => ({ ...p, startTime: e.target.value }))} required />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="label">End Time</div>
+                <input className="input" type="time" value={form.endTime} onChange={e => setForm(p => ({ ...p, endTime: e.target.value }))} required />
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginBottom: 12 }}>
+              <div className="label">Total Hours</div>
+              <input className="input" type="number" min="0.5" max="12" step="0.5" value={form.hours} onChange={e => setForm(p => ({ ...p, hours: e.target.value }))} placeholder="Example: 3.5" required />
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>When using Date + Hours, check-in is set to 9:00 AM on that date.</div>
+            </div>
+          )}
+
+          {err && <div style={{ color: '#c0392b', fontSize: 12, marginBottom: 10 }}>{err}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={() => setShowForm(false)} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
+            <button type="submit" className="btn-gold" disabled={saving || !canSubmit} style={{ flex: 2 }}>{saving ? 'Saving…' : 'Add Hours'}</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function Hours() {
   const { volunteer } = useVol();
   const [hoursMap, setHoursMap] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(false);
 
-  useEffect(() => {
+  function loadHours() {
     fetchHours().then(map => {
       setHoursMap(map);
       setLoading(false);
@@ -25,7 +130,9 @@ export default function Hours() {
       setError(true);
       setLoading(false);
     });
-  }, []);
+  }
+
+  useEffect(() => { loadHours(); }, []);
 
   const data = hoursMap && !loading
     ? getVolunteerHours(hoursMap, volunteer['First Name'], volunteer['Last Name'])
@@ -111,6 +218,8 @@ export default function Hours() {
                 <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>No monthly detail available.</div>
               </div>
             )}
+
+            <AddMissedHoursCard vol={volunteer} onSaved={loadHours} />
           </>
         )}
       </div>
