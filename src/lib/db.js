@@ -180,6 +180,71 @@ export async function fetchHours() {
   }
 }
 
+// ── Operational Areas ─────────────────────────────────────────────────────────
+
+export const OPERATIONAL_AREAS = ['Construction', 'Grounds', 'Interiors', 'Docents', 'Fundraising', 'Events', 'Marketing', 'Venue'];
+
+export const AREA_DEFAULTS = {
+  'Construction': { lead: 'Rick Panos',      budget: 12000, pic: '' },
+  'Grounds':      { lead: 'Paula Campbell',  budget: 14000, pic: '' },
+  'Interiors':    { lead: 'Bec Freeman',     budget: 2500,  pic: '' },
+  'Docents':      { lead: 'Rich Hill',       budget: 1000,  pic: '' },
+  'Fundraising':  { lead: 'Kaelen Jennings', budget: null,  pic: '' },
+  'Events':       { lead: 'Barb Kusha',      budget: 7500,  pic: '' },
+  'Marketing':    { lead: 'Haley Wright',    budget: 1000,  pic: '' },
+  'Venue':        { lead: 'Staff',           budget: null,  pic: '' },
+};
+
+const AREA_ALIASES = {
+  'Events':  ['events team', 'event support', 'events'],
+  'Docents': ['docent', 'docents'],
+  'Venue':   ['venue'],
+};
+
+export function matchVolunteerAreas(team) {
+  if (!team) return [];
+  const tags = team.split(/[,|]/).map(t => t.trim().toLowerCase()).filter(Boolean);
+  return OPERATIONAL_AREAS.filter(area => {
+    const aliases = AREA_ALIASES[area] || [area.toLowerCase()];
+    return tags.some(t => aliases.indexOf(t) !== -1);
+  });
+}
+
+export function currentQuarterStr() {
+  const m = new Date().getMonth();
+  return m <= 2 ? 'Q1' : m <= 5 ? 'Q2' : m <= 8 ? 'Q3' : 'Q4';
+}
+
+export async function fetchOperationalAreaInfo(area) {
+  const rows = await get(`Operational%20Areas?area=eq.${encodeURIComponent(area)}&select=*`);
+  return Array.isArray(rows) ? rows[0] ?? null : null;
+}
+
+export async function fetchOpBudget(area) {
+  const rows = await get(`Op%20Budget?area=eq.${encodeURIComponent(area)}&select=*&order=date.desc,id.desc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function fetchOpEarnings(area) {
+  const rows = await get(`Op%20Earnings?area=eq.${encodeURIComponent(area)}&select=*&order=date.desc,id.desc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function fetchOpResources(area) {
+  const rows = await get(`Op%20Resources?area=eq.${encodeURIComponent(area)}&select=*&order=created_at.asc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function fetchOpQuarterGoals(area, quarter, year) {
+  const rows = await get(`Op%20Quarter%20Goals?area=eq.${encodeURIComponent(area)}&quarter=eq.${encodeURIComponent(quarter)}&year=eq.${year}&select=*`);
+  return Array.isArray(rows) ? rows[0] ?? null : null;
+}
+
+export async function fetchOpQuarterlyUpdate(area, quarter, year) {
+  const rows = await get(`Op%20Quarterly%20Updates?area=eq.${encodeURIComponent(area)}&quarter=eq.${encodeURIComponent(quarter)}&year=eq.${year}&select=*&order=date_submitted.desc&limit=1`);
+  return Array.isArray(rows) ? rows[0] ?? null : null;
+}
+
 export function getVolunteerHours(hoursMap, firstName, lastName) {
   const first = (firstName || '').trim().toLowerCase();
   const last  = (lastName  || '').trim().toLowerCase();

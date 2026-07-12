@@ -6,8 +6,8 @@ import Dashboard from './pages/Dashboard.jsx';
 import Profile from './pages/Profile.jsx';
 import Directory from './pages/Directory.jsx';
 import Hours from './pages/Hours.jsx';
-import OutOfTown from './pages/OutOfTown.jsx';
 import Feedback from './pages/Feedback.jsx';
+import OperationalAreas from './pages/OperationalAreas.jsx';
 
 export const VolContext = createContext(null);
 export const useVol = () => useContext(VolContext);
@@ -180,6 +180,15 @@ export default function App() {
   const [linkError, setLinkError]         = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [view, setView]                   = useState('dashboard');
+  const [pendingArea, setPendingArea]     = useState(null);
+
+  function openArea(area) {
+    setPendingArea(area);
+    setView('areas');
+  }
+  function clearPendingArea() {
+    setPendingArea(null);
+  }
 
   // Init auth
   useEffect(() => {
@@ -249,12 +258,12 @@ export default function App() {
     profile:   <Profile />,
     directory: <Directory />,
     hours:     <Hours />,
-    oot:       <OutOfTown />,
     feedback:  <Feedback />,
+    areas:     <OperationalAreas />,
   };
 
   return (
-    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut }}>
+    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, pendingArea, openArea, clearPendingArea }}>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
           {pages[view] ?? pages.dashboard}

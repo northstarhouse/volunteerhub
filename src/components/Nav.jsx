@@ -1,11 +1,11 @@
 import { useVol } from '../App.jsx';
-import { photoUrl } from '../lib/db.js';
+import { photoUrl, matchVolunteerAreas } from '../lib/db.js';
 
 const TABS = [
   { id: 'dashboard', label: 'Home',      icon: HomeIcon },
   { id: 'directory', label: 'Directory', icon: PeopleIcon },
+  { id: 'areas',     label: 'My Area',   icon: AreaIcon },
   { id: 'hours',     label: 'Hours',     icon: ClockIcon },
-  { id: 'oot',       label: 'Away',      icon: PlaneIcon },
   { id: 'feedback',  label: 'Feedback',  icon: ChatIcon },
 ];
 
@@ -17,13 +17,13 @@ function PeopleIcon({ active }) {
   const c = active ? 'var(--gold)' : '#aaa';
   return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
 }
+function AreaIcon({ active }) {
+  const c = active ? 'var(--gold)' : '#aaa';
+  return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
+}
 function ClockIcon({ active }) {
   const c = active ? 'var(--gold)' : '#aaa';
   return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-}
-function PlaneIcon({ active }) {
-  const c = active ? 'var(--gold)' : '#aaa';
-  return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2A1 1 0 0 0 1 7.2l.8 4a1 1 0 0 0 .6.7L6 13l-2 3.5C3 18 4 19 5.5 18L9 16l4 3a1 1 0 0 0 1 .1l4-2a1 1 0 0 0 .6-.9z"/></svg>;
 }
 function ChatIcon({ active }) {
   const c = active ? 'var(--gold)' : '#aaa';
@@ -33,6 +33,8 @@ function ChatIcon({ active }) {
 export default function Nav({ view, setView }) {
   const { volunteer, signOut } = useVol();
   const initials = `${(volunteer?.['First Name'] || '')[0] || ''}${(volunteer?.['Last Name'] || '')[0] || ''}`.toUpperCase();
+  const hasArea = matchVolunteerAreas(volunteer?.Team).length > 0;
+  const tabs = TABS.filter(tab => tab.id !== 'areas' || hasArea);
 
   return (
     <nav style={{
@@ -49,7 +51,7 @@ export default function Nav({ view, setView }) {
       zIndex: 100,
     }}>
       <div style={{ maxWidth: 640, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-        {TABS.map(tab => {
+        {tabs.map(tab => {
           const active = view === tab.id;
           return (
             <button
