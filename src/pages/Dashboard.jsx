@@ -13,7 +13,7 @@ function PageHeader({ name }) {
     <div style={{ padding: '22px 20px 16px', borderBottom: '0.5px solid var(--border-light)' }}>
       <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 4 }}>{today}</div>
       <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--text)' }}>
-        Hey, {name} 👋
+        Hey, {name}
       </div>
     </div>
   );
@@ -22,12 +22,12 @@ function PageHeader({ name }) {
 const EVENT_TYPE = (title) => {
   const tl = title.toLowerCase();
   if (/docent/.test(tl))                             return { label: 'Docent Tour', color: '#2e7d32', bg: '#e8f5e9' };
-  if (/estate|walk.?thr|sierra|\(j\)|tour/.test(tl)) return { label: 'Estate Tour', color: '#c2185b', bg: '#fce4ec' };
+  if (/estate|walk.?thr|sierra|tour/.test(tl))        return { label: 'Estate Tour', color: '#c2185b', bg: '#fce4ec' };
   if (/wedding/.test(tl))                             return { label: 'Wedding',     color: '#b71c1c', bg: '#ffebee' };
   if (/committee/.test(tl))                           return { label: 'Committee',   color: '#e65100', bg: '#fff3e0' };
   if (/meeting/.test(tl))                             return { label: 'Meeting',     color: '#8a6200', bg: '#fff9c4' };
   if (/creative|class/.test(tl))                      return { label: 'Creative',    color: '#00838f', bg: '#e0f7fa' };
-  if (/event|party/.test(tl))                         return { label: 'Event',       color: '#1565c0', bg: '#e3f2fd' };
+  if (/event|party|\(j\)|\(s\)/.test(tl))             return { label: 'Event',       color: '#1565c0', bg: '#e3f2fd' };
   return { label: 'Other', color: GOLD, bg: '#f0ebe2' };
 };
 
@@ -283,6 +283,8 @@ export default function Dashboard() {
       .catch(() => setCalEvents([]));
   }, []);
 
+  const myAreas = matchVolunteerAreas(volunteer.Team);
+
   return (
     <div>
       <PageHeader name={volunteer['First Name']} />
@@ -290,17 +292,24 @@ export default function Dashboard() {
         {/* Two-column on desktop, stacked on mobile */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0,1fr) 280px',
+          gridTemplateColumns: myAreas.length > 0 ? '280px minmax(0,1fr)' : '1fr',
           gap: 16,
           alignItems: 'start',
         }}
           className="dashboard-grid"
         >
-          {/* Left: This Week */}
-          <ThisWeekCard events={calEvents} />
+          {/* Left: My Area cards */}
+          {myAreas.length > 0 && (
+            <div>
+              {myAreas.map(area => (
+                <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
+              ))}
+            </div>
+          )}
 
-          {/* Right: Birthdays + OOT stacked */}
+          {/* Right: Calendar, Birthdays, OOT stacked */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <ThisWeekCard events={calEvents} />
             {loading ? (
               <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
             ) : (
@@ -311,14 +320,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-
-        {matchVolunteerAreas(volunteer.Team).length > 0 && (
-          <div style={{ marginTop: 14 }}>
-            {matchVolunteerAreas(volunteer.Team).map(area => (
-              <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
