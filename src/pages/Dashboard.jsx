@@ -3,6 +3,7 @@ import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, AREA_DEFAULTS, currentQuarterStr, fetchOpBudget, fetchOpQuarterGoals,
+  fetchHours, getVolunteerHours, MONTHS,
 } from '../lib/db.js';
 
 const GOLD = '#886c44';
@@ -89,6 +90,58 @@ function Avatar({ v, size = 36 }) {
   ) : (
     <div style={{ width: size, height: size, borderRadius: '50%', background: '#f0ebe2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.38, fontWeight: 700, color: GOLD, flexShrink: 0 }}>
       {initials || '?'}
+    </div>
+  );
+}
+
+function HoursBar({ value, max }) {
+  const pct = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div style={{ height: 5, background: 'var(--light)', borderRadius: 3, overflow: 'hidden', flex: 1 }}>
+      <div style={{ height: '100%', width: `${pct}%`, background: GOLD, borderRadius: 3 }} />
+    </div>
+  );
+}
+
+function HoursSnapshotCard({ data }) {
+  const monthsWithHours = data ? MONTHS.map(m => ({ m, h: data.months[m] || 0 })).filter(x => x.h > 0) : [];
+  const maxMonth = monthsWithHours.length > 0 ? Math.max(...monthsWithHours.map(x => x.h)) : 0;
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+          {new Date().getFullYear()} Hours
+        </div>
+        {data === null ? (
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>
+        ) : (
+          <>
+            <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: GOLD, lineHeight: 1 }}>
+              {data.total % 1 === 0 ? data.total : data.total.toFixed(1)}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>hours volunteered so far</div>
+          </>
+        )}
+      </div>
+
+      {monthsWithHours.length > 0 && (
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '0.5px solid var(--border-light)' }}>
+          {MONTHS.map(m => {
+            const h = data.months[m] || 0;
+            if (h === 0) return null;
+            return (
+              <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{ width: 26, fontSize: 10.5, color: 'var(--muted)', fontWeight: 500, flexShrink: 0 }}>{m}</div>
+                <HoursBar value={h} max={maxMonth} />
+                <div style={{ width: 30, fontSize: 11.5, fontWeight: 600, color: 'var(--text)', textAlign: 'right', flexShrink: 0 }}>
+                  {h % 1 === 0 ? h : h.toFixed(1)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -262,6 +315,7 @@ export default function Dashboard() {
   const [oot, setOot]               = useState([]);
   const [calEvents, setCalEvents]   = useState(null);
   const [loading, setLoading]       = useState(true);
+  const [hoursData, setHoursData]   = useState(null);
 
   useEffect(() => {
     Promise.all([fetchAllActiveVolunteers(), fetchOotNotices()]).then(([vols, notices]) => {
@@ -269,6 +323,11 @@ export default function Dashboard() {
       setOot(Array.isArray(notices) ? notices : []);
       setLoading(false);
     });
+
+    fetchHours().then(map => {
+      const data = getVolunteerHours(map, volunteer['First Name'], volunteer['Last Name']);
+      setHoursData(data || { total: 0, months: {} });
+    }).catch(() => setHoursData({ total: 0, months: {} }));
 
     const now = new Date();
     const windowEnd = new Date(now.getTime() + 14 * 86400000);
@@ -292,20 +351,19 @@ export default function Dashboard() {
         {/* Two-column on desktop, stacked on mobile */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: myAreas.length > 0 ? '280px minmax(0,1fr)' : '1fr',
+          gridTemplateColumns: '280px minmax(0,1fr)',
           gap: 16,
           alignItems: 'start',
         }}
           className="dashboard-grid"
         >
-          {/* Left: My Area cards */}
-          {myAreas.length > 0 && (
-            <div>
-              {myAreas.map(area => (
-                <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
-              ))}
-            </div>
-          )}
+          {/* Left: Hours snapshot + My Area cards */}
+          <div>
+            <HoursSnapshotCard data={hoursData} />
+            {myAreas.map(area => (
+              <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
+            ))}
+          </div>
 
           {/* Right: Calendar, Birthdays, OOT stacked */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
