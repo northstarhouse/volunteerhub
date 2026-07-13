@@ -241,16 +241,13 @@ function AreaDetail({ area, showBack, onBack }) {
 }
 
 export default function OperationalAreas() {
-  const { volunteer, pendingArea, clearPendingArea } = useVol();
+  const { volunteer, currentArea, setCurrentArea } = useVol();
   const myAreas = matchVolunteerAreas(volunteer.Team);
-  const [selected, setSelected] = useState(pendingArea && myAreas.includes(pendingArea) ? pendingArea : (myAreas.length === 1 ? myAreas[0] : null));
+  const selected = myAreas.includes(currentArea) ? currentArea : (myAreas.length === 1 ? myAreas[0] : null);
 
   useEffect(() => {
-    if (pendingArea && myAreas.includes(pendingArea)) {
-      setSelected(pendingArea);
-      clearPendingArea();
-    }
-  }, [pendingArea]);
+    if (!currentArea && myAreas.length === 1) setCurrentArea(myAreas[0]);
+  }, [currentArea]);
 
   if (myAreas.length === 0) {
     return (
@@ -263,7 +260,7 @@ export default function OperationalAreas() {
   }
 
   if (selected) {
-    return <AreaDetail area={selected} showBack={myAreas.length > 1} onBack={() => setSelected(null)} />;
+    return <AreaDetail area={selected} showBack={myAreas.length > 1} onBack={() => setCurrentArea(null)} />;
   }
 
   return (
@@ -272,7 +269,7 @@ export default function OperationalAreas() {
       {myAreas.map(area => (
         <button
           key={area}
-          onClick={() => setSelected(area)}
+          onClick={() => setCurrentArea(area)}
           className="card"
           style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 10, cursor: 'pointer', border: '0.5px solid var(--border-light)' }}
         >

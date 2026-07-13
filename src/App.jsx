@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase, initialAuthType } from './supabase.js';
 import { fetchVolunteerByEmail, fetchVolunteerById } from './lib/db.js';
 import Nav from './components/Nav.jsx';
+import Sidebar from './components/Sidebar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Profile from './pages/Profile.jsx';
 import Directory from './pages/Directory.jsx';
@@ -179,15 +180,19 @@ export default function App() {
   const [linkError, setLinkError]         = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [view, setView]                   = useState('dashboard');
-  const [pendingArea, setPendingArea]     = useState(null);
+  const [currentArea, setCurrentArea]     = useState(null);
+  const [isMobile, setIsMobile]           = useState(window.innerWidth < 768);
 
   function openArea(area) {
-    setPendingArea(area);
+    setCurrentArea(area);
     setView('areas');
   }
-  function clearPendingArea() {
-    setPendingArea(null);
-  }
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Init auth
   useEffect(() => {
@@ -261,13 +266,24 @@ export default function App() {
   };
 
   return (
-    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, pendingArea, openArea, clearPendingArea }}>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
-        <div style={{ maxWidth: 640, margin: '0 auto' }}>
-          {pages[view] ?? pages.dashboard}
+    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea }}>
+      {isMobile ? (
+        <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
+          <div style={{ maxWidth: 640, margin: '0 auto' }}>
+            {pages[view] ?? pages.dashboard}
+          </div>
+          <Nav view={view} setView={setView} />
         </div>
-        <Nav view={view} setView={setView} />
-      </div>
+      ) : (
+        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+          <Sidebar view={view} setView={setView} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ maxWidth: 900, margin: '0 auto' }}>
+              {pages[view] ?? pages.dashboard}
+            </div>
+          </div>
+        </div>
+      )}
     </VolContext.Provider>
   );
 }
