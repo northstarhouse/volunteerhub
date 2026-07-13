@@ -17,7 +17,7 @@
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Calibri', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Calibri', 'Segoe UI', sans-serif;
   font-size: 14px;
   margin: 0;
   padding: 0;
