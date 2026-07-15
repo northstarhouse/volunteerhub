@@ -374,7 +374,7 @@ function DayOfTab({ ev, onUpdate }) {
         </ItemRow>
       ))}
       <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-        <input className="input" type="time" style={{ width: 120 }} value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+        <input className="input" type="time" step="900" style={{ width: 120 }} value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
         <input className="input" style={{ flex: 1 }} placeholder="Activity…" value={form.activity} onChange={e => setForm(f => ({ ...f, activity: e.target.value }))} />
         <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addItem}>Add</button>
       </div>
@@ -441,9 +441,15 @@ function EventDetail({ ev, onUpdate, onBack, onEdit }) {
             <StatusBadge status={ev.status} />
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginTop: 6 }}>{ev.name}</div>
             {ev.description && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{ev.description}</div>}
-            <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
-              <span>📅 {fmtDate(ev.date)}{ev.time ? ` · ${ev.time}` : ''}</span>
-              <span>📍 {ev.location || 'No location set'}</span>
+            <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                {fmtDate(ev.date)}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {ev.time || 'No time set'}
+              </span>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
@@ -511,7 +517,7 @@ function EventModal({ editing, onSave, onCancel }) {
           </div>
           <div style={{ flex: 1 }}>
             <div className="label">Time</div>
-            <input className="input" type="time" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+            <input className="input" type="time" step="900" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
           </div>
         </div>
         <div style={{ marginBottom: 12 }}>
