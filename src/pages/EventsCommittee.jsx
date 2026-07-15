@@ -67,11 +67,12 @@ function emptyEvent(name) {
 const money = (n) => `$${Number(n || 0).toLocaleString()}`;
 
 const STATUS_STYLE = {
-  planning:  { bg: '#fde8e0', fg: '#8a4a2e', label: 'Planning' },
-  upcoming:  { bg: '#f0ebe2', fg: 'var(--gold)', label: 'Upcoming' },
-  completed: { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
+  planning:      { bg: '#fde8e0', fg: '#8a4a2e', label: 'Planning' },
+  upcoming:      { bg: '#f0ebe2', fg: 'var(--gold)', label: 'Upcoming' },
+  needs_review:  { bg: '#fde8e0', fg: '#c2410c', label: 'Needs Final Review' },
+  completed:     { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
 };
-const STATUS_ORDER = { upcoming: 0, planning: 1, completed: 2 };
+const STATUS_ORDER = { upcoming: 0, planning: 1, needs_review: 2, completed: 3 };
 
 function seedEvents() {
   return [
@@ -505,6 +506,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit }) {
               onChange={e => onUpdate(x => ({ ...x, status: e.target.value }))}>
               <option value="planning">Planning</option>
               <option value="upcoming">Upcoming</option>
+              <option value="needs_review">Needs Final Review</option>
               <option value="completed">Completed</option>
             </select>
             <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onEdit}>Edit</button>
@@ -586,6 +588,7 @@ function EventModal({ editing, onSave, onCancel }) {
           <select className="input" style={{ appearance: 'auto' }} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
             <option value="planning">Planning</option>
             <option value="upcoming">Upcoming</option>
+            <option value="needs_review">Needs Final Review</option>
             <option value="completed">Completed</option>
           </select>
         </div>
