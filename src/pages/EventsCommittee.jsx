@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchEventNames } from '../lib/db.js';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
 const nextDate = (offsetDays) => {
@@ -6,8 +7,16 @@ const nextDate = (offsetDays) => {
   d.setDate(d.getDate() + offsetDays);
   return d.toISOString().slice(0, 10);
 };
-const fmtDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-const fmtDateShort = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const fmtDate = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set';
+const fmtDateShort = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date';
+
+function emptyEvent(name) {
+  return {
+    id: cryptoId(), name, date: '', time: '', location: '', description: '', status: 'planning',
+    tasks: [], budget: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
+    afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
+  };
+}
 const money = (n) => `$${Number(n || 0).toLocaleString()}`;
 
 const STATUS_STYLE = {
@@ -98,7 +107,7 @@ function EventListRow({ ev, onOpen, onDelete }) {
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{ev.location || 'No location set'}</div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600 }}>{fmtDateShort(ev.date)}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: ev.date ? 'var(--text)' : '#c2410c' }}>{ev.date ? fmtDateShort(ev.date) : 'Needs a date'}</div>
           <div style={{ marginTop: 4 }}><StatusBadge status={ev.status} /></div>
         </div>
       </div>
@@ -113,62 +122,62 @@ function EventListRow({ ev, onOpen, onDelete }) {
   );
 }
 
-function CalendarView({ events, calMonth, calYear, setCalMonth, setCalYear, onOpen }) {
-  const first = new Date(calYear, calMonth, 1);
-  const startDow = first.getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const monthLabel = first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const byDate = {};
-  events.forEach(ev => { (byDate[ev.date] = byDate[ev.date] || []).push(ev); });
+function CalendarView({ events, calYear, setCalYear, onOpen }) {
+  const todayYear = new Date().getFullYear();
+  const todayMonth = new Date().getMonth();
 
-  const cells = [];
-  for (let i = startDow - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, other: true });
-  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, other: false, iso: `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}` });
-  while (cells.length % 7 !== 0) cells.push({ day: cells.length - (startDow + daysInMonth) + 1, other: true });
-
-  const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  function navigate(dir) {
-    if (dir === 'today') { const d = new Date(); setCalMonth(d.getMonth()); setCalYear(d.getFullYear()); return; }
-    let m = calMonth + dir, y = calYear;
-    if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
-    setCalMonth(m); setCalYear(y);
-  }
+  const byMonth = Array.from({ length: 12 }, () => []);
+  const undated = [];
+  events.forEach(ev => {
+    if (!ev.date) { undated.push(ev); return; }
+    const d = new Date(`${ev.date}T00:00:00`);
+    if (d.getFullYear() === calYear) byMonth[d.getMonth()].push(ev);
+  });
+  byMonth.forEach(list => list.sort((a, b) => a.date.localeCompare(b.date)));
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{monthLabel}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{calYear}</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => navigate(-1)}>←</button>
-          <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => navigate('today')}>Today</button>
-          <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => navigate(1)}>→</button>
+          <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => setCalYear(y => y - 1)}>← {calYear - 1}</button>
+          {calYear !== todayYear && <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => setCalYear(todayYear)}>Today</button>}
+          <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => setCalYear(y => y + 1)}>{calYear + 1} →</button>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, background: 'var(--border)', border: '0.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        {dow.map(d => (
-          <div key={d} style={{ background: 'var(--text)', color: 'var(--bg)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, padding: '7px 8px', textAlign: 'center' }}>{d}</div>
-        ))}
-        {cells.map((c, i) => {
-          if (c.other) return <div key={i} style={{ background: 'var(--bg)', minHeight: 78, padding: 6, opacity: 0.45 }}><span style={{ fontSize: 11, color: 'var(--muted)' }}>{c.day}</span></div>;
-          const evs = byDate[c.iso] || [];
-          const isToday = c.iso === todayIso;
+      {undated.length > 0 && (
+        <div className="card" style={{ padding: '12px 14px', marginBottom: 12, border: '1px solid #f0d0b8' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 8, color: '#c2410c' }}>Needs a Date</div>
+          {undated.map(ev => {
+            const s = STATUS_STYLE[ev.status] || STATUS_STYLE.upcoming;
+            return (
+              <div key={ev.id} onClick={() => onOpen(ev.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, cursor: 'pointer' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.fg, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 500 }}>{ev.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+        {MONTH_NAMES.map((name, i) => {
+          const isCurrentMonth = calYear === todayYear && i === todayMonth;
+          const evs = byMonth[i];
           return (
-            <div key={i} style={{ background: '#fff', minHeight: 78, padding: 6 }}>
-              <span style={{
-                fontSize: 11, color: isToday ? '#fff' : 'var(--muted)', background: isToday ? 'var(--gold)' : 'transparent',
-                borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}>{c.day}</span>
-              {evs.map(ev => {
+            <div key={name} className="card" style={{ padding: '12px 14px', border: isCurrentMonth ? '1px solid var(--gold)' : undefined }}>
+              <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 8, color: isCurrentMonth ? 'var(--gold)' : 'var(--text)' }}>{name}</div>
+              {evs.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No events</div>
+              ) : evs.map(ev => {
                 const s = STATUS_STYLE[ev.status] || STATUS_STYLE.upcoming;
                 return (
-                  <div key={ev.id} onClick={() => onOpen(ev.id)} style={{
-                    marginTop: 4, fontSize: 10, fontWeight: 600, color: '#fff', background: s.fg,
-                    padding: '2px 5px', borderRadius: 4, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{ev.name}</div>
+                  <div key={ev.id} onClick={() => onOpen(ev.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, cursor: 'pointer' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.fg, flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{fmtDateShort(ev.date)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.name}</span>
+                  </div>
                 );
               })}
             </div>
@@ -539,8 +548,23 @@ export default function EventsCommittee() {
   const [selectedId, setSelectedId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [loadingBudgetEvents, setLoadingBudgetEvents] = useState(true);
+
+  // Pull in event names already used in Op Budget / Op Earnings (same
+  // source the Reimbursements form's Event dropdown suggests from) so the
+  // committee sees everything already on the books, not just what's been
+  // planned here. They show up undated — add a date via Edit once known.
+  useEffect(() => {
+    fetchEventNames().then(names => {
+      setEvents(prev => {
+        const existing = new Set(prev.map(e => e.name.trim().toLowerCase()));
+        const additions = names.filter(n => !existing.has(n.trim().toLowerCase())).map(emptyEvent);
+        return additions.length ? [...prev, ...additions] : prev;
+      });
+      setLoadingBudgetEvents(false);
+    }).catch(() => setLoadingBudgetEvents(false));
+  }, []);
 
   const selected = events.find(e => e.id === selectedId) || null;
 
@@ -575,7 +599,12 @@ export default function EventsCommittee() {
     setEditingEvent(null);
   }
 
-  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...events].sort((a, b) => {
+    if (!a.date && !b.date) return a.name.localeCompare(b.name);
+    if (!a.date) return -1;
+    if (!b.date) return 1;
+    return a.date.localeCompare(b.date);
+  });
 
   return (
     <div>
@@ -583,6 +612,7 @@ export default function EventsCommittee() {
         <div>
           <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Events Team</div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Events Committee Planning Notes</div>
+          {loadingBudgetEvents && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Syncing with budget tracking…</div>}
         </div>
         {!selected && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -607,7 +637,7 @@ export default function EventsCommittee() {
         ) : mode === 'list' ? (
           sorted.map(ev => <EventListRow key={ev.id} ev={ev} onOpen={setSelectedId} onDelete={deleteEvent} />)
         ) : (
-          <CalendarView events={events} calMonth={calMonth} calYear={calYear} setCalMonth={setCalMonth} setCalYear={setCalYear} onOpen={setSelectedId} />
+          <CalendarView events={events} calYear={calYear} setCalYear={setCalYear} onOpen={setSelectedId} />
         )}
       </div>
 
