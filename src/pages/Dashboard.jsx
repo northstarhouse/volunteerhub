@@ -3,7 +3,7 @@ import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, AREA_DEFAULTS, currentQuarterStr, fetchOpBudget, fetchOpQuarterGoals,
-  fetchHours, getVolunteerHours, MONTHS, getZodiacSign,
+  fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources,
 } from '../lib/db.js';
 
 const GOLD = '#886c44';
@@ -243,6 +243,41 @@ function OotCard({ notices }) {
   );
 }
 
+function ResourcesCard({ areas }) {
+  const [resources, setResources] = useState(null);
+
+  useEffect(() => {
+    if (areas.length === 0) { setResources([]); return; }
+    Promise.all(areas.map(a => fetchOpResources(a).then(rows => rows.map(r => ({ ...r, _area: a })))))
+      .then(lists => setResources(lists.flat()))
+      .catch(() => setResources([]));
+  }, [areas.join('|')]);
+
+  if (resources !== null && resources.length === 0) return null;
+
+  return (
+    <div className="card" style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Resources
+      </div>
+      {resources === null ? (
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>
+      ) : resources.map((r, i) => (
+        <div key={r.id ?? i} style={{ marginBottom: i < resources.length - 1 ? 10 : 0 }}>
+          {r.url ? (
+            <a href={r.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: GOLD, textDecoration: 'none' }}>{r.title || r.url}</a>
+          ) : (
+            <span style={{ fontSize: 13, color: 'var(--text)' }}>{r.title}</span>
+          )}
+          {r.description && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{r.description}</div>}
+          {areas.length > 1 && <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{r._area}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const GOAL_STATUS_COLORS = {
   'On Track': { bg: '#e8f5e9', color: '#2e7d32' },
   'At Risk':  { bg: '#fff8e1', color: '#8a6200' },
@@ -364,6 +399,7 @@ export default function Dashboard() {
             {myAreas.map(area => (
               <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
             ))}
+            <ResourcesCard areas={myAreas} />
           </div>
 
           {/* Right: Calendar, Birthdays, OOT stacked */}
