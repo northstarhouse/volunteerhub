@@ -141,7 +141,6 @@ function EventListRow({ ev, onOpen, onDelete }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{ev.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{ev.location || 'No location set'}</div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: ev.date ? 'var(--text)' : '#c2410c' }}>{ev.date ? fmtDateShort(ev.date) : 'Needs a date'}</div>
@@ -150,7 +149,7 @@ function EventListRow({ ev, onOpen, onDelete }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
         <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-          {doneT}/{ev.tasks.length} tasks · {ev.guestCount.confirmed}/{ev.guestCount.invited} guests
+          {doneT}/{ev.tasks.length} tasks
         </div>
         <button onClick={(e) => { e.stopPropagation(); onDelete(ev); }}
           style={{ background: 'none', border: 'none', color: '#c0392b', fontSize: 13, cursor: 'pointer', padding: '0 4px' }}>×</button>
