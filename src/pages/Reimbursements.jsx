@@ -32,7 +32,6 @@ const emptyForm = {
   description: '',
   amount: '',
   date: today(),
-  areaType: 'Operational Area',
   operationalArea: OPERATIONAL_AREAS[0],
   eventName: '',
   notes: '',
@@ -43,8 +42,7 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
     description: editing.description || '',
     amount: editing.amount != null ? String(editing.amount) : '',
     date: editing.date || today(),
-    areaType: editing.event_name ? 'Event' : 'Operational Area',
-    operationalArea: editing.event_name ? OPERATIONAL_AREAS[0] : (editing.area || OPERATIONAL_AREAS[0]),
+    operationalArea: editing.area || OPERATIONAL_AREAS[0],
     eventName: editing.event_name || '',
     notes: editing.notes || '',
   } : emptyForm);
@@ -52,16 +50,17 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
+  const isEvents = form.operationalArea === 'Events';
   const canSubmit = form.description.trim()
     && Number(form.amount) > 0
     && form.date
-    && (form.areaType === 'Operational Area' ? form.operationalArea : form.eventName);
+    && (!isEvents || form.eventName);
 
   function buildPayload(status) {
     const fullName = `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim();
     return {
-      area: form.areaType === 'Event' ? 'Events' : form.operationalArea,
-      event_name: form.areaType === 'Event' ? form.eventName : null,
+      area: form.operationalArea,
+      event_name: isEvents ? form.eventName : null,
       type: 'Purchase',
       description: form.description.trim(),
       amount: parseFloat(form.amount) || 0,
@@ -132,23 +131,14 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <div className="label">Budget Area</div>
-        <select className="input" style={{ appearance: 'auto' }} value={form.areaType}
-          onChange={e => setForm(f => ({ ...f, areaType: e.target.value }))}>
-          <option value="Operational Area">Operational Area</option>
-          <option value="Event">Events</option>
+        <div className="label">Operational Area</div>
+        <select className="input" style={{ appearance: 'auto' }} value={form.operationalArea}
+          onChange={e => setForm(f => ({ ...f, operationalArea: e.target.value, eventName: '' }))}>
+          {OPERATIONAL_AREAS.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
 
-      {form.areaType === 'Operational Area' ? (
-        <div style={{ marginBottom: 10 }}>
-          <div className="label">Operational Area</div>
-          <select className="input" style={{ appearance: 'auto' }} value={form.operationalArea}
-            onChange={e => setForm(f => ({ ...f, operationalArea: e.target.value }))}>
-            {OPERATIONAL_AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </div>
-      ) : (
+      {isEvents && (
         <div style={{ marginBottom: 10 }}>
           <div className="label">Event</div>
           <select className="input" style={{ appearance: 'auto' }} value={form.eventName}
