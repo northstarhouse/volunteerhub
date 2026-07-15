@@ -396,4 +396,17 @@ export async function uploadReceiptFiles(files, volunteerId) {
   return urls.length === 1 ? urls[0] : JSON.stringify(urls);
 }
 
+// ── Activity log (surfaced in Portal's "Recent Activity" on the home page) ────
+
+export async function logActivity({ vol, authUserId, action, description }) {
+  const volunteerName = vol ? `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim() : null;
+  return post('activity_log', {
+    volunteer_name: volunteerName,
+    volunteer_id: vol?.id ?? null,
+    auth_user_id: authUserId,
+    action,
+    description,
+  });
+}
+
 

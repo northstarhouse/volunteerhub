@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useVol } from '../App.jsx';
 import { supabase } from '../supabase.js';
-import { updateVolunteer, photoUrl, insertOotNotice } from '../lib/db.js';
+import { updateVolunteer, photoUrl, insertOotNotice, logActivity } from '../lib/db.js';
 
 const TEAM_COLORS = {
   'Staff':        { bg: '#f3f3f3', color: '#555' },
@@ -453,6 +453,13 @@ export default function Profile() {
       setVolunteer({ ...volunteer, ...patch });
       setEditing(false);
       setSaved(true);
+      const fullName = `${volunteer['First Name'] || ''} ${volunteer['Last Name'] || ''}`.trim();
+      logActivity({
+        vol: volunteer,
+        authUserId: session.user.id,
+        action: 'profile_updated',
+        description: `${fullName || 'A volunteer'} updated their profile`,
+      });
     } else {
       setErr(updated?.message || 'Failed to save. Please try again.');
     }

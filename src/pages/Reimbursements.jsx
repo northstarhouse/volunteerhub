@@ -9,6 +9,7 @@ import {
   deleteReimbursement,
   uploadReceiptFiles,
   parseReceipts,
+  logActivity,
 } from '../lib/db.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -96,6 +97,17 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
         const receiptVal = await uploadReceiptFiles(files, vol.id);
         const res2 = await updateReimbursement(row.id, { receipt_url: receiptVal });
         if (!res2.error && res2.row) row = res2.row;
+      }
+
+      if (status !== 'Draft') {
+        const fullName = `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim();
+        const amt = (parseFloat(form.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        logActivity({
+          vol,
+          authUserId: session.user.id,
+          action: 'reimbursement_submitted',
+          description: `${fullName || 'A volunteer'} submitted a $${amt} reimbursement request (${form.operationalArea})`,
+        });
       }
 
       setSaving(false);
