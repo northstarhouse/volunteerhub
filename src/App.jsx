@@ -8,6 +8,7 @@ import Profile from './pages/Profile.jsx';
 import Directory from './pages/Directory.jsx';
 import Hours from './pages/Hours.jsx';
 import OperationalAreas from './pages/OperationalAreas.jsx';
+import Reimbursements from './pages/Reimbursements.jsx';
 
 export const VolContext = createContext(null);
 export const useVol = () => useContext(VolContext);
@@ -263,6 +264,7 @@ export default function App() {
     directory: <Directory />,
     hours:     <Hours />,
     areas:     <OperationalAreas />,
+    reimbursements: <Reimbursements />,
   };
 
   return (

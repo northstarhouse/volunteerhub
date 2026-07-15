@@ -41,6 +41,14 @@ async function post(path, body) {
   return r.json();
 }
 
+async function del(path) {
+  const r = await fetch(`${URL}/rest/v1/${path}`, {
+    method: 'DELETE',
+    headers: await hdr(),
+  });
+  return r.ok;
+}
+
 // ── Image helpers ────────────────────────────────────────────────────────────
 
 export function photoUrl(value) {
@@ -315,6 +323,68 @@ export function getVolunteerHours(hoursMap, firstName, lastName) {
     }
   });
   return found ? merged : null;
+}
+
+// ── Reimbursements (shared "Op Budget" table — same one Portal's Financials
+//    view manages) ───────────────────────────────────────────────────────────
+
+export const REIMBURSEMENT_STATUSES = [
+  'Draft', 'Submitted', 'Pending Review', 'More Information Needed', 'Approved', 'Paid', 'Denied',
+];
+
+export async function fetchInHouseEvents() {
+  const rows = await get(`In-House%20Events?select=id,name,date&order=date.desc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function fetchMyReimbursements(authUserId) {
+  const rows = await get(`Op%20Budget?volunteer_auth_user_id=eq.${authUserId}&select=*&order=created_at.desc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function insertReimbursement(payload) {
+  const rows = await post('Op%20Budget', payload);
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
+export async function updateReimbursement(id, payload) {
+  const rows = await patch(`Op%20Budget?id=eq.${id}`, payload);
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
+export async function deleteReimbursement(id) {
+  const ok = await del(`Op%20Budget?id=eq.${id}`);
+  return { success: ok };
+}
+
+export function parseReceipts(receiptUrl) {
+  if (!receiptUrl) return [];
+  try {
+    const p = JSON.parse(receiptUrl);
+    if (Array.isArray(p)) return p;
+  } catch { /* not JSON, single URL */ }
+  return [receiptUrl];
+}
+
+export async function uploadReceiptFile(file, volunteerId) {
+  const ext = (file.name.split('.').pop() || 'bin');
+  const filename = `vh-${volunteerId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const headers = await hdr({ 'Content-Type': file.type || 'application/octet-stream' });
+  delete headers.Prefer;
+  const res = await fetch(`${URL}/storage/v1/object/receipts/${filename}`, {
+    method: 'POST',
+    headers,
+    body: file,
+  });
+  if (!res.ok) throw new Error('Receipt upload failed');
+  return `${URL}/storage/v1/object/public/receipts/${filename}`;
+}
+
+export async function uploadReceiptFiles(files, volunteerId) {
+  const urls = await Promise.all(files.map(f => uploadReceiptFile(f, volunteerId)));
+  return urls.length === 1 ? urls[0] : JSON.stringify(urls);
 }
 
 

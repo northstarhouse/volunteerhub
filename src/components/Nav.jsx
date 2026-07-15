@@ -2,10 +2,11 @@ import { useVol } from '../App.jsx';
 import { photoUrl, matchVolunteerAreas } from '../lib/db.js';
 
 const TABS = [
-  { id: 'dashboard', label: 'Home',      icon: HomeIcon },
-  { id: 'directory', label: 'Directory', icon: PeopleIcon },
-  { id: 'areas',     label: 'My Area',   icon: AreaIcon },
-  { id: 'hours',     label: 'Hours',     icon: ClockIcon },
+  { id: 'dashboard',      label: 'Home',           icon: HomeIcon },
+  { id: 'directory',      label: 'Directory',      icon: PeopleIcon },
+  { id: 'areas',          label: 'My Area',        icon: AreaIcon },
+  { id: 'hours',          label: 'Hours',          icon: ClockIcon },
+  { id: 'reimbursements', label: 'Reimburse',      icon: ReceiptIcon },
 ];
 
 function HomeIcon({ active }) {
@@ -23,6 +24,10 @@ function AreaIcon({ active }) {
 function ClockIcon({ active }) {
   const c = active ? 'var(--gold)' : '#aaa';
   return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+}
+function ReceiptIcon({ active }) {
+  const c = active ? 'var(--gold)' : '#aaa';
+  return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-1 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>;
 }
 
 export default function Nav({ view, setView }) {
