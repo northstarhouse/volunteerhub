@@ -9,10 +9,21 @@ const nextDate = (offsetDays) => {
 };
 const fmtDate = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set';
 const fmtDateShort = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date';
+const fmt12hr = (hhmm) => {
+  if (!hhmm) return '';
+  const [h, m] = hhmm.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+const fmtTimeRange = (start, end) => {
+  if (!start && !end) return 'No time set';
+  if (start && end) return `${fmt12hr(start)} – ${fmt12hr(end)}`;
+  return fmt12hr(start || end);
+};
 
 function emptyEvent(name) {
   return {
-    id: cryptoId(), name, date: '', time: '', location: '', description: '', status: 'planning',
+    id: cryptoId(), name, date: '', startTime: '', endTime: '', location: '', description: '', status: 'planning',
     tasks: [], budget: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
     afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
   };
@@ -24,11 +35,12 @@ const STATUS_STYLE = {
   upcoming:  { bg: '#f0ebe2', fg: 'var(--gold)', label: 'Upcoming' },
   completed: { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
 };
+const STATUS_ORDER = { upcoming: 0, planning: 1, completed: 2 };
 
 function seedEvents() {
   return [
     {
-      id: cryptoId(), name: 'Autumn Fundraiser Gala', date: nextDate(18), time: '18:00',
+      id: cryptoId(), name: 'Autumn Fundraiser Gala', date: nextDate(18), startTime: '18:00', endTime: '22:00',
       location: 'North Star House, Grass Valley', description: "Annual fundraiser for the conservancy, seated dinner + auction in the Julia Morgan-designed great hall.",
       status: 'upcoming',
       tasks: [
@@ -54,7 +66,7 @@ function seedEvents() {
       afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
     },
     {
-      id: cryptoId(), name: 'Docent Training Workshop', date: nextDate(-9), time: '10:00',
+      id: cryptoId(), name: 'Docent Training Workshop', date: nextDate(-9), startTime: '10:00', endTime: '12:00',
       location: 'Estate Library', description: 'New docent onboarding and house history walkthrough.',
       status: 'completed',
       tasks: [
@@ -77,7 +89,7 @@ function seedEvents() {
       },
     },
     {
-      id: cryptoId(), name: 'Spring Volunteer Kickoff', date: nextDate(4), time: '09:30',
+      id: cryptoId(), name: 'Spring Volunteer Kickoff', date: nextDate(4), startTime: '09:30', endTime: '11:00',
       location: 'Garden Pavilion', description: 'Kickoff for spring landscaping and grounds volunteer season.',
       status: 'planning',
       tasks: [{ id: cryptoId(), text: 'Draft volunteer schedule', done: false, due: nextDate(1), assignee: 'Haley' }],
@@ -448,7 +460,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit }) {
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                {ev.time || 'No time set'}
+                {fmtTimeRange(ev.startTime, ev.endTime)}
               </span>
             </div>
           </div>
@@ -489,7 +501,8 @@ function EventModal({ editing, onSave, onCancel }) {
   const [form, setForm] = useState({
     name: editing.name || '',
     date: editing.date || nextDate(0),
-    time: editing.time || '',
+    startTime: editing.startTime || '',
+    endTime: editing.endTime || '',
     location: editing.location || '',
     description: editing.description || '',
     status: editing.status || 'upcoming',
@@ -510,14 +523,18 @@ function EventModal({ editing, onSave, onCancel }) {
           <div className="label">Event Name</div>
           <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Autumn Fundraiser Gala" />
         </div>
+        <div style={{ marginBottom: 12 }}>
+          <div className="label">Date</div>
+          <input className="input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+        </div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
           <div style={{ flex: 1 }}>
-            <div className="label">Date</div>
-            <input className="input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+            <div className="label">From</div>
+            <input className="input" type="time" step="900" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
           </div>
           <div style={{ flex: 1 }}>
-            <div className="label">Time</div>
-            <input className="input" type="time" step="900" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+            <div className="label">To</div>
+            <input className="input" type="time" step="900" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} />
           </div>
         </div>
         <div style={{ marginBottom: 12 }}>
@@ -606,6 +623,8 @@ export default function EventsCommittee() {
   }
 
   const sorted = [...events].sort((a, b) => {
+    const so = (STATUS_ORDER[a.status] ?? 1) - (STATUS_ORDER[b.status] ?? 1);
+    if (so !== 0) return so;
     if (!a.date && !b.date) return a.name.localeCompare(b.name);
     if (!a.date) return -1;
     if (!b.date) return 1;
