@@ -60,12 +60,16 @@ to authenticated
 using (volunteer_auth_user_id = auth.uid() and status in ('Draft','More Information Needed'))
 with check (volunteer_auth_user_id = auth.uid());
 
+-- Volunteers can delete their own requests any time before payment goes out
+-- (Draft, Submitted, Pending Review, More Information Needed, Approved,
+-- Denied) — just not after the money has actually moved (Paid).
 drop policy if exists "volunteers delete own draft reimbursement" on "Op Budget";
-create policy "volunteers delete own draft reimbursement"
+drop policy if exists "volunteers delete own reimbursement" on "Op Budget";
+create policy "volunteers delete own reimbursement"
 on "Op Budget"
 for delete
 to authenticated
-using (volunteer_auth_user_id = auth.uid() and status = 'Draft');
+using (volunteer_auth_user_id = auth.uid() and status is distinct from 'Paid');
 
 -- Receipts are uploaded to the existing "receipts" storage bucket (same
 -- bucket Portal already uses for Op Budget receipts). Allow authenticated

@@ -210,6 +210,7 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
 function ReimbursementRow({ item, onEdit, onWithdraw }) {
   const receipts = parseReceipts(item.receipt_url);
   const canEdit = item.status === 'Draft' || item.status === 'More Information Needed';
+  const canDelete = item.status !== 'Paid';
 
   return (
     <div className="card" style={{ marginBottom: 10 }}>
@@ -247,13 +248,13 @@ function ReimbursementRow({ item, onEdit, onWithdraw }) {
         </div>
       )}
 
-      {(canEdit || receipts.length > 0) && (
+      {(canEdit || canDelete || receipts.length > 0) && (
         <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
           {receipts.map((url, i) => (
             <a key={i} href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--gold)' }}>View receipt{receipts.length > 1 ? ` ${i + 1}` : ''}</a>
           ))}
           {canEdit && <button onClick={() => onEdit(item)} style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: 11, cursor: 'pointer', padding: 0 }}>Edit</button>}
-          {item.status === 'Draft' && <button onClick={() => onWithdraw(item)} style={{ background: 'none', border: 'none', color: '#c0392b', fontSize: 11, cursor: 'pointer', padding: 0 }}>Delete Draft</button>}
+          {canDelete && <button onClick={() => onWithdraw(item)} style={{ background: 'none', border: 'none', color: '#c0392b', fontSize: 11, cursor: 'pointer', padding: 0 }}>Delete</button>}
         </div>
       )}
     </div>
@@ -293,7 +294,10 @@ export default function Reimbursements() {
   }
 
   async function handleWithdraw(item) {
-    if (!confirm('Delete this draft request?')) return;
+    const msg = item.status === 'Draft'
+      ? 'Delete this draft request?'
+      : 'Delete this reimbursement request? This cannot be undone.';
+    if (!confirm(msg)) return;
     await deleteReimbursement(item.id);
     load();
   }
