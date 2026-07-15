@@ -234,7 +234,7 @@ const EDITABLE_FIELDS = [
   { name: 'Birthday',              label: 'Birthday',        type: 'date', yearOptional: true },
   { name: 'Volunteer Anniversary', label: 'North Star House Anniversary', type: 'date', yearOptional: false, noDay: true },
   { name: 'Emergency Contact',               label: 'Emergency Contact',                      type: 'text', placeholder: 'Name & phone number' },
-  { name: 'What they want to see at NSH',   label: 'About / Bio',                            type: 'textarea', placeholder: 'Tell others about yourself and what you enjoy at North Star House…' },
+  { name: 'What they want to see at NSH',   label: 'What You Want to See at North Star House', type: 'textarea', placeholder: 'Tell others about yourself and what you enjoy at North Star House…' },
   { name: 'Favorite Quote',                 label: 'Favorite Quote',                         type: 'textarea', placeholder: 'A quote that inspires you…' },
   { name: 'NSH Future Vision',              label: 'What I Want for the Future of North Star House', type: 'textarea', placeholder: 'Share your hopes and ideas for North Star House…' },
   { name: 'Allergies',                      label: 'Allergies',                              type: 'textarea', placeholder: 'Food, environmental, or medical allergies others should know about…' },
@@ -557,7 +557,7 @@ export default function Profile() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>About</div>
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
-              <ViewRow label="About / Bio"           value={vol['What they want to see at NSH']} onEdit={startEdit} />
+              <ViewRow label="What You Want to See at North Star House" value={vol['What they want to see at NSH']} onEdit={startEdit} />
               <ViewRow label="Favorite Quote"        value={vol['Favorite Quote']}               onEdit={startEdit} />
               <ViewRow label="Future of North Star House" value={vol['NSH Future Vision']}          onEdit={startEdit} />
               <ViewRow label="⚠ Allergies"           value={vol['Allergies']}                    onEdit={startEdit} note="visible to others in directory" labelColor="#c0392b" />
