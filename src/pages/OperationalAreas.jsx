@@ -166,6 +166,7 @@ function RosterCard({ area, roster }) {
 }
 
 function AreaDetail({ area, showBack, onBack }) {
+  const { setView } = useVol();
   const [areaInfo, setAreaInfo]     = useState(null);
   const [budget, setBudget]         = useState([]);
   const [earnings, setEarnings]     = useState([]);
@@ -225,10 +226,10 @@ function AreaDetail({ area, showBack, onBack }) {
       </div>
 
       {area === 'Events' && (
-        <a href={`${import.meta.env.BASE_URL}events-committee.html`} target="_blank" rel="noreferrer"
-          className="btn-gold" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 14 }}>
+        <button onClick={() => setView('events-committee')}
+          className="btn-gold" style={{ display: 'block', width: '100%', marginBottom: 14 }}>
           Events Committee Planning Notes
-        </a>
+        </button>
       )}
 
       {loading ? (

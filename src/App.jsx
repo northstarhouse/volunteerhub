@@ -9,6 +9,7 @@ import Directory from './pages/Directory.jsx';
 import Hours from './pages/Hours.jsx';
 import OperationalAreas from './pages/OperationalAreas.jsx';
 import Reimbursements from './pages/Reimbursements.jsx';
+import EventsCommittee from './pages/EventsCommittee.jsx';
 
 export const VolContext = createContext(null);
 export const useVol = () => useContext(VolContext);
@@ -265,10 +266,11 @@ export default function App() {
     hours:     <Hours />,
     areas:     <OperationalAreas />,
     reimbursements: <Reimbursements />,
+    'events-committee': <EventsCommittee />,
   };
 
   return (
-    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea }}>
+    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea, setView }}>
       {isMobile ? (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
