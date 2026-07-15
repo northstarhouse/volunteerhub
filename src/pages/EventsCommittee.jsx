@@ -538,7 +538,10 @@ function FinancialsTab({ ev }) {
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>No expenses logged for this event yet.</div>
         ) : expenses.map(r => (
           <ItemRow key={r.id}>
-            <span style={{ flex: 1, fontSize: 13 }}>{r.description || r.type || 'Expense'}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13 }}>{r.description || r.type || 'Expense'}</div>
+              {r.purchased_by && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Purchased by {r.purchased_by}</div>}
+            </div>
             <span style={{ fontSize: 11, color: 'var(--muted)' }}>{r.date ? fmtDateShort(r.date) : ''}</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#8a4a2e' }}>{money(r.amount)}</span>
           </ItemRow>
