@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
   OPERATIONAL_AREAS,
-  fetchInHouseEvents,
+  fetchEventNames,
   fetchMyReimbursements,
   insertReimbursement,
   updateReimbursement,
@@ -141,12 +141,12 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
       {isEvents && (
         <div style={{ marginBottom: 10 }}>
           <div className="label">Event</div>
-          <select className="input" style={{ appearance: 'auto' }} value={form.eventName}
-            onChange={e => setForm(f => ({ ...f, eventName: e.target.value }))}>
-            <option value="">Select an event…</option>
-            {events.map(ev => <option key={ev.id} value={ev.name}>{ev.name}{ev.date ? ` — ${ev.date}` : ''}</option>)}
-          </select>
-          {events.length === 0 && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>No events found. You can still describe it in Additional Notes.</div>}
+          <input className="input" list="reimb-event-options" value={form.eventName}
+            onChange={e => setForm(f => ({ ...f, eventName: e.target.value }))}
+            placeholder="e.g. Spring Gala" />
+          <datalist id="reimb-event-options">
+            {events.map(name => <option key={name} value={name} />)}
+          </datalist>
         </div>
       )}
 
@@ -253,7 +253,7 @@ export default function Reimbursements() {
 
   useEffect(() => {
     load();
-    fetchInHouseEvents().then(setEvents);
+    fetchEventNames().then(setEvents);
   }, []);
 
   function handleDone(row) {

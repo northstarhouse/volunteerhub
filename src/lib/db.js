@@ -332,9 +332,18 @@ export const REIMBURSEMENT_STATUSES = [
   'Draft', 'Submitted', 'Pending Review', 'More Information Needed', 'Approved', 'Paid', 'Denied',
 ];
 
-export async function fetchInHouseEvents() {
-  const rows = await get(`In-House%20Events?select=id,name,date&order=date.desc`);
-  return Array.isArray(rows) ? rows : [];
+// Same source Portal's own "Event Expenses"/"Event Earnings" forms suggest
+// from: distinct event names already used in Op Budget/Op Earnings for the
+// Events area (not the separate, no-longer-used "In-House Events" table).
+export async function fetchEventNames() {
+  const [budgetRows, earningsRows] = await Promise.all([
+    get(`Op%20Budget?area=eq.Events&select=event_name`),
+    get(`Op%20Earnings?area=eq.Events&select=event`),
+  ]);
+  const names = new Set();
+  (Array.isArray(budgetRows) ? budgetRows : []).forEach(r => { if (r.event_name) names.add(r.event_name.trim()); });
+  (Array.isArray(earningsRows) ? earningsRows : []).forEach(r => { if (r.event) names.add(r.event.trim()); });
+  return Array.from(names).filter(Boolean).sort();
 }
 
 export async function fetchMyReimbursements(authUserId) {
