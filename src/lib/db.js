@@ -376,6 +376,21 @@ export async function fetchEventNames() {
   return Array.from(names).filter(Boolean).sort();
 }
 
+// Budget/earnings entries for one specific event (Op Budget event_name /
+// Op Earnings event, both area=Events) — powers the Financials tab on the
+// Events Committee page.
+export async function fetchEventFinancials(eventName) {
+  const enc = encodeURIComponent(eventName);
+  const [expenses, earnings] = await Promise.all([
+    get(`Op%20Budget?area=eq.Events&event_name=eq.${enc}&select=*&order=date.desc,id.desc`),
+    get(`Op%20Earnings?area=eq.Events&event=eq.${enc}&select=*&order=date.desc,id.desc`),
+  ]);
+  return {
+    expenses: Array.isArray(expenses) ? expenses : [],
+    earnings: Array.isArray(earnings) ? earnings : [],
+  };
+}
+
 export async function fetchMyReimbursements(authUserId) {
   const rows = await get(`Op%20Budget?volunteer_auth_user_id=eq.${authUserId}&select=*&order=created_at.desc`);
   return Array.isArray(rows) ? rows : [];

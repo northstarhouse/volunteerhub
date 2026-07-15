@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
-  fetchEventNames, fetchCommitteeEvents, insertCommitteeEvent, updateCommitteeEvent, deleteCommitteeEvent,
+  fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, updateCommitteeEvent, deleteCommitteeEvent,
 } from '../lib/db.js';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
@@ -483,6 +483,71 @@ function AfterTab({ ev, onUpdate }) {
   );
 }
 
+function FinancialsTab({ ev }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchEventFinancials(ev.name).then(res => { setData(res); setLoading(false); }).catch(() => setLoading(false));
+  }, [ev.name]);
+
+  if (loading) return <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>;
+
+  const earnings = data?.earnings || [];
+  const expenses = data?.expenses || [];
+  const totalEarnings = earnings.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+  const totalExpenses = expenses.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>
+        Pulled live from this event's entries in Portal's budget tracking (Op Budget / Op Earnings) — read-only here.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 20 }}>
+        <div className="card" style={{ padding: '12px 14px' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: '#4a5d3a' }}>{money(totalEarnings)}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Earnings</div>
+        </div>
+        <div className="card" style={{ padding: '12px 14px' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: '#8a4a2e' }}>{money(totalExpenses)}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Expenses</div>
+        </div>
+        <div className="card" style={{ padding: '12px 14px' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: totalEarnings - totalExpenses >= 0 ? '#4a5d3a' : '#8a4a2e' }}>{money(totalEarnings - totalExpenses)}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Net</div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "'Cardo','Georgia',serif" }}>Earnings</div>
+        {earnings.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>No earnings logged for this event yet.</div>
+        ) : earnings.map(r => (
+          <ItemRow key={r.id}>
+            <span style={{ flex: 1, fontSize: 13 }}>{r.earning_source || 'Earning'}</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{r.date ? fmtDateShort(r.date) : ''}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#4a5d3a' }}>{money(r.amount)}</span>
+          </ItemRow>
+        ))}
+      </div>
+
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "'Cardo','Georgia',serif" }}>Expenses</div>
+        {expenses.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>No expenses logged for this event yet.</div>
+        ) : expenses.map(r => (
+          <ItemRow key={r.id}>
+            <span style={{ flex: 1, fontSize: 13 }}>{r.description || r.type || 'Expense'}</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{r.date ? fmtDateShort(r.date) : ''}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#8a4a2e' }}>{money(r.amount)}</span>
+          </ItemRow>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Detail page ───────────────────────────────────────────────────────────
 
 function EventDetail({ ev, onUpdate, onBack, onEdit }) {
@@ -491,6 +556,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit }) {
     ['overview', 'Overview'],
     ['preplanning', 'Pre-Planning'],
     ['dayof', 'Day-Of'],
+    ['financials', 'Financials'],
     ['after', 'After Notes'],
   ];
 
@@ -548,6 +614,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit }) {
       {tab === 'overview' && <OverviewTab ev={ev} />}
       {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} />}
       {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
+      {tab === 'financials' && <FinancialsTab ev={ev} />}
       {tab === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
     </div>
   );
