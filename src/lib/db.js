@@ -439,4 +439,28 @@ export async function logActivity({ vol, authUserId, action, description }) {
   });
 }
 
+// ── Events Committee Planning Notes ────────────────────────────────────────
+
+export async function fetchCommitteeEvents() {
+  const rows = await get('events_committee?select=*&order=date.asc.nullslast');
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function insertCommitteeEvent(payload) {
+  const rows = await post('events_committee', payload);
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
+export async function updateCommitteeEvent(id, payload) {
+  const rows = await patch(`events_committee?id=eq.${id}`, payload);
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
+export async function deleteCommitteeEvent(id) {
+  const ok = await del(`events_committee?id=eq.${id}`);
+  return { success: ok };
+}
+
 

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { fetchEventNames } from '../lib/db.js';
+import { useVol } from '../App.jsx';
+import {
+  fetchEventNames, fetchCommitteeEvents, insertCommitteeEvent, updateCommitteeEvent, deleteCommitteeEvent,
+} from '../lib/db.js';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
 const nextDate = (offsetDays) => {
@@ -67,6 +70,53 @@ function emptyEvent(name) {
     afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
   };
 }
+
+// Map between the app's camelCase shape and the events_committee table's columns.
+function fromDb(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    date: row.date || '',
+    startTime: row.start_time || '',
+    endTime: row.end_time || '',
+    location: row.location || '',
+    description: row.description || '',
+    status: row.status || 'planning',
+    purpose: row.purpose || '',
+    expectedAttendance: row.expected_attendance || '',
+    pricing: row.pricing || '',
+    guestCount: { invited: row.guest_invited || 0, confirmed: row.guest_confirmed || 0 },
+    tasks: row.tasks || [],
+    budget: row.budget || [],
+    vendors: row.vendors || [],
+    timeline: row.timeline || [],
+    afterNotes: (row.after_notes && Object.keys(row.after_notes).length)
+      ? row.after_notes
+      : { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
+  };
+}
+function toDb(ev) {
+  return {
+    name: ev.name,
+    date: ev.date || null,
+    start_time: ev.startTime || null,
+    end_time: ev.endTime || null,
+    location: ev.location || null,
+    description: ev.description || null,
+    status: ev.status,
+    purpose: ev.purpose || null,
+    expected_attendance: ev.expectedAttendance || null,
+    pricing: ev.pricing || null,
+    guest_invited: ev.guestCount.invited || 0,
+    guest_confirmed: ev.guestCount.confirmed || 0,
+    tasks: ev.tasks,
+    budget: ev.budget,
+    vendors: ev.vendors,
+    timeline: ev.timeline,
+    after_notes: ev.afterNotes,
+  };
+}
+
 const money = (n) => `$${Number(n || 0).toLocaleString()}`;
 
 const STATUS_STYLE = {
@@ -76,71 +126,6 @@ const STATUS_STYLE = {
   completed:     { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
 };
 const STATUS_ORDER = { upcoming: 0, planning: 1, needs_review: 2, completed: 3 };
-
-function seedEvents() {
-  return [
-    {
-      id: cryptoId(), name: 'Autumn Fundraiser Gala', date: nextDate(18), startTime: '18:00', endTime: '22:00',
-      location: 'North Star House, Grass Valley', description: "Annual fundraiser for the conservancy, seated dinner + auction in the Julia Morgan-designed great hall.",
-      status: 'upcoming', purpose: 'Fundraising Support', expectedAttendance: '150–180 guests', pricing: '$125/ticket',
-      tasks: [
-        { id: cryptoId(), text: 'Confirm caterer menu', done: true, due: nextDate(2), assignee: 'Haley' },
-        { id: cryptoId(), text: 'Finalize auction item list', done: false, due: nextDate(10), assignee: 'Committee' },
-        { id: cryptoId(), text: 'Send save-the-dates', done: true, due: nextDate(-4), assignee: 'Haley' },
-      ],
-      budget: [
-        { id: cryptoId(), item: 'Catering', estimated: 4500, actual: 4200 },
-        { id: cryptoId(), item: 'Venue rental', estimated: 1200, actual: 1200 },
-        { id: cryptoId(), item: 'Decor & flowers', estimated: 600, actual: 0 },
-      ],
-      vendors: [
-        { id: cryptoId(), name: 'Harvest Table Catering', role: 'Caterer', contact: 'hello@harvesttable.com', confirmed: true },
-        { id: cryptoId(), name: 'Bloom & Vine', role: 'Florist', contact: 'orders@bloomvine.com', confirmed: false },
-      ],
-      guestCount: { invited: 180, confirmed: 96 },
-      timeline: [
-        { id: cryptoId(), time: '17:00', activity: 'Vendors arrive, setup begins' },
-        { id: cryptoId(), time: '18:00', activity: 'Doors open, cocktail hour' },
-        { id: cryptoId(), time: '19:00', activity: 'Dinner service begins' },
-      ],
-      afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
-    },
-    {
-      id: cryptoId(), name: 'Docent Training Workshop', date: nextDate(-9), startTime: '10:00', endTime: '12:00',
-      location: 'Estate Library', description: 'New docent onboarding and house history walkthrough.',
-      status: 'completed', purpose: 'Educational', expectedAttendance: '10–14 guests', pricing: 'Free',
-      tasks: [
-        { id: cryptoId(), text: 'Print training packets', done: true, due: nextDate(-11), assignee: 'Haley' },
-        { id: cryptoId(), text: 'Book room', done: true, due: nextDate(-14), assignee: 'Haley' },
-      ],
-      budget: [{ id: cryptoId(), item: 'Printed materials', estimated: 60, actual: 54 }],
-      vendors: [],
-      guestCount: { invited: 12, confirmed: 10 },
-      timeline: [
-        { id: cryptoId(), time: '10:00', activity: 'Welcome + house history overview' },
-        { id: cryptoId(), time: '11:30', activity: 'Walkthrough tour practice' },
-      ],
-      afterNotes: {
-        wentWell: 'Strong turnout, great questions during the walkthrough segment.',
-        wentWrong: 'Ran fifteen minutes over schedule during Q&A.',
-        finalAttendance: '10 of 12 invited',
-        finalBudget: '$54 (under budget)',
-        followUps: 'Send follow-up reading list, schedule shadow shifts.',
-      },
-    },
-    {
-      id: cryptoId(), name: 'Spring Volunteer Kickoff', date: nextDate(4), startTime: '09:30', endTime: '11:00',
-      location: 'Garden Pavilion', description: 'Kickoff for spring landscaping and grounds volunteer season.',
-      status: 'planning', purpose: 'Community Engagement', expectedAttendance: '30–40 guests', pricing: 'Free',
-      tasks: [{ id: cryptoId(), text: 'Draft volunteer schedule', done: false, due: nextDate(1), assignee: 'Haley' }],
-      budget: [{ id: cryptoId(), item: 'Coffee & snacks', estimated: 80, actual: 0 }],
-      vendors: [],
-      guestCount: { invited: 35, confirmed: 8 },
-      timeline: [],
-      afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
-    },
-  ];
-}
 
 function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || STATUS_STYLE.upcoming;
@@ -642,38 +627,55 @@ function EventModal({ editing, onSave, onCancel }) {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function EventsCommittee() {
-  const [events, setEvents] = useState(seedEvents);
+  const { session } = useVol();
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('list');
   const [selectedId, setSelectedId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
-  const [loadingBudgetEvents, setLoadingBudgetEvents] = useState(true);
 
-  // Pull in event names already used in Op Budget / Op Earnings (same
-  // source the Reimbursements form's Event dropdown suggests from) so the
-  // committee sees everything already on the books, not just what's been
-  // planned here. They show up undated — add a date via Edit once known.
-  useEffect(() => {
-    fetchEventNames().then(names => {
-      setEvents(prev => {
-        const existing = new Set(prev.map(e => e.name.trim().toLowerCase()));
-        const additions = names.filter(n => !existing.has(n.trim().toLowerCase())).map(emptyEvent);
-        return additions.length ? [...prev, ...additions] : prev;
-      });
-      setLoadingBudgetEvents(false);
-    }).catch(() => setLoadingBudgetEvents(false));
-  }, []);
+  // Load saved events, then pull in any event names already used in
+  // Op Budget / Op Earnings (same source the Reimbursements form's Event
+  // dropdown suggests from) that aren't tracked here yet, and persist them
+  // so the committee sees everything already on the books. Those come in
+  // undated — add a date via Edit once known.
+  function load() {
+    setLoading(true);
+    fetchCommitteeEvents().then(async rows => {
+      const mapped = rows.map(fromDb);
+      const names = await fetchEventNames().catch(() => []);
+      const existing = new Set(mapped.map(e => e.name.trim().toLowerCase()));
+      const missing = names.filter(n => !existing.has(n.trim().toLowerCase()));
+      if (missing.length) {
+        const results = await Promise.all(missing.map(n =>
+          insertCommitteeEvent({ ...toDb(emptyEvent(n)), created_by: session.user.id })
+        ));
+        results.forEach(res => { if (res.row) mapped.push(fromDb(res.row)); });
+      }
+      setEvents(mapped);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
 
   const selected = events.find(e => e.id === selectedId) || null;
 
   function updateSelected(updater) {
-    setEvents(prev => prev.map(e => e.id === selectedId ? updater(e) : e));
+    setEvents(prev => prev.map(e => {
+      if (e.id !== selectedId) return e;
+      const next = updater(e);
+      updateCommitteeEvent(e.id, toDb(next));
+      return next;
+    }));
   }
 
   function deleteEvent(ev) {
     if (!confirm(`Delete "${ev.name}"? This can't be undone.`)) return;
     setEvents(prev => prev.filter(e => e.id !== ev.id));
+    deleteCommitteeEvent(ev.id);
   }
 
   function openNewModal() {
@@ -684,15 +686,15 @@ export default function EventsCommittee() {
     setEditingEvent({ ...selected });
     setShowModal(true);
   }
-  function saveModal(data) {
+  async function saveModal(data) {
     if (editingEvent.id) {
-      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...data } : e));
+      const merged = { ...selected, ...data };
+      setEvents(prev => prev.map(e => e.id === editingEvent.id ? merged : e));
+      updateCommitteeEvent(editingEvent.id, toDb(merged));
     } else {
-      setEvents(prev => [...prev, {
-        id: cryptoId(), ...data,
-        tasks: [], budget: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
-        afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
-      }]);
+      const newEvent = { ...emptyEvent(data.name), ...data };
+      const res = await insertCommitteeEvent({ ...toDb(newEvent), created_by: session.user.id });
+      if (res.row) setEvents(prev => [...prev, fromDb(res.row)]);
     }
     setShowModal(false);
     setEditingEvent(null);
@@ -713,7 +715,6 @@ export default function EventsCommittee() {
         <div>
           <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Events Team</div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Events Committee Planning Notes</div>
-          {loadingBudgetEvents && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Syncing with budget tracking…</div>}
         </div>
         {!selected && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -727,7 +728,9 @@ export default function EventsCommittee() {
       </div>
 
       <div style={{ padding: selected ? 0 : '14px 14px 24px' }}>
-        {selected ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+        ) : selected ? (
           <EventDetail ev={selected} onUpdate={updateSelected} onBack={() => setSelectedId(null)} onEdit={openEditModal} />
         ) : events.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
