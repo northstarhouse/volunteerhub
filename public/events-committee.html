@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Events Committee Planning Notes — North Star House</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f7f3ec;
+    --paper-raised:#ffffff;
+    --ink:#2a2a2a;
+    --ink-soft:#888888;
+    --line:#e0d8cc;
+    --gold:#886c44;
+    --gold-deep:#6b5333;
+    --status-planning:#8a4a2e;
+    --status-upcoming:#886c44;
+    --status-completed:#6b7d52;
+    --white:#FFFFFF;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Calibri','Segoe UI',sans-serif;
+  }
+  .display{font-family:'Cardo','Georgia',serif;}
+  .mono{font-family:'Calibri','Segoe UI',sans-serif;font-weight:600;letter-spacing:0.06em;}
+
+  #app{max-width:1040px;margin:0 auto;padding:0 28px 80px;}
+
+  /* Header */
+  header.top{
+    padding:34px 0 18px;
+    background:var(--paper);
+    position:sticky;top:0;z-index:20;
+    border-bottom:1px solid var(--line);
+  }
+  .brand-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:baseline;gap:10px;}
+  .brand h1{font-size:1.9rem;font-weight:700;margin:0;letter-spacing:-0.01em;}
+  .brand .tag{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.68rem;color:var(--ink-soft);letter-spacing:0.08em;text-transform:uppercase;border:1px solid var(--line);padding:3px 7px;border-radius:2px;}
+  .actions{display:flex;gap:10px;align-items:center;}
+
+  .btn{
+    font-family:'Calibri','Segoe UI',sans-serif;
+    font-weight:600;font-size:0.86rem;
+    border:1px solid var(--ink);
+    background:transparent;color:var(--ink);
+    padding:9px 16px;border-radius:var(--radius);
+    cursor:pointer;transition:all .12s ease;
+  }
+  .btn:hover{background:var(--ink);color:var(--paper-raised);}
+  .btn.primary{background:var(--gold);border-color:var(--gold);color:#fff;}
+  .btn.primary:hover{background:var(--gold-deep);border-color:var(--gold-deep);}
+  .btn.ghost{border-color:transparent;color:var(--ink-soft);padding:9px 10px;}
+  .btn.ghost:hover{background:var(--paper-raised);color:var(--ink);}
+  .btn.small{padding:5px 11px;font-size:0.76rem;}
+  .btn.danger:hover{background:var(--status-planning);border-color:var(--status-planning);}
+
+  .view-toggle{display:flex;border:1px solid var(--ink);border-radius:var(--radius);overflow:hidden;}
+  .view-toggle button{
+    font-family:'Calibri','Segoe UI',sans-serif;font-size:0.78rem;
+    background:transparent;border:none;padding:9px 16px;cursor:pointer;color:var(--ink);
+    border-right:1px solid var(--ink);
+  }
+  .view-toggle button:last-child{border-right:none;}
+  .view-toggle button.active{background:var(--ink);color:var(--paper);}
+
+  /* Stamp badges */
+  .stamp{
+    display:inline-block;font-family:'Calibri','Segoe UI',sans-serif;
+    font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;
+    padding:3px 9px;border-radius:2px;border:1.5px solid currentColor;
+    font-weight:600;
+  }
+  .stamp.planning{color:var(--status-planning);}
+  .stamp.upcoming{color:var(--status-upcoming);}
+  .stamp.completed{color:var(--status-completed);}
+
+  /* List view */
+  .ledger{margin-top:26px;}
+  .ledger-head{
+    display:grid;grid-template-columns:100px 1fr 130px 160px 90px;
+    font-family:'Calibri','Segoe UI',sans-serif;font-size:0.68rem;text-transform:uppercase;
+    letter-spacing:0.08em;color:var(--ink-soft);padding:0 14px 8px;
+  }
+  .ledger-row{
+    display:grid;grid-template-columns:100px 1fr 130px 160px 90px;
+    align-items:center;background:var(--paper-raised);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px;margin-bottom:9px;cursor:pointer;transition:border-color .12s;
+  }
+  .ledger-row:hover{border-color:var(--gold);}
+  .ledger-row .date{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.82rem;color:var(--ink-soft);}
+  .ledger-row .name{font-family:'Cardo','Georgia',serif;font-size:1.12rem;font-weight:700;}
+  .ledger-row .name .loc{display:block;font-family:'Calibri','Segoe UI',sans-serif;font-size:0.78rem;font-weight:400;color:var(--ink-soft);margin-top:2px;}
+  .ledger-row .progress-cell{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.76rem;color:var(--ink-soft);}
+  .empty{
+    text-align:center;padding:70px 20px;color:var(--ink-soft);
+    border:1px dashed var(--line);border-radius:var(--radius);margin-top:26px;background:var(--paper-raised);
+  }
+  .empty .display{font-size:1.3rem;color:var(--ink);margin-bottom:6px;}
+
+  /* Calendar */
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-top:26px;}
+  .cal-nav .month-label{font-family:'Cardo','Georgia',serif;font-size:1.4rem;font-weight:700;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:16px;border-radius:var(--radius);overflow:hidden;}
+  .cal-dow{background:var(--ink);color:var(--paper);font-family:'Calibri','Segoe UI',sans-serif;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;padding:8px 10px;text-align:center;}
+  .cal-cell{background:var(--paper-raised);min-height:96px;padding:7px;position:relative;}
+  .cal-cell.other-month{background:var(--paper);opacity:0.45;}
+  .cal-cell .daynum{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.76rem;color:var(--ink-soft);}
+  .cal-cell .daynum.today{color:#fff;background:var(--gold);border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;}
+  .cal-event{
+    margin-top:5px;font-size:0.7rem;padding:2px 6px;border-radius:2px;cursor:pointer;
+    font-family:'Calibri','Segoe UI',sans-serif;font-weight:600;color:#fff;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .cal-event.planning{background:var(--status-planning);}
+  .cal-event.upcoming{background:var(--status-upcoming);}
+  .cal-event.completed{background:var(--status-completed);}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(35,38,43,0.5);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:100;}
+  .modal{background:var(--paper-raised);border-radius:var(--radius);width:100%;max-width:640px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+  .modal h2{font-family:'Cardo','Georgia',serif;font-size:1.5rem;margin:0 0 20px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'Calibri','Segoe UI',sans-serif;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink-soft);margin-bottom:5px;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius);
+    font-family:'Calibri','Segoe UI',sans-serif;font-size:0.92rem;background:#fff;color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:60px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line);}
+
+  /* Detail page */
+  .detail-head{margin-top:26px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+  .detail-title h2{font-family:'Cardo','Georgia',serif;font-size:2rem;margin:0 0 6px;}
+  .detail-meta{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.82rem;color:var(--ink-soft);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+  .tabs{display:flex;gap:2px;margin-top:28px;border-bottom:1px solid var(--line);}
+  .tab{
+    font-family:'Calibri','Segoe UI',sans-serif;font-size:0.76rem;text-transform:uppercase;letter-spacing:0.06em;
+    padding:11px 18px;cursor:pointer;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px;
+  }
+  .tab.active{color:var(--ink);border-bottom-color:var(--gold);font-weight:600;}
+  .tab-panel{padding-top:24px;}
+
+  .subsection{margin-bottom:30px;}
+  .subsection h3{font-family:'Cardo','Georgia',serif;font-size:1.1rem;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;}
+  .subsection h3 .btn{margin-left:auto;}
+
+  .item-row{
+    display:flex;align-items:center;gap:10px;background:var(--paper-raised);
+    border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;
+  }
+  .item-row.done .item-text{text-decoration:line-through;color:var(--ink-soft);}
+  .item-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+  .item-text{flex:1;font-size:0.92rem;}
+  .item-sub{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;}
+  .item-row .btn.ghost{padding:4px 8px;}
+
+  .inline-add{display:flex;gap:8px;margin-top:8px;}
+  .inline-add input, .inline-add select{
+    padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);font-family:'Calibri','Segoe UI',sans-serif;font-size:0.86rem;background:#fff;
+  }
+  .inline-add input.grow{flex:1;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);padding:14px;}
+  .stat-card .num{font-family:'Cardo','Georgia',serif;font-size:1.7rem;font-weight:700;}
+  .stat-card .lbl{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);}
+
+  textarea.notes-field{width:100%;min-height:90px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);font-family:'Calibri','Segoe UI',sans-serif;font-size:0.9rem;background:#fff;color:var(--ink);}
+  .notes-label{font-family:'Calibri','Segoe UI',sans-serif;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:6px;display:block;}
+
+  @media (max-width:640px){
+    .ledger-head{display:none;}
+    .ledger-row{grid-template-columns:1fr;gap:4px;}
+    .ledger-row .progress-cell{display:none;}
+    .row2{grid-template-columns:1fr;}
+    .cal-cell{min-height:64px;}
+    .cal-event{font-size:0.6rem;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ---------- State ----------
+let events = [
+  {
+    id: cryptoId(), name: "Autumn Fundraiser Gala", date: nextDate(18), time: "18:00",
+    location: "North Star House, Grass Valley", description: "Annual fundraiser for the conservancy, seated dinner + auction in the Julia Morgan-designed great hall.",
+    status: "upcoming",
+    tasks: [
+      {id:cryptoId(), text:"Confirm caterer menu", done:true, due: nextDate(2), assignee:"Haley"},
+      {id:cryptoId(), text:"Finalize auction item list", done:false, due: nextDate(10), assignee:"Committee"},
+      {id:cryptoId(), text:"Send save-the-dates", done:true, due: nextDate(-4), assignee:"Haley"}
+    ],
+    budget: [
+      {id:cryptoId(), item:"Catering", estimated:4500, actual:4200},
+      {id:cryptoId(), item:"Venue rental", estimated:1200, actual:1200},
+      {id:cryptoId(), item:"Decor & flowers", estimated:600, actual:0}
+    ],
+    vendors: [
+      {id:cryptoId(), name:"Harvest Table Catering", role:"Caterer", contact:"hello@harvesttable.com", confirmed:true},
+      {id:cryptoId(), name:"Bloom & Vine", role:"Florist", contact:"orders@bloomvine.com", confirmed:false}
+    ],
+    guestCount: {invited:180, confirmed:96},
+    timeline: [
+      {id:cryptoId(), time:"17:00", activity:"Vendors arrive, setup begins"},
+      {id:cryptoId(), time:"18:00", activity:"Doors open, cocktail hour"},
+      {id:cryptoId(), time:"19:00", activity:"Dinner service begins"}
+    ],
+    afterNotes: {wentWell:"", wentWrong:"", finalAttendance:"", finalBudget:"", followUps:""}
+  },
+  {
+    id: cryptoId(), name: "Docent Training Workshop", date: nextDate(-9), time: "10:00",
+    location: "Estate Library", description: "New docent onboarding and house history walkthrough.",
+    status: "completed",
+    tasks: [
+      {id:cryptoId(), text:"Print training packets", done:true, due:nextDate(-11), assignee:"Haley"},
+      {id:cryptoId(), text:"Book room", done:true, due:nextDate(-14), assignee:"Haley"}
+    ],
+    budget: [{id:cryptoId(), item:"Printed materials", estimated:60, actual:54}],
+    vendors: [],
+    guestCount: {invited:12, confirmed:10},
+    timeline: [{id:cryptoId(), time:"10:00", activity:"Welcome + house history overview"}, {id:cryptoId(), time:"11:30", activity:"Walkthrough tour practice"}],
+    afterNotes: {
+      wentWell:"Strong turnout, great questions during the walkthrough segment.",
+      wentWrong:"Ran fifteen minutes over schedule during Q&A.",
+      finalAttendance:"10 of 12 invited",
+      finalBudget:"$54 (under budget)",
+      followUps:"Send follow-up reading list, schedule shadow shifts."
+    }
+  },
+  {
+    id: cryptoId(), name: "Spring Volunteer Kickoff", date: nextDate(4), time: "09:30",
+    location: "Garden Pavilion", description: "Kickoff for spring landscaping and grounds volunteer season.",
+    status: "planning",
+    tasks: [{id:cryptoId(), text:"Draft volunteer schedule", done:false, due:nextDate(1), assignee:"Haley"}],
+    budget: [{id:cryptoId(), item:"Coffee & snacks", estimated:80, actual:0}],
+    vendors: [],
+    guestCount: {invited:35, confirmed:8},
+    timeline: [],
+    afterNotes: {wentWell:"", wentWrong:"", finalAttendance:"", finalBudget:"", followUps:""}
+  }
+];
+
+let state = {
+  view: "list",       // list | calendar
+  page: "home",        // home | detail
+  activeEventId: null,
+  activeTab: "overview",
+  calMonth: new Date().getMonth(),
+  calYear: new Date().getFullYear(),
+  showModal: false,
+  editingEvent: null
+};
+
+function cryptoId(){ return Math.random().toString(36).slice(2,10); }
+function nextDate(offsetDays){
+  const d = new Date();
+  d.setDate(d.getDate()+offsetDays);
+  return d.toISOString().slice(0,10);
+}
+function fmtDate(iso){
+  const d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function fmtDateShort(iso){
+  const d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function money(n){ return "$" + Number(n||0).toLocaleString(); }
+function getEvent(id){ return events.find(e=>e.id===id); }
+function sortedEvents(){ return [...events].sort((a,b)=> a.date.localeCompare(b.date)); }
+
+// ---------- Render ----------
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = renderHeader() + (state.page==="home" ? renderHome() : renderDetail()) + (state.showModal ? renderModal() : "");
+  attachHandlers();
+}
+
+function renderHeader(){
+  return `
+  <header class="top">
+    <div class="brand-row">
+      <div class="brand">
+        <h1 class="display" style="cursor:pointer" data-nav="home">Events Committee</h1>
+        <span class="tag">North Star Historic Conservancy</span>
+      </div>
+      <div class="actions">
+        ${state.page==="home" ? `
+        <div class="view-toggle">
+          <button data-view="list" class="${state.view==='list'?'active':''}">List</button>
+          <button data-view="calendar" class="${state.view==='calendar'?'active':''}">Calendar</button>
+        </div>` : `<button class="btn ghost" data-nav="home">&larr; All events</button>`}
+        <button class="btn primary" data-action="new-event">+ New event</button>
+      </div>
+    </div>
+  </header>`;
+}
+
+function renderHome(){
+  if(events.length===0){
+    return `<div class="empty">
+      <div class="display">Nothing on the docket yet</div>
+      <p>Create your first event to start planning.</p>
+      <button class="btn primary" data-action="new-event" style="margin-top:10px;">+ New event</button>
+    </div>`;
+  }
+  return state.view==="list" ? renderList() : renderCalendar();
+}
+
+function renderList(){
+  const rows = sortedEvents().map(ev=>{
+    const doneT = ev.tasks.filter(t=>t.done).length;
+    return `
+    <div class="ledger-row" data-open="${ev.id}">
+      <div class="date mono">${fmtDateShort(ev.date)}</div>
+      <div class="name">${escapeHtml(ev.name)}<span class="loc">${escapeHtml(ev.location||"No location set")}</span></div>
+      <div><span class="stamp ${ev.status}">${labelStatus(ev.status)}</span></div>
+      <div class="progress-cell">${doneT}/${ev.tasks.length} tasks &middot; ${ev.guestCount.confirmed}/${ev.guestCount.invited} guests</div>
+      <div style="text-align:right;">
+        <button class="btn ghost small" data-delete="${ev.id}" title="Delete">&times;</button>
+      </div>
+    </div>`;
+  }).join("");
+  return `
+  <div class="ledger">
+    <div class="ledger-head"><span>Date</span><span>Event</span><span>Status</span><span>Progress</span><span></span></div>
+    ${rows}
+  </div>`;
+}
+
+function labelStatus(s){ return s==="planning"?"Planning":s==="upcoming"?"Upcoming":"Completed"; }
+
+function renderCalendar(){
+  const y = state.calYear, m = state.calMonth;
+  const first = new Date(y,m,1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const daysInPrev = new Date(y,m,0).getDate();
+  const todayIso = new Date().toISOString().slice(0,10);
+  const monthLabel = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  const byDate = {};
+  events.forEach(ev=>{ (byDate[ev.date] = byDate[ev.date]||[]).push(ev); });
+
+  let cells = [];
+  for(let i=startDow-1;i>=0;i--){
+    cells.push({day: daysInPrev-i, other:true});
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    cells.push({day:d, other:false, iso: `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`});
+  }
+  while(cells.length % 7 !== 0){
+    cells.push({day: cells.length - (startDow+daysInMonth) + 1, other:true});
+  }
+
+  const dow = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const cellsHtml = cells.map(c=>{
+    if(c.other) return `<div class="cal-cell other-month"><span class="daynum">${c.day}</span></div>`;
+    const evs = byDate[c.iso] || [];
+    const isToday = c.iso === todayIso;
+    return `<div class="cal-cell">
+      <span class="daynum ${isToday?'today':''}">${c.day}</span>
+      ${evs.map(ev=>`<div class="cal-event ${ev.status}" data-open="${ev.id}">${escapeHtml(ev.name)}</div>`).join("")}
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="cal-nav">
+    <span class="month-label">${monthLabel}</span>
+    <div style="display:flex;gap:8px;">
+      <button class="btn small" data-cal="prev">&larr;</button>
+      <button class="btn small" data-cal="today">Today</button>
+      <button class="btn small" data-cal="next">&rarr;</button>
+    </div>
+  </div>
+  <div class="cal-grid">
+    ${dow.map(d=>`<div class="cal-dow">${d}</div>`).join("")}
+    ${cellsHtml}
+  </div>`;
+}
+
+function renderDetail(){
+  const ev = getEvent(state.activeEventId);
+  if(!ev) return `<div class="empty">Event not found.</div>`;
+  const doneT = ev.tasks.filter(t=>t.done).length;
+
+  return `
+  <div class="detail-head">
+    <div class="detail-title">
+      <span class="stamp ${ev.status}">${labelStatus(ev.status)}</span>
+      <h2>${escapeHtml(ev.name)}</h2>
+      <p style="color:var(--ink-soft);max-width:520px;margin:0;">${escapeHtml(ev.description||"")}</p>
+      <div class="detail-meta">
+        <span>&#128197; ${fmtDate(ev.date)}${ev.time?" &middot; "+ev.time:""}</span>
+        <span>&#128205; ${escapeHtml(ev.location||"No location set")}</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <select class="btn small" id="status-select" style="cursor:pointer;">
+        <option value="planning" ${ev.status==='planning'?'selected':''}>Planning</option>
+        <option value="upcoming" ${ev.status==='upcoming'?'selected':''}>Upcoming</option>
+        <option value="completed" ${ev.status==='completed'?'selected':''}>Completed</option>
+      </select>
+      <button class="btn small" data-action="edit-event">Edit</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab ${state.activeTab==='overview'?'active':''}" data-tab="overview">Overview</div>
+    <div class="tab ${state.activeTab==='preplanning'?'active':''}" data-tab="preplanning">Pre-Planning</div>
+    <div class="tab ${state.activeTab==='dayof'?'active':''}" data-tab="dayof">Day-Of</div>
+    <div class="tab ${state.activeTab==='after'?'active':''}" data-tab="after">After Notes</div>
+  </div>
+  <div class="tab-panel">${renderTab(ev, doneT)}</div>`;
+}
+
+function renderTab(ev, doneT){
+  if(state.activeTab==="overview") return renderOverviewTab(ev, doneT);
+  if(state.activeTab==="preplanning") return renderPreplanningTab(ev);
+  if(state.activeTab==="dayof") return renderDayOfTab(ev);
+  return renderAfterTab(ev);
+}
+
+function renderOverviewTab(ev, doneT){
+  const budgetTotal = ev.budget.reduce((s,b)=>s+Number(b.estimated||0),0);
+  const budgetActual = ev.budget.reduce((s,b)=>s+Number(b.actual||0),0);
+  return `
+  <div class="stat-grid">
+    <div class="stat-card"><div class="num">${doneT}/${ev.tasks.length}</div><div class="lbl">Tasks done</div></div>
+    <div class="stat-card"><div class="num">${ev.guestCount.confirmed}/${ev.guestCount.invited}</div><div class="lbl">Guests confirmed</div></div>
+    <div class="stat-card"><div class="num">${ev.vendors.filter(v=>v.confirmed).length}/${ev.vendors.length}</div><div class="lbl">Vendors confirmed</div></div>
+    <div class="stat-card"><div class="num">${money(budgetActual)}</div><div class="lbl">Spent of ${money(budgetTotal)}</div></div>
+  </div>
+  <div class="subsection">
+    <h3>What's next</h3>
+    ${ev.tasks.filter(t=>!t.done).slice(0,4).map(t=>`
+      <div class="item-row"><input type="checkbox" data-task-toggle="${t.id}"><span class="item-text">${escapeHtml(t.text)}</span><span class="item-sub">${t.due?fmtDateShort(t.due):""}</span></div>
+    `).join("") || `<p style="color:var(--ink-soft);font-size:0.9rem;">All tasks complete.</p>`}
+  </div>`;
+}
+
+function renderPreplanningTab(ev){
+  return `
+  <div class="subsection">
+    <h3>Task checklist</h3>
+    ${ev.tasks.map(t=>`
+      <div class="item-row ${t.done?'done':''}">
+        <input type="checkbox" ${t.done?'checked':''} data-task-toggle="${t.id}">
+        <span class="item-text">${escapeHtml(t.text)}</span>
+        <span class="item-sub">${t.assignee?escapeHtml(t.assignee)+" &middot; ":""}${t.due?fmtDateShort(t.due):""}</span>
+        <button class="btn ghost small" data-task-del="${t.id}">&times;</button>
+      </div>`).join("")}
+    <div class="inline-add">
+      <input type="text" class="grow" id="new-task-text" placeholder="Add a task...">
+      <input type="date" id="new-task-due">
+      <input type="text" id="new-task-assignee" placeholder="Assignee" style="width:110px;">
+      <button class="btn small" data-action="add-task">Add</button>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Budget</h3>
+    ${ev.budget.map(b=>`
+      <div class="item-row">
+        <span class="item-text">${escapeHtml(b.item)}</span>
+        <span class="item-sub">Est. ${money(b.estimated)}</span>
+        <span class="item-sub">Actual ${money(b.actual)}</span>
+        <button class="btn ghost small" data-budget-del="${b.id}">&times;</button>
+      </div>`).join("")}
+    <div class="inline-add">
+      <input type="text" class="grow" id="new-budget-item" placeholder="Line item...">
+      <input type="number" id="new-budget-est" placeholder="Estimated" style="width:110px;">
+      <input type="number" id="new-budget-actual" placeholder="Actual" style="width:100px;">
+      <button class="btn small" data-action="add-budget">Add</button>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Vendors & contacts</h3>
+    ${ev.vendors.map(v=>`
+      <div class="item-row">
+        <input type="checkbox" ${v.confirmed?'checked':''} data-vendor-toggle="${v.id}" title="Confirmed">
+        <span class="item-text">${escapeHtml(v.name)} <span style="color:var(--ink-soft);">— ${escapeHtml(v.role)}</span></span>
+        <span class="item-sub">${escapeHtml(v.contact||"")}</span>
+        <button class="btn ghost small" data-vendor-del="${v.id}">&times;</button>
+      </div>`).join("")}
+    <div class="inline-add">
+      <input type="text" id="new-vendor-name" placeholder="Vendor name">
+      <input type="text" id="new-vendor-role" placeholder="Role" style="width:110px;">
+      <input type="text" class="grow" id="new-vendor-contact" placeholder="Contact info">
+      <button class="btn small" data-action="add-vendor">Add</button>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Guest count</h3>
+    <div class="row2" style="max-width:340px;">
+      <div class="field"><label>Invited</label><input type="number" id="guest-invited" value="${ev.guestCount.invited}"></div>
+      <div class="field"><label>Confirmed</label><input type="number" id="guest-confirmed" value="${ev.guestCount.confirmed}"></div>
+    </div>
+    <button class="btn small" data-action="save-guests">Save guest count</button>
+  </div>`;
+}
+
+function renderDayOfTab(ev){
+  return `
+  <div class="subsection">
+    <h3>Run of show</h3>
+    ${ev.timeline.sort((a,b)=>a.time.localeCompare(b.time)).map(t=>`
+      <div class="item-row">
+        <span class="item-sub" style="width:60px;">${t.time}</span>
+        <span class="item-text">${escapeHtml(t.activity)}</span>
+        <button class="btn ghost small" data-timeline-del="${t.id}">&times;</button>
+      </div>`).join("") || `<p style="color:var(--ink-soft);font-size:0.9rem;">No timeline items yet.</p>`}
+    <div class="inline-add">
+      <input type="time" id="new-timeline-time" style="width:110px;">
+      <input type="text" class="grow" id="new-timeline-activity" placeholder="Activity...">
+      <button class="btn small" data-action="add-timeline">Add</button>
+    </div>
+  </div>`;
+}
+
+function renderAfterTab(ev){
+  const n = ev.afterNotes;
+  return `
+  <div class="subsection">
+    <div class="row2">
+      <div>
+        <span class="notes-label">What went well</span>
+        <textarea class="notes-field" id="note-wentWell" placeholder="Notes...">${escapeHtml(n.wentWell)}</textarea>
+      </div>
+      <div>
+        <span class="notes-label">What didn't go well</span>
+        <textarea class="notes-field" id="note-wentWrong" placeholder="Notes...">${escapeHtml(n.wentWrong)}</textarea>
+      </div>
+    </div>
+    <div class="row2" style="margin-top:16px;">
+      <div class="field"><label>Final attendance</label><input type="text" id="note-finalAttendance" value="${escapeHtml(n.finalAttendance)}"></div>
+      <div class="field"><label>Final budget</label><input type="text" id="note-finalBudget" value="${escapeHtml(n.finalBudget)}"></div>
+    </div>
+    <div>
+      <span class="notes-label">Follow-up items for next time</span>
+      <textarea class="notes-field" id="note-followUps" placeholder="Notes...">${escapeHtml(n.followUps)}</textarea>
+    </div>
+    <button class="btn small primary" data-action="save-notes" style="margin-top:14px;">Save after notes</button>
+  </div>`;
+}
+
+function renderModal(){
+  const ev = state.editingEvent;
+  const isNew = !ev.id;
+  return `
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>${isNew?"New event":"Edit event"}</h2>
+      <div class="field"><label>Event name</label><input type="text" id="m-name" value="${escapeHtml(ev.name||'')}" placeholder="e.g. Autumn Fundraiser Gala"></div>
+      <div class="row2">
+        <div class="field"><label>Date</label><input type="date" id="m-date" value="${ev.date||''}"></div>
+        <div class="field"><label>Time</label><input type="time" id="m-time" value="${ev.time||''}"></div>
+      </div>
+      <div class="field"><label>Location</label><input type="text" id="m-location" value="${escapeHtml(ev.location||'')}" placeholder="Where is this happening?"></div>
+      <div class="field"><label>Description</label><textarea id="m-description" placeholder="A short summary...">${escapeHtml(ev.description||'')}</textarea></div>
+      <div class="field"><label>Status</label>
+        <select id="m-status">
+          <option value="planning" ${ev.status==='planning'?'selected':''}>Planning</option>
+          <option value="upcoming" ${(!ev.status||ev.status==='upcoming')?'selected':''}>Upcoming</option>
+          <option value="completed" ${ev.status==='completed'?'selected':''}>Completed</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-action="close-modal">Cancel</button>
+        <button class="btn primary" data-action="save-event">${isNew?"Create event":"Save changes"}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(str){
+  return String(str||"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ---------- Handlers ----------
+function attachHandlers(){
+  const app = document.getElementById('app');
+
+  app.querySelectorAll('[data-nav="home"]').forEach(el=>el.onclick = ()=>{ state.page="home"; render(); });
+  app.querySelectorAll('[data-view]').forEach(el=>el.onclick = ()=>{ state.view = el.dataset.view; render(); });
+  app.querySelectorAll('[data-open]').forEach(el=>el.onclick = (e)=>{
+    if(e.target.closest('[data-delete]')) return;
+    state.activeEventId = el.dataset.open; state.page="detail"; state.activeTab="overview"; render();
+  });
+  app.querySelectorAll('[data-delete]').forEach(el=>el.onclick = (e)=>{
+    e.stopPropagation();
+    if(confirm("Delete this event? This can't be undone.")){
+      events = events.filter(ev=>ev.id!==el.dataset.delete);
+      render();
+    }
+  });
+  const newBtn = app.querySelector('[data-action="new-event"]');
+  if(newBtn) newBtn.onclick = ()=>{ state.editingEvent = {status:"upcoming"}; state.showModal=true; render(); };
+
+  const editBtn = app.querySelector('[data-action="edit-event"]');
+  if(editBtn) editBtn.onclick = ()=>{ state.editingEvent = {...getEvent(state.activeEventId)}; state.showModal=true; render(); };
+
+  const closeBtn = app.querySelector('[data-action="close-modal"]');
+  if(closeBtn) closeBtn.onclick = ()=>{ state.showModal=false; state.editingEvent=null; render(); };
+  const overlay = app.querySelector('#overlay');
+  if(overlay) overlay.onclick = (e)=>{ if(e.target.id==='overlay'){ state.showModal=false; state.editingEvent=null; render(); } };
+
+  const saveEventBtn = app.querySelector('[data-action="save-event"]');
+  if(saveEventBtn) saveEventBtn.onclick = ()=>{
+    const name = document.getElementById('m-name').value.trim();
+    if(!name){ alert("Give the event a name first."); return; }
+    const data = {
+      name,
+      date: document.getElementById('m-date').value || nextDate(0),
+      time: document.getElementById('m-time').value,
+      location: document.getElementById('m-location').value.trim(),
+      description: document.getElementById('m-description').value.trim(),
+      status: document.getElementById('m-status').value
+    };
+    if(state.editingEvent.id){
+      Object.assign(getEvent(state.editingEvent.id), data);
+    } else {
+      events.push({
+        id: cryptoId(), ...data,
+        tasks:[], budget:[], vendors:[], guestCount:{invited:0,confirmed:0}, timeline:[],
+        afterNotes:{wentWell:"",wentWrong:"",finalAttendance:"",finalBudget:"",followUps:""}
+      });
+    }
+    state.showModal=false; state.editingEvent=null; render();
+  };
+
+  // Calendar nav
+  app.querySelectorAll('[data-cal]').forEach(el=>el.onclick=()=>{
+    if(el.dataset.cal==="prev"){ state.calMonth--; if(state.calMonth<0){state.calMonth=11;state.calYear--;} }
+    else if(el.dataset.cal==="next"){ state.calMonth++; if(state.calMonth>11){state.calMonth=0;state.calYear++;} }
+    else { const d=new Date(); state.calMonth=d.getMonth(); state.calYear=d.getFullYear(); }
+    render();
+  });
+
+  // Tabs
+  app.querySelectorAll('[data-tab]').forEach(el=>el.onclick=()=>{ state.activeTab = el.dataset.tab; render(); });
+
+  // Status select on detail page
+  const statusSelect = app.querySelector('#status-select');
+  if(statusSelect) statusSelect.onchange = (e)=>{ getEvent(state.activeEventId).status = e.target.value; render(); };
+
+  if(state.page==="detail"){
+    const ev = getEvent(state.activeEventId);
+    if(ev) attachDetailHandlers(app, ev);
+  }
+}
+
+function attachDetailHandlers(app, ev){
+  app.querySelectorAll('[data-task-toggle]').forEach(el=>el.onchange=()=>{
+    const t = ev.tasks.find(t=>t.id===el.dataset.taskToggle); t.done = !t.done; render();
+  });
+  app.querySelectorAll('[data-task-del]').forEach(el=>el.onclick=()=>{
+    ev.tasks = ev.tasks.filter(t=>t.id!==el.dataset.taskDel); render();
+  });
+  const addTaskBtn = app.querySelector('[data-action="add-task"]');
+  if(addTaskBtn) addTaskBtn.onclick = ()=>{
+    const text = document.getElementById('new-task-text').value.trim();
+    if(!text) return;
+    ev.tasks.push({id:cryptoId(), text, done:false, due:document.getElementById('new-task-due').value, assignee:document.getElementById('new-task-assignee').value.trim()});
+    render();
+  };
+
+  app.querySelectorAll('[data-budget-del]').forEach(el=>el.onclick=()=>{
+    ev.budget = ev.budget.filter(b=>b.id!==el.dataset.budgetDel); render();
+  });
+  const addBudgetBtn = app.querySelector('[data-action="add-budget"]');
+  if(addBudgetBtn) addBudgetBtn.onclick = ()=>{
+    const item = document.getElementById('new-budget-item').value.trim();
+    if(!item) return;
+    ev.budget.push({id:cryptoId(), item, estimated:Number(document.getElementById('new-budget-est').value)||0, actual:Number(document.getElementById('new-budget-actual').value)||0});
+    render();
+  };
+
+  app.querySelectorAll('[data-vendor-toggle]').forEach(el=>el.onchange=()=>{
+    const v = ev.vendors.find(v=>v.id===el.dataset.vendorToggle); v.confirmed = !v.confirmed; render();
+  });
+  app.querySelectorAll('[data-vendor-del]').forEach(el=>el.onclick=()=>{
+    ev.vendors = ev.vendors.filter(v=>v.id!==el.dataset.vendorDel); render();
+  });
+  const addVendorBtn = app.querySelector('[data-action="add-vendor"]');
+  if(addVendorBtn) addVendorBtn.onclick = ()=>{
+    const name = document.getElementById('new-vendor-name').value.trim();
+    if(!name) return;
+    ev.vendors.push({id:cryptoId(), name, role:document.getElementById('new-vendor-role').value.trim(), contact:document.getElementById('new-vendor-contact').value.trim(), confirmed:false});
+    render();
+  };
+
+  const saveGuestsBtn = app.querySelector('[data-action="save-guests"]');
+  if(saveGuestsBtn) saveGuestsBtn.onclick = ()=>{
+    ev.guestCount.invited = Number(document.getElementById('guest-invited').value)||0;
+    ev.guestCount.confirmed = Number(document.getElementById('guest-confirmed').value)||0;
+    render();
+  };
+
+  app.querySelectorAll('[data-timeline-del]').forEach(el=>el.onclick=()=>{
+    ev.timeline = ev.timeline.filter(t=>t.id!==el.dataset.timelineDel); render();
+  });
+  const addTimelineBtn = app.querySelector('[data-action="add-timeline"]');
+  if(addTimelineBtn) addTimelineBtn.onclick = ()=>{
+    const activity = document.getElementById('new-timeline-activity').value.trim();
+    const time = document.getElementById('new-timeline-time').value || "00:00";
+    if(!activity) return;
+    ev.timeline.push({id:cryptoId(), time, activity});
+    render();
+  };
+
+  const saveNotesBtn = app.querySelector('[data-action="save-notes"]');
+  if(saveNotesBtn) saveNotesBtn.onclick = ()=>{
+    ev.afterNotes = {
+      wentWell: document.getElementById('note-wentWell').value,
+      wentWrong: document.getElementById('note-wentWrong').value,
+      finalAttendance: document.getElementById('note-finalAttendance').value,
+      finalBudget: document.getElementById('note-finalBudget').value,
+      followUps: document.getElementById('note-followUps').value
+    };
+    render();
+  };
+}
+
+render();
+</script>
+</body>
+</html>

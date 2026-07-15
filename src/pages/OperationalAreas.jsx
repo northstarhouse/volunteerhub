@@ -224,6 +224,13 @@ function AreaDetail({ area, showBack, onBack }) {
         </div>
       </div>
 
+      {area === 'Events' && (
+        <a href={`${import.meta.env.BASE_URL}events-committee.html`} target="_blank" rel="noreferrer"
+          className="btn-gold" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 14 }}>
+          Events Committee Planning Notes
+        </a>
+      )}
+
       {loading ? (
         <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
       ) : (
