@@ -43,6 +43,8 @@ function ViewRow({ label, value, onEdit, note, labelColor, shaded, last, preferr
   return (
     <div style={{
       marginBottom: last ? 0 : 12,
+      marginLeft: shaded ? -12 : 0,
+      marginRight: shaded ? -12 : 0,
       background: shaded ? '#fafafa' : 'transparent',
       border: shaded ? '0.5px solid var(--border-light)' : 'none',
       borderRadius: shaded ? 8 : 0,
