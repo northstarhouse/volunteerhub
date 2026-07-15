@@ -277,16 +277,26 @@ export default function Reimbursements() {
     .filter(i => ['Submitted', 'Pending Review', 'More Information Needed', 'Approved'].includes(i.status))
     .reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
 
+  const fullName = `${volunteer['First Name'] || ''} ${volunteer['Last Name'] || ''}`.trim();
+
   return (
     <div>
-      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Expenses</div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Reimbursements</div>
         </div>
-        {!showForm && (
-          <button className="btn-gold" onClick={() => { setEditing(null); setShowForm(true); }}>+ New Request</button>
-        )}
+        <div style={{ textAlign: 'right' }}>
+          {(fullName || volunteer['Address']) && (
+            <div style={{ marginBottom: 8 }}>
+              {fullName && <div style={{ fontSize: 13, fontWeight: 600 }}>{fullName}</div>}
+              {volunteer['Address'] && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{volunteer['Address']}</div>}
+            </div>
+          )}
+          {!showForm && (
+            <button className="btn-gold" onClick={() => { setEditing(null); setShowForm(true); }}>+ New Request</button>
+          )}
+        </div>
       </div>
 
       <div style={{ padding: '14px 14px 24px' }}>
