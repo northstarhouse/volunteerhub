@@ -300,13 +300,13 @@ export default function Reimbursements() {
               {volunteer['Address'] && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{volunteer['Address']}</div>}
             </div>
           )}
-          {!showForm && (
-            <button className="btn-gold" onClick={() => { setEditing(null); setShowForm(true); }}>+ New Request</button>
-          )}
         </div>
       </div>
 
       <div style={{ padding: '14px 14px 24px' }}>
+        {!showForm && (
+          <button className="btn-gold" style={{ width: '100%', marginBottom: 14 }} onClick={() => { setEditing(null); setShowForm(true); }}>+ New Request</button>
+        )}
 
         {showForm && (
           <ReimbursementForm
@@ -328,14 +328,8 @@ export default function Reimbursements() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
         ) : items.length === 0 && !showForm ? (
-          <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-              You haven't submitted any reimbursement requests yet.
-            </div>
-            <button className="btn-gold" style={{ fontSize: 14, padding: '11px 24px' }}
-              onClick={() => { setEditing(null); setShowForm(true); }}>
-              + Add a Reimbursement
-            </button>
+          <div className="card" style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+            You haven't submitted any reimbursement requests yet.
           </div>
         ) : (
           items.map(item => (
