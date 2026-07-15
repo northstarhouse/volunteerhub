@@ -286,21 +286,23 @@ export default function Reimbursements() {
           <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Expenses</div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Reimbursements</div>
         </div>
-        {!showForm && (
-          <button className="btn-gold" onClick={() => { setEditing(null); setShowForm(true); }}>+ New Request</button>
-        )}
+        <div style={{ textAlign: 'right' }}>
+          {(fullName || volunteer['Address']) && (
+            <div style={{ border: '0.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 500, marginBottom: 3 }}>
+                Sent to
+              </div>
+              {fullName && <div style={{ fontSize: 13, fontWeight: 600 }}>{fullName}</div>}
+              {volunteer['Address'] && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{volunteer['Address']}</div>}
+            </div>
+          )}
+          {!showForm && (
+            <button className="btn-gold" onClick={() => { setEditing(null); setShowForm(true); }}>+ New Request</button>
+          )}
+        </div>
       </div>
 
       <div style={{ padding: '14px 14px 24px' }}>
-        {(fullName || volunteer['Address']) && (
-          <div className="card" style={{ marginBottom: 14, background: 'var(--light)' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 6 }}>
-              Reimbursements will be sent to:
-            </div>
-            {fullName && <div style={{ fontSize: 14, fontWeight: 600 }}>{fullName}</div>}
-            {volunteer['Address'] && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{volunteer['Address']}</div>}
-          </div>
-        )}
 
         {showForm && (
           <ReimbursementForm
