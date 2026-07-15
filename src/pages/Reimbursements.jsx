@@ -50,6 +50,7 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
   const [files, setFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [isInKind, setIsInKind] = useState(editing?.type === 'In-Kind');
   const fileInputRef = useRef(null);
 
   const isEvents = form.operationalArea === 'Events';
@@ -63,7 +64,7 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
     return {
       area: form.operationalArea,
       event_name: isEvents ? form.eventName : null,
-      type: 'Purchase',
+      type: isInKind ? 'In-Kind' : 'Purchase',
       description: form.description.trim(),
       amount: parseFloat(form.amount) || 0,
       date: form.date,
@@ -71,7 +72,7 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
       volunteer_name: fullName,
       volunteer_auth_user_id: session.user.id,
       volunteer_id: vol.id,
-      needs_reimbursement: status !== 'Draft',
+      needs_reimbursement: isInKind ? false : status !== 'Draft',
       status,
       submitted_at: status === 'Draft' ? null : new Date().toISOString(),
     };
@@ -106,8 +107,10 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
         logActivity({
           vol,
           authUserId: session.user.id,
-          action: 'reimbursement_submitted',
-          description: `${fullName || 'A volunteer'} submitted a $${amt} reimbursement request (${form.operationalArea})`,
+          action: isInKind ? 'in_kind_donation_logged' : 'reimbursement_submitted',
+          description: isInKind
+            ? `${fullName || 'A volunteer'} logged a $${amt} in-kind donation (${form.operationalArea})`
+            : `${fullName || 'A volunteer'} submitted a $${amt} reimbursement request (${form.operationalArea})`,
         });
       }
 
@@ -121,9 +124,20 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
 
   return (
     <div className="card" style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>
-        {editing ? 'Edit Reimbursement Request' : 'New Reimbursement Request'}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>
+          {editing ? 'Edit Reimbursement Request' : 'New Reimbursement Request'}
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--muted)', fontWeight: 500, cursor: 'pointer', flexShrink: 0, textAlign: 'right' }}>
+          <span>Mark as In-Kind Donation</span>
+          <input type="checkbox" checked={isInKind} onChange={e => setIsInKind(e.target.checked)} style={{ accentColor: 'var(--gold)', width: 14, height: 14 }} />
+        </label>
       </div>
+      {isInKind && (
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12, marginTop: -8 }}>
+          In-kind donations are logged for the record — no reimbursement will be issued.
+        </div>
+      )}
 
       <div style={{ marginBottom: 10 }}>
         <div className="label">Expense Description</div>
@@ -200,7 +214,7 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
           {saving ? 'Saving…' : 'Save as Draft'}
         </button>
         <button type="button" className="btn-gold" style={{ flex: 2 }} onClick={() => handleSave('Submitted')} disabled={saving || !canSubmit}>
-          {saving ? 'Submitting…' : 'Submit Request'}
+          {saving ? 'Submitting…' : isInKind ? 'Log In-Kind Donation' : 'Submit Request'}
         </button>
       </div>
     </div>
@@ -227,6 +241,7 @@ function ReimbursementRow({ item, onEdit, onWithdraw }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+        {item.type === 'In-Kind' && <span className="badge" style={{ background: '#f0ebe2', color: 'var(--gold)' }}>In-Kind Donation</span>}
         <StatusBadge status={item.status} />
         {receipts.length > 0 && (
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>{receipts.length} receipt{receipts.length !== 1 ? 's' : ''}</span>
