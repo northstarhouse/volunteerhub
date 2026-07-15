@@ -150,15 +150,54 @@ function ResourcesCard({ resources }) {
 }
 
 function RosterCard({ area, roster }) {
+  const [copied, setCopied] = useState(false);
+
+  function copyEmails() {
+    const emails = roster.map(v => v['Email']).filter(Boolean).join(', ');
+    if (!emails) return;
+    navigator.clipboard.writeText(emails).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }
+
   return (
     <div className="card">
-      <SectionLabel>{area} Team ({roster.length})</SectionLabel>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: roster.length ? 12 : 0 }}>
+        <SectionLabel>{area} Team ({roster.length})</SectionLabel>
+        {roster.length > 0 && (
+          <button
+            onClick={copyEmails}
+            disabled={!roster.some(v => v['Email'])}
+            style={{
+              fontSize: 11,
+              background: copied ? '#e8f5e9' : 'var(--light)',
+              color: copied ? '#2e7d32' : 'var(--gold)',
+              border: `0.5px solid ${copied ? '#a5d6a7' : 'var(--border)'}`,
+              borderRadius: 8,
+              padding: '5px 12px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transition: 'all 0.2s',
+            }}
+          >
+            {copied ? '✓ Copied!' : 'Copy Emails'}
+          </button>
+        )}
+      </div>
       {roster.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No one else tagged to this area yet.</div>
       ) : roster.map((v, i) => (
         <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < roster.length - 1 ? 10 : 0 }}>
           <Avatar v={v} />
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{v['First Name']} {v['Last Name']}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{v['First Name']} {v['Last Name']}</div>
+            {(v['Email'] || v['Phone Number']) && (
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {v['Email']}{v['Email'] && v['Phone Number'] ? ' · ' : ''}{v['Phone Number']}
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
