@@ -57,9 +57,12 @@ function TimeSelect({ value, onChange }) {
   );
 }
 
+const EVENT_PURPOSES = ['Educational', 'Entertainment', 'Community Engagement', 'Fundraising Support'];
+
 function emptyEvent(name) {
   return {
     id: cryptoId(), name, date: '', startTime: '', endTime: '', location: '', description: '', status: 'planning',
+    purpose: '', expectedAttendance: '', pricing: '',
     tasks: [], budget: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
     afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
   };
@@ -79,7 +82,7 @@ function seedEvents() {
     {
       id: cryptoId(), name: 'Autumn Fundraiser Gala', date: nextDate(18), startTime: '18:00', endTime: '22:00',
       location: 'North Star House, Grass Valley', description: "Annual fundraiser for the conservancy, seated dinner + auction in the Julia Morgan-designed great hall.",
-      status: 'upcoming',
+      status: 'upcoming', purpose: 'Fundraising Support', expectedAttendance: '150–180 guests', pricing: '$125/ticket',
       tasks: [
         { id: cryptoId(), text: 'Confirm caterer menu', done: true, due: nextDate(2), assignee: 'Haley' },
         { id: cryptoId(), text: 'Finalize auction item list', done: false, due: nextDate(10), assignee: 'Committee' },
@@ -105,7 +108,7 @@ function seedEvents() {
     {
       id: cryptoId(), name: 'Docent Training Workshop', date: nextDate(-9), startTime: '10:00', endTime: '12:00',
       location: 'Estate Library', description: 'New docent onboarding and house history walkthrough.',
-      status: 'completed',
+      status: 'completed', purpose: 'Educational', expectedAttendance: '10–14 guests', pricing: 'Free',
       tasks: [
         { id: cryptoId(), text: 'Print training packets', done: true, due: nextDate(-11), assignee: 'Haley' },
         { id: cryptoId(), text: 'Book room', done: true, due: nextDate(-14), assignee: 'Haley' },
@@ -128,7 +131,7 @@ function seedEvents() {
     {
       id: cryptoId(), name: 'Spring Volunteer Kickoff', date: nextDate(4), startTime: '09:30', endTime: '11:00',
       location: 'Garden Pavilion', description: 'Kickoff for spring landscaping and grounds volunteer season.',
-      status: 'planning',
+      status: 'planning', purpose: 'Community Engagement', expectedAttendance: '30–40 guests', pricing: 'Free',
       tasks: [{ id: cryptoId(), text: 'Draft volunteer schedule', done: false, due: nextDate(1), assignee: 'Haley' }],
       budget: [{ id: cryptoId(), item: 'Coffee & snacks', estimated: 80, actual: 0 }],
       vendors: [],
@@ -500,6 +503,13 @@ function EventDetail({ ev, onUpdate, onBack, onEdit }) {
                 {fmtTimeRange(ev.startTime, ev.endTime)}
               </span>
             </div>
+            {(ev.purpose || ev.expectedAttendance || ev.pricing) && (
+              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                {ev.purpose && <span className="badge" style={{ background: 'var(--light)', color: 'var(--gold)' }}>{ev.purpose}</span>}
+                {ev.expectedAttendance && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.expectedAttendance}</span>}
+                {ev.pricing && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.pricing}</span>}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
             <select className="input" style={{ appearance: 'auto', fontSize: 12 }} value={ev.status}
@@ -544,11 +554,17 @@ function EventModal({ editing, onSave, onCancel }) {
     location: editing.location || '',
     description: editing.description || '',
     status: editing.status || 'upcoming',
+    purpose: editing.purpose || '',
+    expectedAttendance: editing.expectedAttendance || '',
+    pricing: editing.pricing || '',
   });
 
   function save() {
     if (!form.name.trim()) { alert('Give the event a name first.'); return; }
-    onSave({ ...form, name: form.name.trim(), location: form.location.trim(), description: form.description.trim() });
+    onSave({
+      ...form, name: form.name.trim(), location: form.location.trim(), description: form.description.trim(),
+      expectedAttendance: form.expectedAttendance.trim(), pricing: form.pricing.trim(),
+    });
   }
 
   return (
@@ -582,6 +598,23 @@ function EventModal({ editing, onSave, onCancel }) {
         <div style={{ marginBottom: 12 }}>
           <div className="label">Description</div>
           <textarea className="input" rows={3} style={{ resize: 'vertical' }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="A short summary…" />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div className="label">Main Purpose of This Event</div>
+          <select className="input" style={{ appearance: 'auto' }} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))}>
+            <option value="">Select a purpose…</option>
+            {EVENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div className="label">Expected Attendance</div>
+            <input className="input" value={form.expectedAttendance} onChange={e => setForm(f => ({ ...f, expectedAttendance: e.target.value }))} placeholder="e.g. 40–60 guests" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="label">Ticket Price / Free / Donation-Based</div>
+            <input className="input" value={form.pricing} onChange={e => setForm(f => ({ ...f, pricing: e.target.value }))} placeholder="e.g. $25/ticket, Free, Donation-based" />
+          </div>
         </div>
         <div style={{ marginBottom: 18 }}>
           <div className="label">Status</div>
