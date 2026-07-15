@@ -289,6 +289,11 @@ function PreplanningTab({ ev, onUpdate }) {
   const [budgetForm, setBudgetForm] = useState({ item: '', estimated: '', actual: '' });
   const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
   const [guests, setGuests] = useState(ev.guestCount);
+  const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing });
+
+  function saveBasics() {
+    onUpdate(e => ({ ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim() }));
+  }
 
   function toggleTask(id) {
     onUpdate(e => ({ ...e, tasks: e.tasks.map(t => t.id === id ? { ...t, done: !t.done } : t) }));
@@ -331,6 +336,28 @@ function PreplanningTab({ ev, onUpdate }) {
 
   return (
     <div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={sectionTitle}>Event Basics</div>
+        <div style={{ marginBottom: 10 }}>
+          <div className="label">Main Purpose of This Event</div>
+          <select className="input" style={{ appearance: 'auto' }} value={basics.purpose} onChange={e => setBasics(b => ({ ...b, purpose: e.target.value }))}>
+            <option value="">Select a purpose…</option>
+            {EVENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
+          <div style={{ flex: 1 }}>
+            <div className="label">Expected Attendance</div>
+            <input className="input" value={basics.expectedAttendance} onChange={e => setBasics(b => ({ ...b, expectedAttendance: e.target.value }))} placeholder="e.g. 40–60 guests" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="label">Ticket Price / Free / Donation-Based</div>
+            <input className="input" value={basics.pricing} onChange={e => setBasics(b => ({ ...b, pricing: e.target.value }))} placeholder="e.g. $25/ticket, Free, Donation-based" />
+          </div>
+        </div>
+        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={saveBasics}>Save event basics</button>
+      </div>
+
       <div style={{ marginBottom: 24 }}>
         <div style={sectionTitle}>Task checklist</div>
         {ev.tasks.map(t => (
@@ -554,17 +581,11 @@ function EventModal({ editing, onSave, onCancel }) {
     location: editing.location || '',
     description: editing.description || '',
     status: editing.status || 'upcoming',
-    purpose: editing.purpose || '',
-    expectedAttendance: editing.expectedAttendance || '',
-    pricing: editing.pricing || '',
   });
 
   function save() {
     if (!form.name.trim()) { alert('Give the event a name first.'); return; }
-    onSave({
-      ...form, name: form.name.trim(), location: form.location.trim(), description: form.description.trim(),
-      expectedAttendance: form.expectedAttendance.trim(), pricing: form.pricing.trim(),
-    });
+    onSave({ ...form, name: form.name.trim(), location: form.location.trim(), description: form.description.trim() });
   }
 
   return (
@@ -598,23 +619,6 @@ function EventModal({ editing, onSave, onCancel }) {
         <div style={{ marginBottom: 12 }}>
           <div className="label">Description</div>
           <textarea className="input" rows={3} style={{ resize: 'vertical' }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="A short summary…" />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <div className="label">Main Purpose of This Event</div>
-          <select className="input" style={{ appearance: 'auto' }} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))}>
-            <option value="">Select a purpose…</option>
-            {EVENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div className="label">Expected Attendance</div>
-            <input className="input" value={form.expectedAttendance} onChange={e => setForm(f => ({ ...f, expectedAttendance: e.target.value }))} placeholder="e.g. 40–60 guests" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="label">Ticket Price / Free / Donation-Based</div>
-            <input className="input" value={form.pricing} onChange={e => setForm(f => ({ ...f, pricing: e.target.value }))} placeholder="e.g. $25/ticket, Free, Donation-based" />
-          </div>
         </div>
         <div style={{ marginBottom: 18 }}>
           <div className="label">Status</div>
