@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useVol } from '../App.jsx';
 import { supabase } from '../supabase.js';
-import { updateVolunteer, photoUrl, insertOotNotice, logActivity } from '../lib/db.js';
+import { updateVolunteer, photoUrl, insertOotNotice, logActivity, getZodiacSign } from '../lib/db.js';
 
 const TEAM_COLORS = {
   'Staff':        { bg: '#f3f3f3', color: '#555' },
@@ -254,6 +254,12 @@ function fmtBirthday(iso) {
   const parts = iso.split('-');
   if (parts.length < 3) return iso;
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
+function birthdayZodiac(iso) {
+  if (!iso) return null;
+  const parts = iso.split('-');
+  if (parts.length < 3) return null;
+  return getZodiacSign(parseInt(parts[1]), parseInt(parts[2]));
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -555,7 +561,9 @@ export default function Profile() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Personal Info</div>
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
-              <ViewRow label="Birthday"          value={fmtBirthday(vol['Birthday'])}                  onEdit={startEdit} />
+              <ViewRow label="Birthday" value={fmtBirthday(vol['Birthday']) && (
+                <>{fmtBirthday(vol['Birthday'])}{birthdayZodiac(vol['Birthday']) && <span style={{ color: 'var(--muted)' }}> · {birthdayZodiac(vol['Birthday']).symbol} {birthdayZodiac(vol['Birthday']).name}</span>}</>
+              )} onEdit={startEdit} />
               <ViewRow label="North Star House Anniversary"   value={fmtAnniversary(vol['Volunteer Anniversary'])}  onEdit={startEdit} />
               <ViewRow label="Emergency Contact" value={vol['Emergency Contact']}                       onEdit={startEdit} last />
             </div>

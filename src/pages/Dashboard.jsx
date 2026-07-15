@@ -3,7 +3,7 @@ import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, AREA_DEFAULTS, currentQuarterStr, fetchOpBudget, fetchOpQuarterGoals,
-  fetchHours, getVolunteerHours, MONTHS,
+  fetchHours, getVolunteerHours, MONTHS, getZodiacSign,
 } from '../lib/db.js';
 
 const GOLD = '#886c44';
@@ -156,7 +156,7 @@ function BirthdayCard({ volunteers }) {
       const mo = parseInt(parts[1]) - 1, dy = parseInt(parts[2]);
       let bday = new Date(today.getFullYear(), mo, dy);
       if (bday < today) bday = new Date(today.getFullYear() + 1, mo, dy);
-      return { ...v, _bday: bday, _days: Math.round((bday - today) / 86400000) };
+      return { ...v, _bday: bday, _days: Math.round((bday - today) / 86400000), _zodiac: getZodiacSign(mo + 1, dy) };
     })
     .filter(Boolean)
     .filter(v => v._days <= 30)
@@ -187,6 +187,7 @@ function BirthdayCard({ volunteers }) {
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v['First Name']} {v['Last Name']}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
                 {v._bday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{isToday ? ' 🎂' : ''}
+                {v._zodiac && <span> · {v._zodiac.symbol} {v._zodiac.name}</span>}
               </div>
             </div>
             {!isToday && <span style={{ fontSize: 10, fontWeight: 600, color: v._days <= 7 ? GOLD : 'var(--muted)', flexShrink: 0 }}>
