@@ -291,10 +291,8 @@ export default function Reimbursements() {
             <div style={{ border: '0.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', marginBottom: 8, textAlign: 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 500, marginBottom: 5 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  <path d="M20 8h-3a2 2 0 0 0-2 2v10h5a2 2 0 0 0 2-2v-6a4 4 0 0 0-4-4Z" />
-                  <path d="M15 20V8a4 4 0 0 0-8 0v12" />
-                  <path d="M2 20h8" />
-                  <path d="M2 12h4" />
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m2 6 10 7 10-7" />
                 </svg>
                 Reimbursements will be sent to:
               </div>
