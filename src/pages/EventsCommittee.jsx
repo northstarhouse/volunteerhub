@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
-  fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, updateCommitteeEvent, deleteCommitteeEvent,
+  fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
 } from '../lib/db.js';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
@@ -716,8 +716,10 @@ export default function EventsCommittee() {
       const missing = names.filter(n => !existing.has(n.trim().toLowerCase()));
       if (missing.length) {
         const results = await Promise.all(missing.map(n =>
-          insertCommitteeEvent({ ...toDb(emptyEvent(n)), created_by: session.user.id })
+          insertCommitteeEventIfMissing({ ...toDb(emptyEvent(n)), created_by: session.user.id })
         ));
+        // A no-op result means another concurrent load already inserted this
+        // name first — nothing to add locally, it'll show up on next load.
         results.forEach(res => { if (res.row) mapped.push(fromDb(res.row)); });
       }
       setEvents(mapped);
@@ -760,6 +762,12 @@ export default function EventsCommittee() {
     } else {
       const newEvent = { ...emptyEvent(data.name), ...data };
       const res = await insertCommitteeEvent({ ...toDb(newEvent), created_by: session.user.id });
+      if (res.error) {
+        alert(res.error.includes('duplicate') || res.error.includes('unique')
+          ? `An event named "${data.name}" already exists.`
+          : `Failed to save: ${res.error}`);
+        return;
+      }
       if (res.row) setEvents(prev => [...prev, fromDb(res.row)]);
     }
     setShowModal(false);

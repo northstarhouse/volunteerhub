@@ -32,10 +32,10 @@ async function patch(path, body) {
   return r.json();
 }
 
-async function post(path, body) {
+async function post(path, body, extraHeaders) {
   const r = await fetch(`${URL}/rest/v1/${path}`, {
     method: 'POST',
-    headers: await hdr(),
+    headers: await hdr(extraHeaders),
     body: JSON.stringify(body),
   });
   return r.json();
@@ -465,6 +465,18 @@ export async function insertCommitteeEvent(payload) {
   const rows = await post('events_committee', payload);
   if (rows && rows.code) return { error: rows.message || rows.code };
   return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
+// Used by the auto-sync from Op Budget/Op Earnings event names: two
+// concurrent loads (two tabs, dev double-invoke, etc.) could otherwise both
+// decide the same name is "missing" and both insert it. on_conflict +
+// ignore-duplicates makes a losing insert a silent no-op instead of a
+// duplicate row (requires the name_key unique constraint from
+// supabase-events-committee-dedupe.sql).
+export async function insertCommitteeEventIfMissing(payload) {
+  const rows = await post('events_committee?on_conflict=name_key', payload, { Prefer: 'return=representation,resolution=ignore-duplicates' });
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) && rows[0] ? rows[0] : null };
 }
 
 export async function updateCommitteeEvent(id, payload) {
