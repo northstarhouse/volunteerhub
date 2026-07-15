@@ -187,7 +187,7 @@ function BirthdayCard({ volunteers }) {
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v['First Name']} {v['Last Name']}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
                 {v._bday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{isToday ? ' 🎂' : ''}
-                {v._zodiac && <span style={{ fontStyle: 'italic', opacity: 0.65 }}> · <span style={{ color: GOLD }}>{v._zodiac.symbol}</span> {v._zodiac.name}</span>}
+                {v._zodiac && <span style={{ fontStyle: 'italic', opacity: 0.65 }}> · {v._zodiac.name} <span style={{ color: GOLD }}>{v._zodiac.symbol}</span></span>}
               </div>
             </div>
             {!isToday && <span style={{ fontSize: 10, fontWeight: 600, color: v._days <= 7 ? GOLD : 'var(--muted)', flexShrink: 0 }}>

@@ -562,7 +562,7 @@ export default function Profile() {
                 <button onClick={startEdit} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Edit</button>
               </div>
               <ViewRow label="Birthday" value={fmtBirthday(vol['Birthday']) && (
-                <>{fmtBirthday(vol['Birthday'])}{birthdayZodiac(vol['Birthday']) && <span style={{ color: 'var(--muted)', fontStyle: 'italic', opacity: 0.65 }}> · <span style={{ color: 'var(--gold)' }}>{birthdayZodiac(vol['Birthday']).symbol}</span> {birthdayZodiac(vol['Birthday']).name}</span>}</>
+                <>{fmtBirthday(vol['Birthday'])}{birthdayZodiac(vol['Birthday']) && <span style={{ color: 'var(--muted)', fontStyle: 'italic', opacity: 0.65 }}> · {birthdayZodiac(vol['Birthday']).name} <span style={{ color: 'var(--gold)' }}>{birthdayZodiac(vol['Birthday']).symbol}</span></span>}</>
               )} onEdit={startEdit} />
               <ViewRow label="North Star House Anniversary"   value={fmtAnniversary(vol['Volunteer Anniversary'])}  onEdit={startEdit} />
               <ViewRow label="Emergency Contact" value={vol['Emergency Contact']}                       onEdit={startEdit} last />
