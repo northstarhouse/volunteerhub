@@ -30,3 +30,13 @@ on activity_log
 for insert
 to authenticated
 with check (auth_user_id = auth.uid());
+
+-- Portal writes with the anon key (no Supabase Auth session — same
+-- shared-password model as every other table Portal touches), so it
+-- needs its own insert policy. These rows just have auth_user_id null.
+drop policy if exists "portal insert activity" on activity_log;
+create policy "portal insert activity"
+on activity_log
+for insert
+to anon
+with check (auth_user_id is null);
