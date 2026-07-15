@@ -310,8 +310,14 @@ export default function Reimbursements() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
         ) : items.length === 0 && !showForm ? (
-          <div className="card" style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
-            No reimbursement requests yet.
+          <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
+              You haven't submitted any reimbursement requests yet.
+            </div>
+            <button className="btn-gold" style={{ fontSize: 14, padding: '11px 24px' }}
+              onClick={() => { setEditing(null); setShowForm(true); }}>
+              + Add a Reimbursement
+            </button>
           </div>
         ) : (
           items.map(item => (
