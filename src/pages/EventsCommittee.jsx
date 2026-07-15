@@ -21,6 +21,42 @@ const fmtTimeRange = (start, end) => {
   return fmt12hr(start || end);
 };
 
+const MINUTES = ['00', '15', '30', '45'];
+const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+// Native <input type="time"> doesn't reliably restrict the minute picker to
+// a fixed step across browsers, so use plain selects instead — guarantees
+// only :00/:15/:30/:45 no matter what.
+function TimeSelect({ value, onChange }) {
+  const [h24, m] = value ? value.split(':').map(Number) : [null, null];
+  const hour12 = h24 === null ? '' : (h24 % 12 || 12);
+  const ampm = h24 === null ? 'AM' : (h24 >= 12 ? 'PM' : 'AM');
+  const minute = m === null ? '00' : String(m - (m % 15)).padStart(2, '0');
+
+  function update(nextHour12, nextMinute, nextAmpm) {
+    if (nextHour12 === '') { onChange(''); return; }
+    let h = parseInt(nextHour12, 10) % 12;
+    if (nextAmpm === 'PM') h += 12;
+    onChange(`${String(h).padStart(2, '0')}:${nextMinute}`);
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <select className="input" style={{ appearance: 'auto' }} value={hour12} onChange={e => update(e.target.value, minute, ampm)}>
+        <option value="">--</option>
+        {HOURS_12.map(h => <option key={h} value={h}>{h}</option>)}
+      </select>
+      <select className="input" style={{ appearance: 'auto' }} value={minute} onChange={e => update(hour12 || 12, e.target.value, ampm)}>
+        {MINUTES.map(mm => <option key={mm} value={mm}>{mm}</option>)}
+      </select>
+      <select className="input" style={{ appearance: 'auto' }} value={ampm} onChange={e => update(hour12 || 12, minute, e.target.value)}>
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
+
 function emptyEvent(name) {
   return {
     id: cryptoId(), name, date: '', startTime: '', endTime: '', location: '', description: '', status: 'planning',
@@ -386,7 +422,7 @@ function DayOfTab({ ev, onUpdate }) {
         </ItemRow>
       ))}
       <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-        <input className="input" type="time" step="900" style={{ width: 120 }} value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+        <TimeSelect value={form.time} onChange={v => setForm(f => ({ ...f, time: v }))} />
         <input className="input" style={{ flex: 1 }} placeholder="Activity…" value={form.activity} onChange={e => setForm(f => ({ ...f, activity: e.target.value }))} />
         <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addItem}>Add</button>
       </div>
@@ -530,11 +566,11 @@ function EventModal({ editing, onSave, onCancel }) {
         <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
           <div style={{ flex: 1 }}>
             <div className="label">From</div>
-            <input className="input" type="time" step="900" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
+            <TimeSelect value={form.startTime} onChange={v => setForm(f => ({ ...f, startTime: v }))} />
           </div>
           <div style={{ flex: 1 }}>
             <div className="label">To</div>
-            <input className="input" type="time" step="900" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} />
+            <TimeSelect value={form.endTime} onChange={v => setForm(f => ({ ...f, endTime: v }))} />
           </div>
         </div>
         <div style={{ marginBottom: 12 }}>
