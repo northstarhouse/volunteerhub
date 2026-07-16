@@ -379,6 +379,8 @@ export default function Dashboard() {
   }, []);
 
   const myAreas = matchVolunteerAreas(volunteer.Team);
+  const myTeams = (volunteer.Team || '').split('|').map(t => t.trim());
+  const isLeader = myTeams.includes('Team Lead') || myTeams.includes('Board Member');
 
   return (
     <div>
@@ -396,6 +398,12 @@ export default function Dashboard() {
           {/* Left: Hours snapshot + My Area cards */}
           <div>
             <HoursSnapshotCard data={hoursData} />
+            {isLeader && (
+              <a href="https://northstarhouse.github.io/Portal/" target="_blank" rel="noreferrer"
+                className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
+                Open Portal
+              </a>
+            )}
             {myAreas.includes('Events') && (
               <button onClick={() => setView('events-committee')}
                 className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
