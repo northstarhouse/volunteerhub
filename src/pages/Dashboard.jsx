@@ -346,7 +346,7 @@ function MyAreaCard({ area, onOpen }) {
 }
 
 export default function Dashboard() {
-  const { volunteer, openArea } = useVol();
+  const { volunteer, openArea, setView } = useVol();
   const [volunteers, setVolunteers] = useState([]);
   const [oot, setOot]               = useState([]);
   const [calEvents, setCalEvents]   = useState(null);
@@ -396,6 +396,12 @@ export default function Dashboard() {
           {/* Left: Hours snapshot + My Area cards */}
           <div>
             <HoursSnapshotCard data={hoursData} />
+            {myAreas.includes('Events') && (
+              <button onClick={() => setView('events-committee')}
+                className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
+                Events Committee Planning Notes
+              </button>
+            )}
             {myAreas.map(area => (
               <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
             ))}
