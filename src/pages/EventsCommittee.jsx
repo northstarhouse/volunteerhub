@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
+  fetchAllActiveVolunteers,
 } from '../lib/db.js';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
@@ -268,8 +269,58 @@ function ItemRow({ children, onDelete, done }) {
   );
 }
 
-function PreplanningTab({ ev, onUpdate }) {
-  const [taskForm, setTaskForm] = useState({ text: '', due: '', assignee: '' });
+function AssigneeMentionInput({ assignee, assigneeId, onChange, volunteers }) {
+  const [query, setQuery] = useState(assignee || '');
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { setQuery(assignee || ''); }, [assignee]);
+
+  const showList = query.startsWith('@');
+  const search = query.slice(1).trim().toLowerCase();
+  const filtered = showList
+    ? (volunteers || []).filter(v => `${v['First Name']} ${v['Last Name']}`.toLowerCase().includes(search)).slice(0, 8)
+    : [];
+
+  function handleChange(e) {
+    const val = e.target.value;
+    setQuery(val);
+    onChange(val, null);
+    setOpen(val.startsWith('@'));
+  }
+
+  function select(v) {
+    const name = `${v['First Name']} ${v['Last Name']}`.trim();
+    setQuery(name);
+    onChange(name, v.id);
+    setOpen(false);
+  }
+
+  return (
+    <div style={{ position: 'relative', width: 130 }}>
+      <input className="input" placeholder="@ Assignee" value={query}
+        onChange={handleChange}
+        onFocus={() => { if (query.startsWith('@')) setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)} />
+      {open && filtered.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, zIndex: 30, marginTop: 2, minWidth: 180,
+          maxHeight: 180, overflowY: 'auto', background: '#fff', border: '0.5px solid var(--border)',
+          borderRadius: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+        }}>
+          {filtered.map(v => (
+            <div key={v.id} onMouseDown={() => select(v)}
+              style={{ padding: '7px 12px', fontSize: 12, cursor: 'pointer' }}>
+              {v['First Name']} {v['Last Name']}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PreplanningTab({ ev, onUpdate, volunteers }) {
+  const [taskForm, setTaskForm] = useState({ text: '', due: '', assignee: '', assigneeId: null });
   const [budgetForm, setBudgetForm] = useState({ item: '', estimated: '', actual: '' });
   const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
   const [guests, setGuests] = useState(ev.guestCount);
@@ -287,8 +338,8 @@ function PreplanningTab({ ev, onUpdate }) {
   }
   function addTask() {
     if (!taskForm.text.trim()) return;
-    onUpdate(e => ({ ...e, tasks: [...e.tasks, { id: cryptoId(), text: taskForm.text.trim(), done: false, due: taskForm.due, assignee: taskForm.assignee.trim() }] }));
-    setTaskForm({ text: '', due: '', assignee: '' });
+    onUpdate(e => ({ ...e, tasks: [...e.tasks, { id: cryptoId(), text: taskForm.text.trim(), done: false, due: taskForm.due, assignee: taskForm.assignee.trim(), assigneeId: taskForm.assigneeId }] }));
+    setTaskForm({ text: '', due: '', assignee: '', assigneeId: null });
   }
 
   function deleteBudget(id) {
@@ -348,13 +399,14 @@ function PreplanningTab({ ev, onUpdate }) {
           <ItemRow key={t.id} done={t.done} onDelete={() => deleteTask(t.id)}>
             <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id)} style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
             <span style={{ flex: 1, fontSize: 13, textDecoration: t.done ? 'line-through' : 'none' }}>{t.text}</span>
-            <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{t.assignee ? `${t.assignee} · ` : ''}{t.due ? fmtDateShort(t.due) : ''}</span>
+            <span style={{ fontSize: 11, color: t.assigneeId ? 'var(--gold)' : 'var(--muted)', whiteSpace: 'nowrap' }}>{t.assignee ? `${t.assigneeId ? '@' : ''}${t.assignee} · ` : ''}{t.due ? fmtDateShort(t.due) : ''}</span>
           </ItemRow>
         ))}
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
           <input className="input" style={{ flex: 1 }} placeholder="Add a task…" value={taskForm.text} onChange={e => setTaskForm(f => ({ ...f, text: e.target.value }))} />
           <input className="input" type="date" style={{ width: 130 }} value={taskForm.due} onChange={e => setTaskForm(f => ({ ...f, due: e.target.value }))} />
-          <input className="input" style={{ width: 100 }} placeholder="Assignee" value={taskForm.assignee} onChange={e => setTaskForm(f => ({ ...f, assignee: e.target.value }))} />
+          <AssigneeMentionInput assignee={taskForm.assignee} assigneeId={taskForm.assigneeId} volunteers={volunteers}
+            onChange={(assignee, assigneeId) => setTaskForm(f => ({ ...f, assignee, assigneeId }))} />
           <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addTask}>Add</button>
         </div>
       </div>
@@ -553,7 +605,7 @@ function FinancialsTab({ ev }) {
 
 // ── Detail page ───────────────────────────────────────────────────────────
 
-function EventDetail({ ev, onUpdate, onBack, onEdit }) {
+function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers }) {
   const [tab, setTab] = useState('overview');
   const tabs = [
     ['overview', 'Overview'],
@@ -615,7 +667,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit }) {
       </div>
 
       {tab === 'overview' && <OverviewTab ev={ev} />}
-      {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} />}
+      {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
       {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
       {tab === 'financials' && <FinancialsTab ev={ev} />}
       {tab === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
@@ -704,6 +756,9 @@ export default function EventsCommittee() {
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [volunteers, setVolunteers] = useState([]);
+
+  useEffect(() => { fetchAllActiveVolunteers().then(rows => setVolunteers(Array.isArray(rows) ? rows : [])).catch(() => setVolunteers([])); }, []);
 
   // Load saved events, then pull in any event names already used in
   // Op Budget / Op Earnings (same source the Reimbursements form's Event
@@ -808,7 +863,7 @@ export default function EventsCommittee() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
         ) : selected ? (
-          <EventDetail ev={selected} onUpdate={updateSelected} onBack={() => setSelectedId(null)} onEdit={openEditModal} />
+          <EventDetail ev={selected} onUpdate={updateSelected} onBack={() => setSelectedId(null)} onEdit={openEditModal} volunteers={volunteers} />
         ) : events.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
             <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 6 }}>Nothing on the docket yet</div>

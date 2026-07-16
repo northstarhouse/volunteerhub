@@ -3,7 +3,7 @@ import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, AREA_DEFAULTS, currentQuarterStr, fetchOpBudget, fetchOpQuarterGoals,
-  fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources,
+  fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
 } from '../lib/db.js';
 
 const GOLD = '#886c44';
@@ -278,6 +278,45 @@ function ResourcesCard({ areas }) {
   );
 }
 
+function MyEventTasksCard({ volunteerId, setView }) {
+  const [tasks, setTasks] = useState(null);
+
+  useEffect(() => {
+    if (!volunteerId) { setTasks([]); return; }
+    fetchCommitteeEvents().then(rows => {
+      const mine = [];
+      rows.forEach(row => {
+        (row.tasks || []).forEach(t => {
+          if (t.assigneeId === volunteerId && !t.done) mine.push({ ...t, eventName: row.name });
+        });
+      });
+      mine.sort((a, b) => (a.due || '9999') < (b.due || '9999') ? -1 : 1);
+      setTasks(mine);
+    }).catch(() => setTasks([]));
+  }, [volunteerId]);
+
+  if (tasks !== null && tasks.length === 0) return null;
+
+  return (
+    <div className="card" style={{ marginTop: 14, cursor: 'pointer' }} onClick={() => setView('events-committee')}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        My Event Tasks
+      </div>
+      {tasks === null ? (
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>
+      ) : tasks.map((t, i) => (
+        <div key={t.id ?? i} style={{ marginBottom: i < tasks.length - 1 ? 10 : 0 }}>
+          <div style={{ fontSize: 13, color: 'var(--text)' }}>{t.text}</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+            {t.eventName}{t.due && ` · Due ${new Date(`${t.due}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const GOAL_STATUS_COLORS = {
   'On Track': { bg: '#e8f5e9', color: '#2e7d32' },
   'At Risk':  { bg: '#fff8e1', color: '#8a6200' },
@@ -414,6 +453,7 @@ export default function Dashboard() {
               <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
             ))}
             <ResourcesCard areas={myAreas} />
+            <MyEventTasksCard volunteerId={volunteer.id} setView={setView} />
           </div>
 
           {/* Right: Calendar, Birthdays, OOT stacked */}
