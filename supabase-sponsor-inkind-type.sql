@@ -8,7 +8,7 @@ alter table "Sponsor In-Kind" add column if not exists contribution_type text;
 
 alter table "Sponsor In-Kind" drop constraint if exists sponsor_inkind_contribution_type_check;
 alter table "Sponsor In-Kind" add constraint sponsor_inkind_contribution_type_check
-  check (contribution_type is null or contribution_type in ('In-Kind (Work)', 'Monetary Value'));
+  check (contribution_type is null or contribution_type in ('In-Kind (Work)', 'Monetary Value', 'Discount'));
 
 -- The earlier sponsor-level tag is superseded by the per-entry one above;
 -- safe to drop since Financial Overview no longer reads it.
