@@ -111,7 +111,7 @@ function SetPasswordScreen({ onDone }) {
     if (password !== confirm) { setErr('Passwords do not match.'); return; }
     if (password.length < 8) { setErr('Must be at least 8 characters.'); return; }
     setBusy(true); setErr('');
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({ password, data: { must_change_password: false } });
     if (error) { setErr(error.message); setBusy(false); return; }
     setDone(true); setBusy(false);
     setTimeout(() => onDone?.(), 1500);
@@ -200,11 +200,13 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session ?? null);
+      if (data.session?.user?.user_metadata?.must_change_password) setNeedsPassword(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
       setAuthEvent(event);
       setSession(sess ?? null);
       if (event === 'PASSWORD_RECOVERY') setNeedsPassword(true);
+      if (event === 'SIGNED_IN' && sess?.user?.user_metadata?.must_change_password) setNeedsPassword(true);
     });
     return () => subscription.unsubscribe();
   }, []);
