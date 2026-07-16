@@ -259,12 +259,22 @@ export async function insertManualHours(name, duty, { date, useSpecificTimes, st
 export async function fetchHours() {
   try {
     const year = new Date().getFullYear();
-    const res = await fetch(
-      `${URL}/rest/v1/kiosk_logs?type=eq.volunteer&timestamp=gte.${year}-01-01T00:00:00.000Z&timestamp=lt.${year + 1}-01-01T00:00:00.000Z&order=name.asc,timestamp.asc&select=timestamp,name,action`,
-      { headers: hdr() }
-    );
-    if (!res.ok) return {};
-    return buildHoursMap(await res.json());
+    const headers = await hdr();
+    const pageSize = 1000;
+    let offset = 0;
+    let logs = [];
+    while (true) {
+      const res = await fetch(
+        `${URL}/rest/v1/kiosk_logs?type=eq.volunteer&timestamp=gte.${year}-01-01T00:00:00.000Z&timestamp=lt.${year + 1}-01-01T00:00:00.000Z&order=name.asc,timestamp.asc&select=timestamp,name,action&limit=${pageSize}&offset=${offset}`,
+        { headers }
+      );
+      if (!res.ok) break;
+      const page = await res.json();
+      logs = logs.concat(page);
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    }
+    return buildHoursMap(logs);
   } catch {
     return {};
   }
