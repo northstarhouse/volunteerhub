@@ -437,6 +437,10 @@ export default function Dashboard() {
           {/* Left: Hours snapshot + My Area cards */}
           <div>
             <HoursSnapshotCard data={hoursData} />
+            <a href="https://drive.google.com/drive/folders/1AGCE-jvZxgytP63lLjvdUYAkB-aOuTMO?usp=sharing" target="_blank" rel="noreferrer"
+              className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
+              Volunteer Resources
+            </a>
             {isLeader && (
               <a href="https://northstarhouse.github.io/Portal/" target="_blank" rel="noreferrer"
                 className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
