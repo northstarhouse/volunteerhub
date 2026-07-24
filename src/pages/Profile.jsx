@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import { supabase } from '../supabase.js';
-import { updateVolunteer, photoUrl, insertOotNotice, logActivity, getZodiacSign } from '../lib/db.js';
+import { updateVolunteer, photoUrl, insertOotNotice, logActivity, getZodiacSign, fetchMyGiving, fetchListTagColors } from '../lib/db.js';
 
 const TEAM_COLORS = {
   'Staff':        { bg: '#f3f3f3', color: '#555' },
@@ -35,6 +35,66 @@ function TeamBadge({ team }) {
         const colors = TEAM_COLORS[t] || { bg: 'var(--light)', color: 'var(--gold)' };
         return <span key={t} className="badge" style={{ background: colors.bg, color: colors.color }}>{t}</span>;
       })}
+    </div>
+  );
+}
+
+function EventTagsBadges({ tags, colors }) {
+  const list = (tags || '').split('|').map(t => t.trim()).filter(Boolean);
+  if (list.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+      {list.map(t => {
+        const c = colors[t] || 'var(--gold)';
+        return <span key={t} className="badge" style={{ background: c + '22', color: c }}>{t}</span>;
+      })}
+    </div>
+  );
+}
+
+function fmtGivingDate(iso) {
+  if (!iso) return '';
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function MyGivingCard({ donorId }) {
+  const [giving, setGiving] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!donorId) { setLoading(false); return; }
+    fetchMyGiving(donorId).then(g => { setGiving(g); setLoading(false); }).catch(() => setLoading(false));
+  }, [donorId]);
+
+  if (!donorId || loading) return null;
+  if (!giving) return null;
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', marginBottom: 14 }}>My Giving</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: giving.donations.length ? 14 : 0 }}>
+        <div style={{ background: 'var(--light)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>${giving.currentYearTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{new Date().getFullYear()} giving</div>
+        </div>
+        <div style={{ background: 'var(--light)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>${giving.lifetimeTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>Lifetime giving</div>
+        </div>
+      </div>
+      {giving.donations.slice(0, 8).map(d => (
+        <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '7px 0', borderTop: '0.5px solid var(--border-light)' }}>
+          <div>
+            <div style={{ color: 'var(--text)' }}>{d.type || 'Donation'}</div>
+            <div style={{ color: 'var(--muted)', fontSize: 11 }}>{fmtGivingDate(d.date)}</div>
+          </div>
+          <div style={{ fontWeight: 600, color: 'var(--text)' }}>${(d.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
+      ))}
+      {giving.donations.length > 8 && (
+        <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>+ {giving.donations.length - 8} more gift{giving.donations.length - 8 === 1 ? '' : 's'}</div>
+      )}
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, textAlign: 'center', fontStyle: 'italic' }}>Thank you for supporting North Star House as both a donor and a volunteer!</div>
     </div>
   );
 }
@@ -435,6 +495,15 @@ export default function Profile() {
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
   const [err, setErr]         = useState('');
+  const [tagColors, setTagColors] = useState({});
+
+  useEffect(() => {
+    fetchListTagColors().then(rows => {
+      const map = {};
+      rows.forEach(r => { map[r.tag] = r.color; });
+      setTagColors(map);
+    }).catch(() => {});
+  }, []);
 
   function startEdit() {
     const f = {};
@@ -486,6 +555,7 @@ export default function Profile() {
               {vol['First Name']} {vol['Last Name']}
             </div>
             <TeamBadge team={vol['Team']} />
+            <EventTagsBadges tags={vol['Event Tags']} colors={tagColors} />
             {vol['Status'] && (
               <span style={{ fontSize: 11, color: vol['Status'] === 'Active' ? '#2e7d32' : 'var(--muted)', background: vol['Status'] === 'Active' ? '#e8f5e9' : 'var(--light)', padding: '2px 8px', borderRadius: 10, marginTop: 6, display: 'inline-block' }}>
                 {vol['Status']}
@@ -544,6 +614,8 @@ export default function Profile() {
           </form>
         ) : (
           <>
+            <MyGivingCard donorId={vol.donor_id} />
+
             {/* Contact Info */}
             <div className="card" style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

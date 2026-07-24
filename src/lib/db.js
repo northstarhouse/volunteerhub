@@ -144,6 +144,35 @@ export async function fetchVolunteerByEmail(email) {
   return Array.isArray(rows) ? rows[0] ?? null : null;
 }
 
+// ── Donor giving (only readable for a volunteer's own linked donor_id) ────────
+
+export async function fetchMyGiving(donorId) {
+  if (!donorId) return null;
+  const [donorRows, donationRows] = await Promise.all([
+    get(`donors?id=eq.${donorId}&select=*`),
+    get(`donations?donor_id=eq.${donorId}&select=*&order=date.desc`),
+  ]);
+  const donor = Array.isArray(donorRows) ? donorRows[0] ?? null : null;
+  if (!donor) return null;
+  const donations = Array.isArray(donationRows) ? donationRows : [];
+  const lifetimeTotal = Math.max(
+    donations.reduce((s, d) => s + (d.amount || 0), 0),
+    donor.historical_lifetime_giving || 0
+  );
+  const currentYear = new Date().getFullYear();
+  const currentYearTotal = donations
+    .filter(d => d.date && new Date(d.date).getFullYear() === currentYear)
+    .reduce((s, d) => s + (d.amount || 0), 0);
+  return { donor, donations, lifetimeTotal, currentYearTotal };
+}
+
+// ── Tag colors (for a volunteer's own Event Tags) ──────────────────────────────
+
+export async function fetchListTagColors() {
+  const rows = await get(`List%20Tag%20Colors?select=*`);
+  return Array.isArray(rows) ? rows : [];
+}
+
 export async function updateVolunteer(id, patch_data) {
   const { error } = await supabase
     .from('2026 Volunteers')
