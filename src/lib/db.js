@@ -564,4 +564,28 @@ export async function deleteCommitteeEvent(id) {
   return { success: ok };
 }
 
+// ── Events Committee area planning (Overall/Programs/Volunteers/Logistics/
+// Hospitality/Finance/Sponsorship/Interiors/Marketing) ─────────────────────
+
+export async function fetchAreaData(eventId) {
+  const rows = await get(`events_committee_areas?event_id=eq.${eventId}&select=*`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+// Upserts one area's row for an event. Pass only the fields you're changing
+// (owner_name / pre_data / post_data) — existing ones are preserved via the
+// merge-duplicates resolution, since Postgres upsert replaces the whole row
+// otherwise; callers should pass the full pre_data/post_data object they
+// want stored (not a partial patch), same as how the rest of this file works.
+export async function saveArea(eventId, areaKey, { ownerName, preData, postData, authUserId } = {}) {
+  const payload = { event_id: eventId, area_key: areaKey, updated_at: new Date().toISOString() };
+  if (ownerName !== undefined) payload.owner_name = ownerName;
+  if (preData !== undefined) payload.pre_data = preData;
+  if (postData !== undefined) payload.post_data = postData;
+  if (authUserId) payload.updated_by = authUserId;
+  const rows = await post('events_committee_areas?on_conflict=event_id,area_key', payload, { Prefer: 'resolution=merge-duplicates,return=representation' });
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
 

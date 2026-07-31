@@ -4,6 +4,7 @@ import {
   fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
   fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
 } from '../lib/db.js';
+import AreasTab from './eventsCommitteeAreas.jsx';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
 const nextDate = (offsetDays) => {
@@ -606,11 +607,12 @@ function FinancialsTab({ ev }) {
 
 // ── Detail page ───────────────────────────────────────────────────────────
 
-function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers }) {
+function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
   const [tab, setTab] = useState('overview');
   const tabs = [
     ['overview', 'Overview'],
     ['preplanning', 'Pre-Planning'],
+    ['areas', 'Areas'],
     ['dayof', 'Day-Of'],
     ['financials', 'Financials'],
     ['after', 'After Notes'],
@@ -669,6 +671,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers }) {
 
       {tab === 'overview' && <OverviewTab ev={ev} />}
       {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
+      {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
       {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
       {tab === 'financials' && <FinancialsTab ev={ev} />}
       {tab === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
@@ -925,7 +928,7 @@ export default function EventsCommittee() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
         ) : selected ? (
-          <EventDetail ev={selected} onUpdate={updateSelected} onBack={() => setSelectedId(null)} onEdit={openEditModal} volunteers={volunteers} />
+          <EventDetail ev={selected} onUpdate={updateSelected} onBack={() => setSelectedId(null)} onEdit={openEditModal} volunteers={volunteers} session={session} volunteer={volunteer} />
         ) : events.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
             <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 6 }}>Nothing on the docket yet</div>
