@@ -398,24 +398,26 @@ export default function AreasTab({ event, session, volunteer }) {
         ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{areaDef.label}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Owner: <input value={ownerName} onChange={e => updateOwner(e.target.value)} style={{ border: 'none', borderBottom: '1px dashed var(--border)', background: 'none', fontSize: 12, color: 'var(--gold)', width: 140 }} />
+      <div style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{areaDef.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+              Owner: <input value={ownerName} onChange={e => updateOwner(e.target.value)} style={{ border: 'none', borderBottom: '1px dashed var(--border)', background: 'none', fontSize: 12, color: 'var(--gold)', width: 140 }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 0, background: 'var(--light)', borderRadius: 8, padding: 2 }}>
+            <button onClick={() => setPhase('pre')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'pre' ? 600 : 400, cursor: 'pointer', background: phase === 'pre' ? '#fff' : 'transparent' }}>Pre-Event</button>
+            <button onClick={() => setPhase('post')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'post' ? 600 : 400, cursor: 'pointer', background: phase === 'post' ? '#fff' : 'transparent' }}>Post-Event</button>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 0, background: 'var(--light)', borderRadius: 8, padding: 2 }}>
-          <button onClick={() => setPhase('pre')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'pre' ? 600 : 400, cursor: 'pointer', background: phase === 'pre' ? '#fff' : 'transparent' }}>Pre-Event</button>
-          <button onClick={() => setPhase('post')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'post' ? 600 : 400, cursor: 'pointer', background: phase === 'post' ? '#fff' : 'transparent' }}>Post-Event</button>
+
+        <AreaFormSection fields={fields} data={data} onFieldChange={updateField} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20 }}>
+          <button className="btn-gold" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save'}</button>
+          {saved && <span style={{ fontSize: 12, color: 'var(--gold)' }}>Saved ✓</span>}
         </div>
-      </div>
-
-      <AreaFormSection fields={fields} data={data} onFieldChange={updateField} />
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18 }}>
-        <button className="btn-gold" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save'}</button>
-        {saved && <span style={{ fontSize: 12, color: 'var(--gold)' }}>Saved ✓</span>}
       </div>
     </div>
   );
