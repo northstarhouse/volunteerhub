@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
-  fetchAllActiveVolunteers,
+  fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
 } from '../lib/db.js';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
@@ -76,6 +76,7 @@ function emptyEvent(name) {
 function fromDb(row) {
   return {
     id: row.id,
+    in_house_event_id: row.in_house_event_id || null,
     name: row.name,
     date: row.date || '',
     startTime: row.start_time || '',
@@ -748,7 +749,7 @@ function EventModal({ editing, onSave, onCancel }) {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function EventsCommittee() {
-  const { session } = useVol();
+  const { session, volunteer } = useVol();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('list');
@@ -817,6 +818,21 @@ export default function EventsCommittee() {
       const merged = { ...selected, ...data };
       setEvents(prev => prev.map(e => e.id === editingEvent.id ? merged : e));
       updateCommitteeEvent(editingEvent.id, toDb(merged));
+
+      // Keep the Leadership Dashboard's In-House Events entry in sync on rename/reschedule.
+      const nameOrDateChanged = merged.name !== selected.name || merged.date !== selected.date;
+      if (nameOrDateChanged && merged.date) {
+        if (merged.in_house_event_id) {
+          syncInHouseEvent({ name: merged.name, date: merged.date, ihEventId: merged.in_house_event_id });
+        } else {
+          syncInHouseEvent({ name: merged.name, date: merged.date }).then(ihEvent => {
+            if (ihEvent?.id) {
+              updateCommitteeEvent(editingEvent.id, { in_house_event_id: ihEvent.id });
+              setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, in_house_event_id: ihEvent.id } : e));
+            }
+          });
+        }
+      }
     } else {
       const newEvent = { ...emptyEvent(data.name), ...data };
       const res = await insertCommitteeEvent({ ...toDb(newEvent), created_by: session.user.id });
@@ -826,7 +842,23 @@ export default function EventsCommittee() {
           : `Failed to save: ${res.error}`);
         return;
       }
-      if (res.row) setEvents(prev => [...prev, fromDb(res.row)]);
+      if (res.row) {
+        setEvents(prev => [...prev, fromDb(res.row)]);
+        logActivity({
+          vol: volunteer,
+          authUserId: session.user.id,
+          action: 'committee_event_added',
+          description: `New event added to the Events Committee planning notes: ${res.row.name}`,
+        });
+        if (res.row.date) {
+          syncInHouseEvent({ name: res.row.name, date: res.row.date }).then(ihEvent => {
+            if (ihEvent?.id) {
+              updateCommitteeEvent(res.row.id, { in_house_event_id: ihEvent.id });
+              setEvents(prev => prev.map(e => e.id === res.row.id ? { ...e, in_house_event_id: ihEvent.id } : e));
+            }
+          });
+        }
+      }
     }
     setShowModal(false);
     setEditingEvent(null);

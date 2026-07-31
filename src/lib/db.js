@@ -524,6 +524,27 @@ export async function updateCommitteeEvent(id, payload) {
   return { success: true, row: Array.isArray(rows) ? rows[0] : null };
 }
 
+// Mirrors a committee event onto the Leadership Dashboard's "In-House Events"
+// list and logs it to activity_log. That table requires a Portal app session
+// (has_valid_app_session()) which Volunteer Hub's Supabase-auth users don't
+// have, so this goes through a shared edge function (also used by the
+// standalone Events Committee planning site) that does it with the service
+// role key instead. Pass ihEventId on rename/reschedule to update the linked
+// row in place rather than creating a new one.
+export async function syncInHouseEvent({ name, date, ihEventId }) {
+  try {
+    const res = await fetch(`${URL}/functions/v1/log-committee-event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${KEY}` },
+      body: JSON.stringify({ name, date, skipActivityLog: true, ...(ihEventId ? { ihEventId } : {}) }),
+    });
+    const data = await res.json();
+    return data && data.success ? data.event : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteCommitteeEvent(id) {
   const ok = await del(`events_committee?id=eq.${id}`);
   return { success: ok };
