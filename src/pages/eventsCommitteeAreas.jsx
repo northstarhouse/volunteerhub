@@ -9,7 +9,6 @@ import { useEffect, useState } from 'react';
 import { fetchAreaData, saveArea, logActivity } from '../lib/db.js';
 
 export const AREA_DEFAULTS = [
-  { key: 'overall', label: 'Overall Event Status', role: 'Event Chair', defaultOwner: 'Barb Kusha' },
   { key: 'programs', label: 'Activities & Programs', role: 'Programs', defaultOwner: 'Gerrie Kopec' },
   { key: 'volunteers', label: 'Volunteer Coordination', role: 'Volunteers', defaultOwner: 'Haley Wright' },
   { key: 'logistics', label: 'Event Logistics', role: 'Logistics & Operations', defaultOwner: 'Vince LoFranco' },
