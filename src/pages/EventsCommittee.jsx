@@ -137,25 +137,29 @@ function StatusBadge({ status }) {
 
 // ── Home: list / calendar ──────────────────────────────────────────────────
 
-function EventListRow({ ev, onOpen, onDelete }) {
+function EventListRow({ ev, onOpen, onDelete, isPast }) {
   const doneT = ev.tasks.filter(t => t.done).length;
+  const d = ev.date ? new Date(`${ev.date}T00:00:00`) : null;
   return (
-    <div className="card" style={{ marginBottom: 8, cursor: 'pointer' }} onClick={() => onOpen(ev.id)}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+    <div className="card" style={{ marginBottom: 6, padding: '9px 14px', cursor: 'pointer', opacity: isPast ? 0.62 : 1 }} onClick={() => onOpen(ev.id)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ textAlign: 'center', width: 42, flexShrink: 0 }}>
+          {d ? (
+            <>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</div>
+              <div style={{ fontSize: 21, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", lineHeight: 1.15 }}>{d.getDate()}</div>
+            </>
+          ) : (
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#c2410c' }}>No date</div>
+          )}
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{ev.name}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{doneT}/{ev.tasks.length} tasks</div>
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: ev.date ? 'var(--text)' : '#c2410c' }}>{ev.date ? fmtDateShort(ev.date) : 'Needs a date'}</div>
-          <div style={{ marginTop: 4 }}><StatusBadge status={ev.status} /></div>
-        </div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-        <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-          {doneT}/{ev.tasks.length} tasks
-        </div>
+        <div style={{ flexShrink: 0 }}><StatusBadge status={ev.status} /></div>
         <button onClick={(e) => { e.stopPropagation(); onDelete(ev); }}
-          style={{ background: 'none', border: 'none', color: '#c0392b', fontSize: 13, cursor: 'pointer', padding: '0 4px' }}>×</button>
+          style={{ background: 'none', border: 'none', color: '#c0392b', fontSize: 14, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>×</button>
       </div>
     </div>
   );
@@ -905,6 +909,10 @@ export default function EventsCommittee() {
     if (!b.date) return 1;
     return a.date.localeCompare(b.date);
   });
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const upcomingEvents = sorted.filter(ev => !ev.date || ev.date >= todayStr);
+  const pastEvents = sorted.filter(ev => ev.date && ev.date < todayStr)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div className="ec-page">
@@ -936,7 +944,19 @@ export default function EventsCommittee() {
             <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
           </div>
         ) : mode === 'list' ? (
-          sorted.map(ev => <EventListRow key={ev.id} ev={ev} onOpen={setSelectedId} onDelete={deleteEvent} />)
+          <div>
+            {upcomingEvents.map(ev => <EventListRow key={ev.id} ev={ev} onOpen={setSelectedId} onDelete={deleteEvent} />)}
+            {pastEvents.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 10px' }}>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Past Events</span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                </div>
+                {pastEvents.map(ev => <EventListRow key={ev.id} ev={ev} onOpen={setSelectedId} onDelete={deleteEvent} isPast />)}
+              </>
+            )}
+          </div>
         ) : (
           <CalendarView events={events} calYear={calYear} setCalYear={setCalYear} onOpen={setSelectedId} />
         )}
