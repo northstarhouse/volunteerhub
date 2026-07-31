@@ -1,5 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAllActiveVolunteers, photoUrl } from '../lib/db.js';
+import { fetchAllActiveVolunteers, photoUrl, getZodiacSign } from '../lib/db.js';
+
+function fmtBirthdayNoYear(iso) {
+  if (!iso) return null;
+  const parts = iso.split('-');
+  if (parts.length < 3) return null;
+  const d = new Date(2000, parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  if (isNaN(d)) return null;
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
 
 const TEAM_COLORS = {
   'Staff':             { bg: '#f3f3f3', color: '#555' },
@@ -85,6 +94,19 @@ function VolCard({ vol, expanded, onClick }) {
               <a href={`tel:${vol['Phone Number']}`} style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none' }}>{vol['Phone Number']}</a>
             </div>
           )}
+          {vol['Birthday'] && (() => {
+            const parts = vol['Birthday'].split('-');
+            const zodiac = parts.length >= 3 ? getZodiacSign(parseInt(parts[1], 10), parseInt(parts[2], 10)) : null;
+            return (
+              <div style={{ marginBottom: 8 }}>
+                <div className="label">Birthday</div>
+                <div style={{ fontSize: 13, color: 'var(--text)' }}>
+                  {fmtBirthdayNoYear(vol['Birthday'])}
+                  {zodiac && <span style={{ color: 'var(--muted)', fontStyle: 'italic', opacity: 0.65 }}> · {zodiac.name} <span style={{ color: 'var(--gold)' }}>{zodiac.symbol}</span></span>}
+                </div>
+              </div>
+            );
+          })()}
           {vol['What they want to see at NSH'] && (
             <div style={{ marginBottom: 8 }}>
               <div className="label">What They Want to See at North Star House</div>
