@@ -461,18 +461,32 @@ export function parseReceipts(receiptUrl) {
   return [receiptUrl];
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Uploads into the "Reimbursements" folder in the same Portal Backend Shared
+// Drive as Checks/Mail/Acknowledgements (via a shared edge function, since
+// this table's receipts used to live in Supabase Storage).
 export async function uploadReceiptFile(file, volunteerId) {
   const ext = (file.name.split('.').pop() || 'bin');
-  const filename = `vh-${volunteerId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-  const headers = await hdr({ 'Content-Type': file.type || 'application/octet-stream' });
-  delete headers.Prefer;
-  const res = await fetch(`${URL}/storage/v1/object/receipts/${filename}`, {
+  const now = new Date();
+  const mdY = `${now.getMonth() + 1}.${now.getDate()}.${now.getFullYear()}`;
+  const filename = `${mdY} - Receipt - ${volunteerId}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const base64 = await fileToBase64(file);
+  const res = await fetch(`${URL}/functions/v1/upload-receipt`, {
     method: 'POST',
-    headers,
-    body: file,
+    headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${KEY}` },
+    body: JSON.stringify({ filename, mimeType: file.type || 'application/octet-stream', base64 }),
   });
-  if (!res.ok) throw new Error('Receipt upload failed');
-  return `${URL}/storage/v1/object/public/receipts/${filename}`;
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || 'Receipt upload failed');
+  return data.url;
 }
 
 export async function uploadReceiptFiles(files, volunteerId) {
