@@ -181,14 +181,31 @@ export default function App() {
   const [volunteer, setVolunteer]         = useState(null);
   const [linkError, setLinkError]         = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [view, setView]                   = useState('dashboard');
+  // Synced to window.location.hash so a refresh (or a shared/bookmarked link)
+  // lands back on the same page instead of always bouncing to the dashboard —
+  // GitHub Pages has no server-side routing, so a real path-based URL would
+  // 404 on refresh; the hash is what survives.
+  const [view, setViewState]              = useState(() => window.location.hash.replace(/^#\/?/, '') || 'dashboard');
   const [currentArea, setCurrentArea]     = useState(null);
   const [isMobile, setIsMobile]           = useState(window.innerWidth < 768);
+
+  function setView(next) {
+    setViewState(next);
+    window.location.hash = `/${next}`;
+  }
 
   function openArea(area) {
     setCurrentArea(area);
     setView('areas');
   }
+
+  useEffect(() => {
+    function onHashChange() {
+      setViewState(window.location.hash.replace(/^#\/?/, '') || 'dashboard');
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
