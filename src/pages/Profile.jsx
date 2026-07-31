@@ -529,11 +529,16 @@ export default function Profile() {
       setEditing(false);
       setSaved(true);
       const fullName = `${volunteer['First Name'] || ''} ${volunteer['Last Name'] || ''}`.trim();
+      const changedLabels = EDITABLE_FIELDS
+        .filter(({ name }) => (volunteer[name] || '') !== (patch[name] || ''))
+        .map(({ label }) => label);
       logActivity({
         vol: volunteer,
         authUserId: session.user.id,
         action: 'profile_updated',
-        description: `${fullName || 'A volunteer'} updated their profile`,
+        description: changedLabels.length
+          ? `${fullName || 'A volunteer'} updated their profile (${changedLabels.join(', ')})`
+          : `${fullName || 'A volunteer'} updated their profile`,
       });
     } else {
       setErr(updated?.message || 'Failed to save. Please try again.');

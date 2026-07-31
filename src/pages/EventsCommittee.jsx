@@ -795,6 +795,15 @@ export default function EventsCommittee() {
       if (e.id !== selectedId) return e;
       const next = updater(e);
       updateCommitteeEvent(e.id, toDb(next));
+      if (next.status !== e.status) {
+        const fullName = `${volunteer?.['First Name'] || ''} ${volunteer?.['Last Name'] || ''}`.trim();
+        logActivity({
+          vol: volunteer,
+          authUserId: session.user.id,
+          action: 'committee_event_status_changed',
+          description: `${fullName || 'A volunteer'} marked "${e.name}" as ${(STATUS_STYLE[next.status] || {}).label || next.status}`,
+        });
+      }
       return next;
     }));
   }
@@ -803,6 +812,13 @@ export default function EventsCommittee() {
     if (!confirm(`Delete "${ev.name}"? This can't be undone.`)) return;
     setEvents(prev => prev.filter(e => e.id !== ev.id));
     deleteCommitteeEvent(ev.id);
+    const fullName = `${volunteer?.['First Name'] || ''} ${volunteer?.['Last Name'] || ''}`.trim();
+    logActivity({
+      vol: volunteer,
+      authUserId: session.user.id,
+      action: 'committee_event_deleted',
+      description: `${fullName || 'A volunteer'} deleted the event "${ev.name}"`,
+    });
   }
 
   function openNewModal() {
@@ -821,6 +837,20 @@ export default function EventsCommittee() {
 
       // Keep the Leadership Dashboard's In-House Events entry in sync on rename/reschedule.
       const nameOrDateChanged = merged.name !== selected.name || merged.date !== selected.date;
+      if (nameOrDateChanged) {
+        const fullName = `${volunteer?.['First Name'] || ''} ${volunteer?.['Last Name'] || ''}`.trim();
+        const change = merged.name !== selected.name && merged.date !== selected.date
+          ? `renamed "${selected.name}" to "${merged.name}" and rescheduled it`
+          : merged.name !== selected.name
+            ? `renamed "${selected.name}" to "${merged.name}"`
+            : `rescheduled "${merged.name}"`;
+        logActivity({
+          vol: volunteer,
+          authUserId: session.user.id,
+          action: 'committee_event_updated',
+          description: `${fullName || 'A volunteer'} ${change}`,
+        });
+      }
       if (nameOrDateChanged && merged.date) {
         if (merged.in_house_event_id) {
           syncInHouseEvent({ name: merged.name, date: merged.date, ihEventId: merged.in_house_event_id });

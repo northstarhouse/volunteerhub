@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
-import { fetchHours, getVolunteerHours, insertManualHours, MONTHS, DUTY_LABELS } from '../lib/db.js';
+import { fetchHours, getVolunteerHours, insertManualHours, logActivity, MONTHS, DUTY_LABELS } from '../lib/db.js';
 
 function Bar({ value, max }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -13,7 +13,7 @@ function Bar({ value, max }) {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-function AddMissedHoursCard({ vol, onSaved }) {
+function AddMissedHoursCard({ vol, authUserId, onSaved }) {
   const fullName = `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim();
   const [showForm, setShowForm]   = useState(false);
   const [form, setForm]           = useState({ duty: 'other', date: today(), useSpecificTimes: false, hours: '', startTime: '', endTime: '' });
@@ -40,6 +40,15 @@ function AddMissedHoursCard({ vol, onSaved }) {
     if (result.success) {
       setShowForm(false);
       setSubmitted(true);
+      const hoursDesc = form.useSpecificTimes
+        ? `${form.startTime}–${form.endTime}`
+        : `${form.hours} hr${Number(form.hours) === 1 ? '' : 's'}`;
+      logActivity({
+        vol,
+        authUserId,
+        action: 'missed_hours_logged',
+        description: `${fullName || 'A volunteer'} logged missed hours (${hoursDesc}, ${DUTY_LABELS[form.duty] || DUTY_LABELS.other})`,
+      });
       onSaved?.();
     } else {
       setErr(result.error || 'Failed to save. Please try again.');
@@ -117,7 +126,7 @@ function AddMissedHoursCard({ vol, onSaved }) {
 }
 
 export default function Hours() {
-  const { volunteer } = useVol();
+  const { volunteer, session } = useVol();
   const [hoursMap, setHoursMap] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(false);
@@ -219,7 +228,7 @@ export default function Hours() {
               </div>
             )}
 
-            <AddMissedHoursCard vol={volunteer} onSaved={loadHours} />
+            <AddMissedHoursCard vol={volunteer} authUserId={session.user.id} onSaved={loadHours} />
           </>
         )}
       </div>
