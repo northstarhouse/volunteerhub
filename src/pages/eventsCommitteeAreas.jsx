@@ -221,10 +221,12 @@ function Field({ field, value, onChange }) {
   if (field.type === 'table') {
     const rows = Array.isArray(v) ? v : [];
     const [draft, setDraft] = useState({});
+    const [showForm, setShowForm] = useState(false);
     function addRow() {
       if (field.columns.every(c => !draft[c.key])) return;
       onChange([...rows, { id: Math.random().toString(36).slice(2, 8), ...draft }]);
       setDraft({});
+      setShowForm(false);
     }
     function removeRow(id) { onChange(rows.filter(r => r.id !== id)); }
     return (
@@ -235,13 +237,18 @@ function Field({ field, value, onChange }) {
             <button onClick={() => removeRow(r.id)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>×</button>
           </div>
         ))}
-        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-          {field.columns.map(c => (
-            <input key={c.key} className="input" type={c.type || 'text'} style={{ flex: 1 }} placeholder={c.label}
-              value={draft[c.key] || ''} onChange={e => setDraft(d => ({ ...d, [c.key]: e.target.value }))} />
-          ))}
-          <button className="btn-gold" style={{ padding: '8px 12px' }} onClick={addRow}>Add</button>
-        </div>
+        {showForm ? (
+          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+            {field.columns.map(c => (
+              <input key={c.key} className="input" type={c.type || 'text'} style={{ flex: 1 }} placeholder={c.label}
+                value={draft[c.key] || ''} onChange={e => setDraft(d => ({ ...d, [c.key]: e.target.value }))} />
+            ))}
+            <button className="btn-gold" style={{ padding: '8px 12px' }} onClick={addRow}>Add</button>
+            <button className="btn-ghost" style={{ padding: '8px 12px' }} onClick={() => { setDraft({}); setShowForm(false); }}>Cancel</button>
+          </div>
+        ) : (
+          <button className="btn-ghost" style={{ fontSize: 12, marginTop: 4 }} onClick={() => setShowForm(true)}>+ Add {field.label}</button>
+        )}
       </div>
     );
   }
