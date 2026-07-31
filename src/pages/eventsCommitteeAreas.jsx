@@ -127,7 +127,13 @@ const SCHEMAS = {
   sponsorship: {
     pre: [
       { key: 'recognitionMethods', label: 'Recognition Methods', type: 'checkboxGroup', options: ['Signage on site', 'Verbal recognition', 'Program/printed materials', 'Digital recognition', 'Invitation-only/VIP access', 'Other'] },
+      { key: 'recognitionOther', label: 'Other Recognition', type: 'text' },
+      { key: 'recognitionVolunteer', label: 'Recognition Volunteer', type: 'text' },
       { key: 'potentialSponsors', label: 'Potential Sponsors', type: 'textarea' },
+      { key: 'outreachActions', label: 'Outreach Actions', type: 'checkboxGroup', options: ['Personal invitation', 'Event-specific pitch', 'Follow-up after event', 'Other'] },
+      { key: 'outreachOther', label: 'Other Outreach', type: 'text' },
+      { key: 'outreachVolunteer', label: 'Outreach Volunteer', type: 'text' },
+      { key: 'intentionalInvites', label: 'Intentional Invites', type: 'textarea' },
       { key: 'otherNotes', label: 'Other Notes', type: 'textarea' },
     ],
     post: [
@@ -138,8 +144,12 @@ const SCHEMAS = {
   },
   interiors: {
     pre: [
+      { key: 'historicApproach', label: 'Historic Approach', type: 'radio', options: ['All historically accurate items remain in place', 'Some items may be moved/stored', 'Significant rearrangement needed'] },
+      { key: 'moreInfo', label: 'More Info', type: 'textarea' },
       { key: 'decorAdded', label: 'Decor Added', type: 'textarea' },
       { key: 'decorCost', label: 'Decor Cost', type: 'text' },
+      { key: 'removalReasons', label: 'Removal Reasons', type: 'checkboxGroup', options: ['Space needs', 'Safety concerns', 'Damage risk', 'Event logistics', 'Other'] },
+      { key: 'removalOther', label: 'Other Removal Reason', type: 'text' },
       { key: 'otherNotes', label: 'Other Notes', type: 'textarea' },
     ],
     post: [
