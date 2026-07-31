@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { supabase, initialAuthType } from './supabase.js';
 import { fetchVolunteerByEmail, fetchVolunteerById } from './lib/db.js';
 import Nav from './components/Nav.jsx';
@@ -211,11 +211,21 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Link auth user → volunteer record when session changes
+  // Link auth user → volunteer record when the signed-in user actually changes.
+  // Supabase fires onAuthStateChange (and a fresh session object) on routine
+  // background token refreshes — e.g. every time the browser tab regains focus
+  // — even though the user hasn't changed. Re-keying this effect off the raw
+  // `session` object reference re-ran profile resolution on every one of those,
+  // which flips profileLoading true and unmounts the whole app tree below
+  // (see the `if (profileLoading) return <Spinner .../>` below), wiping out
+  // whatever form the volunteer was mid-way through filling in. Keying off the
+  // user id instead means this only re-runs on a real sign-in/sign-out/switch.
+  const resolvedUserId = useRef(null);
   useEffect(() => {
     if (session === undefined) return;
-    if (!session) { setVolunteer(null); setLinkError(false); return; }
+    if (!session) { resolvedUserId.current = null; setVolunteer(null); setLinkError(false); return; }
     if (needsPassword) return; // don't load profile until password is set
+    if (session.user.id === resolvedUserId.current) return; // same user, just a token refresh
 
     setProfileLoading(true);
     setLinkError(false);
@@ -232,19 +242,20 @@ export default function App() {
 
       if (link?.volunteer_id) {
         const vol = await fetchVolunteerById(link.volunteer_id);
-        if (vol) { setVolunteer(vol); setProfileLoading(false); return; }
+        if (vol) { resolvedUserId.current = uid; setVolunteer(vol); setProfileLoading(false); return; }
       }
 
       const vol = await fetchVolunteerByEmail(email);
       if (!vol) { setLinkError(true); setProfileLoading(false); return; }
 
       await supabase.from('volunteer_auth_links').upsert({ auth_user_id: uid, volunteer_id: vol.id });
+      resolvedUserId.current = uid;
       setVolunteer(vol);
       setProfileLoading(false);
     }
 
     resolveProfile();
-  }, [session, needsPassword]);
+  }, [session?.user?.id, needsPassword]);
 
   async function signOut() {
     await supabase.auth.signOut();
