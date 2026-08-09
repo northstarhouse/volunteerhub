@@ -305,18 +305,14 @@ export default function App() {
     <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea, setView }}>
       {isMobile ? (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
-          <div style={{ maxWidth: 640, margin: '0 auto' }}>
-            {pages[view] ?? pages.dashboard}
-          </div>
+          {pages[view] ?? pages.dashboard}
           <Nav view={view} setView={setView} />
         </div>
       ) : (
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
           <Sidebar view={view} setView={setView} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ maxWidth: 900, margin: '0 auto' }}>
-              {pages[view] ?? pages.dashboard}
-            </div>
+            {pages[view] ?? pages.dashboard}
           </div>
         </div>
       )}

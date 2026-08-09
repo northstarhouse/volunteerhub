@@ -57,7 +57,7 @@ function AddMissedHoursCard({ vol, authUserId, onSaved }) {
   }
 
   return (
-    <div className="card" style={{ marginTop: 14 }}>
+    <div className="card" style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showForm || submitted ? 12 : 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)' }}>Missed Hours</div>
         {!showForm && <button onClick={openForm} className="btn-ghost" style={{ fontSize: 11, padding: '4px 12px' }}>Add Missed Hours</button>}
@@ -177,6 +177,8 @@ export default function Hours() {
 
         {!loading && !error && (
           <>
+            <AddMissedHoursCard vol={volunteer} authUserId={session.user.id} onSaved={loadHours} />
+
             {/* Total */}
             <div className="card" style={{ marginBottom: 14, textAlign: 'center' }}>
               {data ? (
@@ -227,8 +229,6 @@ export default function Hours() {
                 <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>No monthly detail available.</div>
               </div>
             )}
-
-            <AddMissedHoursCard vol={volunteer} authUserId={session.user.id} onSaved={loadHours} />
           </>
         )}
       </div>

@@ -7,7 +7,7 @@ const TABS = [
   { id: 'areas',          label: 'My Area',        icon: AreaIcon },
   { id: 'hours',          label: 'Hours',          icon: ClockIcon },
   { id: 'reimbursements', label: 'Reimburse',      icon: ReceiptIcon },
-  { id: 'archive-upload', label: 'Photos',         icon: PhotoIcon },
+  { id: 'archive-upload', label: 'Upload Photos',  icon: PhotoIcon },
 ];
 
 function HomeIcon({ active }) {

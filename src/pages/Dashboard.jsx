@@ -184,7 +184,9 @@ function BirthdayCard({ volunteers }) {
           }}>
             <Avatar v={v} size={34} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v['First Name']} {v['Last Name']}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {v['First Name']} {v['Last Name']}{v['Team'] && ` - ${v['Team']}`}
+              </div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
                 {v._bday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{isToday ? ' 🎂' : ''}
                 {v._zodiac && <span style={{ fontStyle: 'italic', opacity: 0.65 }}> · {v._zodiac.name} <span style={{ color: GOLD }}>{v._zodiac.symbol}</span></span>}
