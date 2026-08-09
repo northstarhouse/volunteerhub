@@ -175,9 +175,11 @@ function AnnouncementBoard() {
                 <div style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', marginBottom: a.button_text ? 10 : 0 }}>{a.text}</div>
               )}
               {a.button_text && a.button_url && (
-                <a href={a.button_url} target="_blank" rel="noreferrer" className="btn-gold" style={{ display: 'inline-block', textDecoration: 'none' }}>
-                  {a.button_text}
-                </a>
+                <div style={{ textAlign: 'center' }}>
+                  <a href={a.button_url} target="_blank" rel="noreferrer" className="btn-gold" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                    {a.button_text}
+                  </a>
+                </div>
               )}
             </div>
           ))}
