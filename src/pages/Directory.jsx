@@ -60,12 +60,11 @@ function VolCard({ vol, expanded, onClick }) {
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {vol['First Name']} {vol['Last Name']}
           </div>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-            {teams.slice(0, 2).map(t => {
-              const c = getTeamColor(t);
-              return <span key={t} className="badge" style={{ background: c.bg, color: c.color, fontSize: 10 }}>{t}</span>;
-            })}
-          </div>
+          {teams.length > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {teams.join(' | ')}
+            </div>
+          )}
         </div>
         <div style={{ color: 'var(--muted)', fontSize: 12 }}>{expanded ? '▲' : '▼'}</div>
       </div>

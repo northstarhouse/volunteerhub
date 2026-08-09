@@ -402,7 +402,7 @@ export default function Dashboard() {
         {/* Two-column on desktop, stacked on mobile */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '280px minmax(0,1fr)',
+          gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)',
           gap: 16,
           alignItems: 'start',
         }}

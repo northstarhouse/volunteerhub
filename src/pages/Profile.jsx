@@ -3,18 +3,6 @@ import { useVol } from '../App.jsx';
 import { supabase } from '../supabase.js';
 import { updateVolunteer, photoUrl, insertOotNotice, logActivity, getZodiacSign, fetchMyGiving, fetchListTagColors } from '../lib/db.js';
 
-const TEAM_COLORS = {
-  'Staff':        { bg: '#f3f3f3', color: '#555' },
-  'Board Member': { bg: '#fce4ec', color: '#880e4f' },
-  'Grounds':      { bg: '#e8f5e9', color: '#2e7d32' },
-  'Construction': { bg: '#fff3e0', color: '#e65100' },
-  'Events Team':  { bg: '#e3f2fd', color: '#1565c0' },
-  'Interiors':    { bg: '#f3e5f5', color: '#6a1b9a' },
-  'Fundraising':  { bg: '#fff8e1', color: '#8a6200' },
-  'Docent':       { bg: '#fbe9e7', color: '#8d3d2b' },
-  'Marketing':    { bg: '#fce4ec', color: '#c2185b' },
-};
-
 function Avatar({ vol }) {
   const initials = `${(vol['First Name'] || '')[0] || ''}${(vol['Last Name'] || '')[0] || ''}`.toUpperCase();
   const url = photoUrl(vol['Picture URL']);
@@ -28,13 +16,11 @@ function Avatar({ vol }) {
 }
 
 function TeamBadge({ team }) {
-  if (!team) return null;
+  const areas = (team || '').split('|').map(t => t.trim()).filter(Boolean);
+  if (areas.length === 0) return null;
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-      {team.split('|').map(t => t.trim()).filter(Boolean).map(t => {
-        const colors = TEAM_COLORS[t] || { bg: 'var(--light)', color: 'var(--gold)' };
-        return <span key={t} className="badge" style={{ background: colors.bg, color: colors.color }}>{t}</span>;
-      })}
+    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+      {areas.join(' | ')}
     </div>
   );
 }

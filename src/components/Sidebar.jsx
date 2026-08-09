@@ -3,7 +3,7 @@ import { photoUrl, matchVolunteerAreas } from '../lib/db.js';
 
 const TABS = [
   { id: 'dashboard',      label: 'Home',           icon: HomeIcon },
-  { id: 'directory',      label: 'Directory',      icon: PeopleIcon },
+  { id: 'directory',      label: 'Volunteer Directory', icon: PeopleIcon },
   { id: 'hours',          label: 'My Hours',            icon: ClockIcon },
   { id: 'reimbursements', label: 'Submit Reimbursement', icon: ReceiptIcon },
   { id: 'archive-upload', label: 'Upload Photos',  icon: PhotoIcon },
@@ -65,7 +65,7 @@ export default function Sidebar({ view, setView }) {
 
         {myAreas.length > 0 && (
           <div style={{ padding: '16px 8px 0' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', padding: '0 12px', marginBottom: 8 }}>My Areas</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', padding: '0 12px', marginBottom: 8 }}>Areas of Contribution</div>
             {myAreas.map(area => {
               const active = view === 'areas' && currentArea === area;
               return (
@@ -103,9 +103,14 @@ export default function Sidebar({ view, setView }) {
               {volunteer?.['First Name']} {volunteer?.['Last Name']}
             </div>
           </button>
-          <button onClick={signOut} style={{ display: 'block', width: '100%', padding: '8px 8px', marginTop: 2, background: 'none', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontSize: 11.5 }}>
-            Sign Out
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <button onClick={() => setView('profile')} style={{ flex: 1, padding: '8px 8px', background: 'none', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontSize: 11.5 }}>
+              Edit Volunteer Profile
+            </button>
+            <button onClick={signOut} style={{ padding: '8px 8px', flexShrink: 0, background: 'none', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', color: 'rgba(255,255,255,0.35)', fontSize: 11.5 }}>
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     </div>
