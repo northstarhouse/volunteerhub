@@ -181,11 +181,11 @@ export default function Directory() {
   return (
     <div>
       {/* Header */}
-      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)' }}>
-        <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>
+      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
+        <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>
           {volunteers.length > 0 ? `${volunteers.length} Active Volunteers` : 'Directory'}
         </div>
-        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Volunteer Directory</div>
+        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>Volunteer Directory</div>
       </div>
 
       <div style={{ padding: '12px 14px 0' }}>

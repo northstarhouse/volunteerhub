@@ -551,12 +551,12 @@ export default function Profile() {
   return (
     <div>
       {/* Header */}
-      <div style={{ padding: '22px 18px 16px', borderBottom: '0.5px solid var(--border-light)' }}>
-        <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 12 }}>My Profile</div>
+      <div style={{ padding: '22px 18px 16px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
+        <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 12 }}>My Profile</div>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
           <Avatar vol={vol} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", lineHeight: 1.2 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", lineHeight: 1.2, color: 'var(--gold)' }}>
               {vol['First Name']} {vol['Last Name']}
             </div>
             <TeamBadge team={vol['Team']} />

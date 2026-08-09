@@ -101,9 +101,9 @@ export default function ArchiveUpload() {
 
   return (
     <div>
-      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)' }}>
-        <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Archives</div>
-        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Photos &amp; Documents</div>
+      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
+        <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Archives</div>
+        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>Photos &amp; Documents</div>
       </div>
 
       <div style={{ padding: '14px 14px 24px' }}>

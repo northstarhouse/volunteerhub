@@ -40,17 +40,6 @@ function SectionLabel({ children }) {
   );
 }
 
-function EarningsCard({ earnings }) {
-  const total = earnings.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-  return (
-    <div className="card" style={{ marginBottom: 14 }}>
-      <SectionLabel>Earnings</SectionLabel>
-      <div style={{ fontSize: 22, fontWeight: 700, color: GOLD }}>{fmt(total)}</div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>{earnings.length} {earnings.length === 1 ? 'entry' : 'entries'}</div>
-    </div>
-  );
-}
-
 function GoalsCard({ quarter, goals }) {
   const rows = goals ? [
     [goals.goal_1, goals.goal_1_status, goals.goal_1_summary],
@@ -228,6 +217,7 @@ function AreaDetail({ area, showBack, onBack }) {
   const lead = area === 'Venue' ? 'Staff' : (areaInfo?.lead || defaults.lead || '');
   const spent = budget.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
   const allocation = AREA_DEFAULTS[area]?.budget ?? null;
+  const totalEarnings = earnings.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
 
   return (
     <div style={{ padding: '16px 20px 24px' }}>
@@ -243,9 +233,11 @@ function AreaDetail({ area, showBack, onBack }) {
           </div>
         )}
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--text)' }}>{area}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>{area}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-            Led by {lead || 'TBD'}{allocation != null && <> · Budget {fmt(spent)} / {fmt(allocation)}</>}
+            Led by {lead || 'TBD'}
+            {allocation != null && <> · Budget {fmt(spent)} / {fmt(allocation)}</>}
+            {area === 'Events' && <> · Earnings {fmt(totalEarnings)}</>}
           </div>
         </div>
       </div>
@@ -261,7 +253,6 @@ function AreaDetail({ area, showBack, onBack }) {
         <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
       ) : (
         <>
-          {area === 'Events' && <EarningsCard earnings={earnings} />}
           <ReflectionCard update={update} />
           <ResourcesCard resources={resources} />
           <RosterCard area={area} roster={roster} />

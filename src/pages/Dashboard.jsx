@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
-  matchVolunteerAreas, AREA_DEFAULTS, fetchOpBudget,
+  matchVolunteerAreas,
   fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
 } from '../lib/db.js';
 
@@ -11,9 +11,9 @@ const GOLD = '#886c44';
 function PageHeader({ name }) {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   return (
-    <div style={{ padding: '22px 20px 16px', borderBottom: '0.5px solid var(--border-light)' }}>
-      <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 4 }}>{today}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--text)' }}>
+    <div style={{ padding: '22px 20px 16px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
+      <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 4 }}>{today}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>
         Hey, {name}
       </div>
     </div>
@@ -317,41 +317,8 @@ function MyEventTasksCard({ volunteerId, setView }) {
   );
 }
 
-function MyAreaCard({ area, onOpen }) {
-  const [budget, setBudget] = useState(null);
-
-  useEffect(() => {
-    fetchOpBudget(area).then(rows => setBudget(Array.isArray(rows) ? rows : []));
-  }, [area]);
-
-  const spent = (budget || []).reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
-  const allocation = AREA_DEFAULTS[area]?.budget ?? null;
-  const pct = allocation ? Math.min(100, Math.round((spent / allocation) * 100)) : 0;
-
-  return (
-    <div className="card" style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: allocation != null ? 12 : 0 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8 }}>My Area · {area}</div>
-        <button onClick={onOpen} style={{ background: 'none', border: 'none', color: GOLD, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}>View Full Area →</button>
-      </div>
-
-      {allocation != null && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
-            <span>Budget</span>
-            <span>{'$' + spent.toLocaleString()} / {'$' + allocation.toLocaleString()}</span>
-          </div>
-          <div style={{ height: 6, background: '#f0ebe2', borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: GOLD, borderRadius: 4 }} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Dashboard() {
-  const { volunteer, openArea, setView } = useVol();
+  const { volunteer, setView } = useVol();
   const [volunteers, setVolunteers] = useState([]);
   const [oot, setOot]               = useState([]);
   const [calEvents, setCalEvents]   = useState(null);
@@ -419,9 +386,6 @@ export default function Dashboard() {
                 Events Committee Planning Notes
               </button>
             )}
-            {myAreas.map(area => (
-              <MyAreaCard key={area} area={area} onOpen={() => openArea(area)} />
-            ))}
             <ResourcesCard areas={myAreas} />
             <MyEventTasksCard volunteerId={volunteer.id} setView={setView} />
           </div>
