@@ -64,8 +64,10 @@ export default function Sidebar({ view, setView }) {
         </nav>
 
         {myAreas.length > 0 && (
-          <div style={{ padding: '16px 8px 0' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', padding: '0 12px', marginBottom: 8 }}>Areas of Contribution</div>
+          <>
+            <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)', margin: '8px 0 0' }} />
+            <div style={{ padding: '16px 8px 0' }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', padding: '0 12px', marginBottom: 8 }}>Areas of Contribution</div>
             {myAreas.map(area => {
               const active = view === 'areas' && currentArea === area;
               return (
@@ -81,7 +83,8 @@ export default function Sidebar({ view, setView }) {
                 </button>
               );
             })}
-          </div>
+            </div>
+          </>
         )}
 
         <div style={{ flex: 1 }} />
