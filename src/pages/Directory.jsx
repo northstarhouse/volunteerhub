@@ -30,6 +30,19 @@ function getTeamColor(t) {
   return TEAM_COLORS[t] || { bg: 'var(--light)', color: 'var(--gold)' };
 }
 
+// Matches the operational area order used on the Portal (Construction,
+// Grounds, ...). Volunteers with a team not in this list sort after it;
+// volunteers on multiple teams sort by whichever team ranks earliest.
+const TEAM_ORDER = ['Construction', 'Grounds', 'Interiors', 'Docents', 'Fundraising', 'Events', 'Marketing', 'Venue'];
+function teamRank(v) {
+  const teams = (v['Team'] || '').split('|').map(t => t.trim()).filter(Boolean);
+  if (teams.length === 0) return TEAM_ORDER.length + 1;
+  return Math.min(...teams.map(t => {
+    const i = TEAM_ORDER.indexOf(t);
+    return i === -1 ? TEAM_ORDER.length : i;
+  }));
+}
+
 function VolCard({ vol, expanded, onClick }) {
   const initials = `${(vol['First Name'] || '')[0] || ''}${(vol['Last Name'] || '')[0] || ''}`.toUpperCase();
   const teams = (vol['Team'] || '').split('|').map(t => t.trim()).filter(Boolean);
@@ -164,7 +177,7 @@ export default function Directory() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return volunteers.filter(v => {
+    const result = volunteers.filter(v => {
       const matchSearch = !q
         || `${v['First Name']} ${v['Last Name']}`.toLowerCase().includes(q)
         || (v['Email'] || '').toLowerCase().includes(q);
@@ -172,6 +185,10 @@ export default function Directory() {
         || (v['Team'] || '').split('|').map(t => t.trim()).includes(teamFilter);
       return matchSearch && matchTeam;
     });
+    if (teamFilter === 'All') {
+      result.sort((a, b) => teamRank(a) - teamRank(b) || (a['Last Name'] || '').localeCompare(b['Last Name'] || ''));
+    }
+    return result;
   }, [volunteers, search, teamFilter]);
 
   function copyEmails() {
