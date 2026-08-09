@@ -4,8 +4,8 @@ import { photoUrl, matchVolunteerAreas } from '../lib/db.js';
 const TABS = [
   { id: 'dashboard',      label: 'Home',           icon: HomeIcon },
   { id: 'directory',      label: 'Directory',      icon: PeopleIcon },
-  { id: 'hours',          label: 'Hours',          icon: ClockIcon },
-  { id: 'reimbursements', label: 'Reimbursements', icon: ReceiptIcon },
+  { id: 'hours',          label: 'My Hours',            icon: ClockIcon },
+  { id: 'reimbursements', label: 'Submit Reimbursement', icon: ReceiptIcon },
   { id: 'archive-upload', label: 'Upload Photos',  icon: PhotoIcon },
 ];
 
