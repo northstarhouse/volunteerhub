@@ -106,6 +106,12 @@ function VolCard({ vol, expanded, onClick }) {
               </div>
             );
           })()}
+          {vol['Favorite Quote'] && (
+            <div style={{ marginBottom: 8 }}>
+              <div className="label">Favorite Quote</div>
+              <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, fontStyle: 'italic' }}>"{vol['Favorite Quote']}"</div>
+            </div>
+          )}
           {vol['What they want to see at NSH'] && (
             <div style={{ marginBottom: 8 }}>
               <div className="label">What They Want to See at North Star House</div>

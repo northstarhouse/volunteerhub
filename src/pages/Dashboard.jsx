@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Cake, Megaphone } from 'lucide-react';
 import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
@@ -157,7 +158,8 @@ function AnnouncementBoard() {
 
   return (
     <div className="card" style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Megaphone size={13} color={GOLD} strokeWidth={2} />
         Announcements
       </div>
       {items === null ? (
@@ -205,7 +207,7 @@ function BirthdayCard({ volunteers }) {
   return (
     <div className="card" style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <Cake size={13} color={GOLD} strokeWidth={2} />
         Upcoming Birthdays
       </div>
       {upcoming.length === 0 ? (
@@ -402,7 +404,7 @@ export default function Dashboard() {
         {/* Two-column on desktop, stacked on mobile */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,1fr)',
+          gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.1fr)',
           gap: 16,
           alignItems: 'start',
         }}
