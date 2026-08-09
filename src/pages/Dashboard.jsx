@@ -414,27 +414,11 @@ export default function Dashboard() {
           <div>
             <HoursSnapshotCard data={hoursData} />
             <AnnouncementBoard />
-            <a href="https://drive.google.com/drive/folders/1AGCE-jvZxgytP63lLjvdUYAkB-aOuTMO?usp=sharing" target="_blank" rel="noreferrer"
-              className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
-              Volunteer Resources
-            </a>
-            {isLeader && (
-              <a href="https://northstarhouse.github.io/Portal/" target="_blank" rel="noreferrer"
-                className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
-                Open Portal
-              </a>
-            )}
-            {myAreas.includes('Events') && (
-              <button onClick={() => setView('events-committee')}
-                className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
-                Events Committee Planning Notes
-              </button>
-            )}
             <ResourcesCard areas={myAreas} />
             <MyEventTasksCard volunteerId={volunteer.id} setView={setView} />
           </div>
 
-          {/* Right: Calendar, Birthdays, OOT stacked */}
+          {/* Right: Calendar, Birthdays, OOT, then quick-link buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <ThisWeekCard events={calEvents} />
             {loading ? (
@@ -444,6 +428,22 @@ export default function Dashboard() {
                 <BirthdayCard volunteers={volunteers} />
                 <OotCard notices={oot} />
               </>
+            )}
+            <a href="https://drive.google.com/drive/folders/1AGCE-jvZxgytP63lLjvdUYAkB-aOuTMO?usp=sharing" target="_blank" rel="noreferrer"
+              className="btn-gold" style={{ display: 'block', width: '100%', textAlign: 'center', textDecoration: 'none' }}>
+              Volunteer Resources
+            </a>
+            {isLeader && (
+              <a href="https://northstarhouse.github.io/Portal/" target="_blank" rel="noreferrer"
+                className="btn-gold" style={{ display: 'block', width: '100%', textAlign: 'center', textDecoration: 'none' }}>
+                Open Portal
+              </a>
+            )}
+            {myAreas.includes('Events') && (
+              <button onClick={() => setView('events-committee')}
+                className="btn-gold" style={{ display: 'block', width: '100%' }}>
+                Events Committee Planning Notes
+              </button>
             )}
           </div>
         </div>
