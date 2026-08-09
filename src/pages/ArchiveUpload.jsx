@@ -109,7 +109,7 @@ export default function ArchiveUpload() {
       <div style={{ padding: '14px 14px 24px' }}>
         {!showForm && !result && (
           <button className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={() => setShowForm(true)}>
-            <UploadIcon /> Upload Photos to North Star Archives
+            <UploadIcon /> Upload Photos
           </button>
         )}
 
