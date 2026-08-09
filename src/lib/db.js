@@ -509,16 +509,16 @@ function sanitizeForFilename(str, maxLen) {
 }
 
 // Builds the short filename date segment matching how the edge function
-// resolves the folder: full date when neither year nor month is given,
-// year-month when both are given, just the year when month is unknown.
+// resolves the folder: year-month when a month is known (given or, absent a
+// year, today's), just the year when only the year is known. Never includes
+// a day-of-month, matching the folder structure (which only ever goes down
+// to month).
 function archiveDateLabel(year, month) {
   const now = new Date();
-  if (!year) {
-    const y = now.getFullYear(), m = now.getMonth() + 1, d = now.getDate();
-    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  }
-  if (!month) return String(year);
-  return `${year}-${String(month).padStart(2, '0')}`;
+  const y = year || now.getFullYear();
+  const m = year ? month : (month || now.getMonth() + 1);
+  if (!m) return String(y);
+  return `${y}-${String(m).padStart(2, '0')}`;
 }
 
 export async function uploadArchiveFiles(files, { kind, year, month, description, names }, uploaderName) {
@@ -527,7 +527,7 @@ export async function uploadArchiveFiles(files, { kind, year, month, description
 
   const dateContext = year
     ? (month ? `${ARCHIVE_MONTH_NAMES[month - 1]} ${year}` : `${year} (month unknown)`)
-    : now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    : `${ARCHIVE_MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
 
   const descLines = [
     `Date taken: ${dateContext}`,
