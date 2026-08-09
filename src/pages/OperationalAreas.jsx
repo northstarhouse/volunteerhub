@@ -40,24 +40,6 @@ function SectionLabel({ children }) {
   );
 }
 
-function BudgetCard({ area, budget }) {
-  const spent = budget.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
-  const allocation = AREA_DEFAULTS[area]?.budget ?? null;
-  const pct = allocation ? Math.min(100, Math.round((spent / allocation) * 100)) : 0;
-  return (
-    <div className="card" style={{ marginBottom: 14 }}>
-      <SectionLabel>Budget</SectionLabel>
-      <div style={{ fontSize: 22, fontWeight: 700, color: GOLD }}>{fmt(spent)} <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}>/ {allocation != null ? fmt(allocation) : '—'}</span></div>
-      {allocation != null && (
-        <div style={{ height: 6, background: '#f0ebe2', borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: GOLD, borderRadius: 4 }} />
-        </div>
-      )}
-      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>{budget.length} {budget.length === 1 ? 'entry' : 'entries'} this year</div>
-    </div>
-  );
-}
-
 function EarningsCard({ earnings }) {
   const total = earnings.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
   return (
@@ -244,6 +226,8 @@ function AreaDetail({ area, showBack, onBack }) {
 
   const defaults = AREA_DEFAULTS[area] || {};
   const lead = area === 'Venue' ? 'Staff' : (areaInfo?.lead || defaults.lead || '');
+  const spent = budget.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+  const allocation = AREA_DEFAULTS[area]?.budget ?? null;
 
   return (
     <div style={{ padding: '16px 20px 24px' }}>
@@ -260,7 +244,9 @@ function AreaDetail({ area, showBack, onBack }) {
         )}
         <div>
           <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--text)' }}>{area}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Led by {lead || 'TBD'}</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+            Led by {lead || 'TBD'}{allocation != null && <> · Budget {fmt(spent)} / {fmt(allocation)}</>}
+          </div>
         </div>
       </div>
 
@@ -275,12 +261,11 @@ function AreaDetail({ area, showBack, onBack }) {
         <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
       ) : (
         <>
-          <BudgetCard area={area} budget={budget} />
           {area === 'Events' && <EarningsCard earnings={earnings} />}
-          <GoalsCard quarter={quarter} goals={goals} />
           <ReflectionCard update={update} />
           <ResourcesCard resources={resources} />
           <RosterCard area={area} roster={roster} />
+          <GoalsCard quarter={quarter} goals={goals} />
         </>
       )}
     </div>

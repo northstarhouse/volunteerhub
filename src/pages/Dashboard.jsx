@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
-  matchVolunteerAreas, AREA_DEFAULTS, currentQuarterStr, fetchOpBudget, fetchOpQuarterGoals,
+  matchVolunteerAreas, AREA_DEFAULTS, fetchOpBudget,
   fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
 } from '../lib/db.js';
 
@@ -317,42 +317,26 @@ function MyEventTasksCard({ volunteerId, setView }) {
   );
 }
 
-const GOAL_STATUS_COLORS = {
-  'On Track': { bg: '#e8f5e9', color: '#2e7d32' },
-  'At Risk':  { bg: '#fff8e1', color: '#8a6200' },
-  'Behind':   { bg: '#ffebee', color: '#b71c1c' },
-  'Off Track': { bg: '#ffebee', color: '#b71c1c' },
-};
-
 function MyAreaCard({ area, onOpen }) {
   const [budget, setBudget] = useState(null);
-  const [goals, setGoals]   = useState(null);
 
   useEffect(() => {
-    Promise.all([
-      fetchOpBudget(area),
-      fetchOpQuarterGoals(area, currentQuarterStr(), new Date().getFullYear()),
-    ]).then(([budgetRows, goalRow]) => {
-      setBudget(Array.isArray(budgetRows) ? budgetRows : []);
-      setGoals(goalRow);
-    });
+    fetchOpBudget(area).then(rows => setBudget(Array.isArray(rows) ? rows : []));
   }, [area]);
 
   const spent = (budget || []).reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
   const allocation = AREA_DEFAULTS[area]?.budget ?? null;
   const pct = allocation ? Math.min(100, Math.round((spent / allocation) * 100)) : 0;
-  const goalList = goals ? [goals.goal_1, goals.goal_2, goals.goal_3].filter(Boolean) : [];
-  const goalStatuses = goals ? [goals.goal_1_status, goals.goal_2_status, goals.goal_3_status] : [];
 
   return (
     <div className="card" style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: allocation != null ? 12 : 0 }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8 }}>My Area · {area}</div>
         <button onClick={onOpen} style={{ background: 'none', border: 'none', color: GOLD, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}>View Full Area →</button>
       </div>
 
       {allocation != null && (
-        <div style={{ marginBottom: goalList.length ? 12 : 0 }}>
+        <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
             <span>Budget</span>
             <span>{'$' + spent.toLocaleString()} / {'$' + allocation.toLocaleString()}</span>
@@ -361,24 +345,6 @@ function MyAreaCard({ area, onOpen }) {
             <div style={{ height: '100%', width: `${pct}%`, background: GOLD, borderRadius: 4 }} />
           </div>
         </div>
-      )}
-
-      {goalList.length > 0 && (
-        <div>
-          {goalList.map((g, i) => {
-            const s = GOAL_STATUS_COLORS[goalStatuses[i]] || { bg: '#f0ebe2', color: GOLD };
-            return (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: i < goalList.length - 1 ? 6 : 0 }}>
-                <div style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>{g}</div>
-                {goalStatuses[i] && <span style={{ fontSize: 9, fontWeight: 600, background: s.bg, color: s.color, borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{goalStatuses[i]}</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {goalList.length === 0 && allocation == null && (
-        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No goals set for this quarter yet.</div>
       )}
     </div>
   );
