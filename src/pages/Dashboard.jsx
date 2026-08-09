@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
-  matchVolunteerAreas,
+  matchVolunteerAreas, fetchAnnouncements,
   fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
 } from '../lib/db.js';
 
@@ -140,6 +140,45 @@ function HoursSnapshotCard({ data }) {
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnnouncementBoard() {
+  const [items, setItems] = useState(null);
+
+  useEffect(() => {
+    fetchAnnouncements().then(setItems).catch(() => setItems([]));
+  }, []);
+
+  if (items !== null && items.length === 0) return null;
+
+  return (
+    <div className="card" style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+        Announcements
+      </div>
+      {items === null ? (
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {items.map((a, i) => (
+            <div key={a.id} style={{ paddingTop: i > 0 ? 14 : 0, borderTop: i > 0 ? '0.5px solid var(--border-light)' : 'none' }}>
+              {a.image_url && (
+                <img src={a.image_url} alt="" style={{ width: '100%', borderRadius: 8, display: 'block', marginBottom: a.text || a.button_text ? 10 : 0 }} />
+              )}
+              {a.text && (
+                <div style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', marginBottom: a.button_text ? 10 : 0 }}>{a.text}</div>
+              )}
+              {a.button_text && a.button_url && (
+                <a href={a.button_url} target="_blank" rel="noreferrer" className="btn-gold" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                  {a.button_text}
+                </a>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -372,6 +411,7 @@ export default function Dashboard() {
           {/* Left: Hours snapshot + My Area cards */}
           <div>
             <HoursSnapshotCard data={hoursData} />
+            <AnnouncementBoard />
             <a href="https://drive.google.com/drive/folders/1AGCE-jvZxgytP63lLjvdUYAkB-aOuTMO?usp=sharing" target="_blank" rel="noreferrer"
               className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
               Volunteer Resources

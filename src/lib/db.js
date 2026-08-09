@@ -184,6 +184,13 @@ export async function updateVolunteer(id, patch_data) {
 
 // ── Out-of-Town ───────────────────────────────────────────────────────────────
 
+// ── Announcement board (posted from the Portal, shown on the Dashboard) ────
+export async function fetchAnnouncements() {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = await get(`announcements?or=(expires_at.is.null,expires_at.gte.${today})&order=created_at.desc&select=*`);
+  return Array.isArray(rows) ? rows : [];
+}
+
 export async function fetchOotNotices() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const future = new Date(today.getTime() + 90 * 86400000);
