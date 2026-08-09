@@ -6,6 +6,7 @@ const TABS = [
   { id: 'directory',      label: 'Directory',      icon: PeopleIcon },
   { id: 'hours',          label: 'Hours',          icon: ClockIcon },
   { id: 'reimbursements', label: 'Reimbursements', icon: ReceiptIcon },
+  { id: 'archive-upload', label: 'Photos',         icon: PhotoIcon },
 ];
 
 function HomeIcon({ active }) {
@@ -23,6 +24,10 @@ function ClockIcon({ active }) {
 function ReceiptIcon({ active }) {
   const c = active ? '#f0ebe3' : 'rgba(255,255,255,0.5)';
   return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-1 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>;
+}
+function PhotoIcon({ active }) {
+  const c = active ? '#f0ebe3' : 'rgba(255,255,255,0.5)';
+  return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>;
 }
 
 export default function Sidebar({ view, setView }) {

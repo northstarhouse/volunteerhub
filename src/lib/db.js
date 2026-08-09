@@ -494,6 +494,74 @@ export async function uploadReceiptFiles(files, volunteerId) {
   return urls.length === 1 ? urls[0] : JSON.stringify(urls);
 }
 
+// ── Archive photo/document uploads ──────────────────────────────────────────
+// Uploads into the North Star Archives Drive, sorted into year/month folders
+// by the upload-archive-file edge function. Filenames stay short (date +
+// optional description + optional names); the full context goes into the
+// Drive file's own description field so Drive search finds it later.
+
+const ARCHIVE_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+function sanitizeForFilename(str, maxLen) {
+  if (!str) return '';
+  const cleaned = str.trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ');
+  return cleaned.length > maxLen ? cleaned.slice(0, maxLen).trim() : cleaned;
+}
+
+// Builds the short filename date segment matching how the edge function
+// resolves the folder: full date when neither year nor month is given,
+// year-month when both are given, just the year when month is unknown.
+function archiveDateLabel(year, month) {
+  const now = new Date();
+  if (!year) {
+    const y = now.getFullYear(), m = now.getMonth() + 1, d = now.getDate();
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+  if (!month) return String(year);
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+export async function uploadArchiveFiles(files, { kind, year, month, description, names }, uploaderName) {
+  const dateLabel = archiveDateLabel(year, month);
+  const now = new Date();
+
+  const dateContext = year
+    ? (month ? `${ARCHIVE_MONTH_NAMES[month - 1]} ${year}` : `${year} (month unknown)`)
+    : now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const descLines = [
+    `Date taken: ${dateContext}`,
+    uploaderName ? `Uploaded by: ${uploaderName}` : null,
+    description ? `Notes: ${description}` : null,
+    names ? `People: ${names}` : null,
+    `Uploaded: ${now.toISOString()}`,
+  ].filter(Boolean);
+  const driveDescription = descLines.join('\n');
+
+  const namePart = sanitizeForFilename(description, 28);
+  const whoPart = sanitizeForFilename(names, 28);
+
+  let lastResult = null;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+    const suffix = files.length > 1 ? `-${i + 1}` : '';
+    const rand = Math.random().toString(36).slice(2, 5);
+    const filenameParts = [dateLabel, namePart, whoPart].filter(Boolean);
+    const filename = `${filenameParts.join(' - ')}${suffix}-${rand}.${ext}`;
+    const base64 = await fileToBase64(file);
+    const res = await fetch(`${URL}/functions/v1/upload-archive-file`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${KEY}` },
+      body: JSON.stringify({ filename, mimeType: file.type || 'application/octet-stream', base64, kind, year: year || undefined, month: month || undefined, driveDescription }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || `Upload failed for ${file.name}`);
+    lastResult = data;
+  }
+  return lastResult; // { url, fileId, folderUrl } for the last file — all files in a batch share the same folder
+}
+
 // ── Activity log (surfaced in Portal's "Recent Activity" on the home page) ────
 
 export async function logActivity({ vol, authUserId, action, description }) {
