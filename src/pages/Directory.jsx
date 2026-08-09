@@ -33,7 +33,7 @@ function getTeamColor(t) {
 // Matches the operational area order used on the Portal (Construction,
 // Grounds, ...). Volunteers with a team not in this list sort after it;
 // volunteers on multiple teams sort by whichever team ranks earliest.
-const TEAM_ORDER = ['Construction', 'Grounds', 'Interiors', 'Docents', 'Fundraising', 'Events', 'Marketing', 'Venue'];
+const TEAM_ORDER = ['Board Member', 'Construction', 'Grounds', 'Interiors', 'Docents', 'Fundraising', 'Events', 'Marketing', 'Venue'];
 function teamRank(v) {
   const teams = (v['Team'] || '').split('|').map(t => t.trim()).filter(Boolean);
   if (teams.length === 0) return TEAM_ORDER.length + 1;
