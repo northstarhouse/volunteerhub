@@ -4,5 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [tailwindcss(), react()],
-  base: '/volunteerhub/',
+  // Served from the root of volunteerhub.northstarhouse.org (a GitHub Pages
+  // custom domain), not the /volunteerhub/ project subpath.
+  base: '/',
 })
