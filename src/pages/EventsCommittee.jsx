@@ -123,6 +123,30 @@ function toDb(ev) {
 
 const money = (n) => `$${Number(n || 0).toLocaleString()}`;
 
+// Shared section-header treatment across every tab in the event workspace —
+// uppercase + letter-spaced + a thin rule, so headers read as clear
+// dividers between sections of one continuous page instead of blending
+// into the body copy around them.
+const SECTION_HEAD = {
+  fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8,
+  marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid var(--border-light)',
+};
+
+// Flat stat row (no per-tile card/border) — a set of numbers is a single
+// unit, not a handful of separate bubbles.
+function StatRow({ stats }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 36px', marginBottom: 22 }}>
+      {stats.map(([num, lbl]) => (
+        <div key={lbl}>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{num}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{lbl}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const STATUS_STYLE = {
   planning:      { bg: '#fde8e0', fg: '#8a4a2e', label: 'Planning' },
   upcoming:      { bg: '#f0ebe2', fg: 'var(--gold)', label: 'Upcoming' },
@@ -241,24 +265,17 @@ function OverviewTab({ ev }) {
   const nextTasks = ev.tasks.filter(t => !t.done).slice(0, 4);
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
-        {[
-          [`${doneT}/${ev.tasks.length}`, 'Tasks done'],
-          [`${ev.guestCount.confirmed}/${ev.guestCount.invited}`, 'Guests confirmed'],
-          [`${ev.vendors.filter(v => v.confirmed).length}/${ev.vendors.length}`, 'Vendors confirmed'],
-          [`${money(budgetActual)}`, `Spent of ${money(budgetTotal)}`],
-        ].map(([num, lbl]) => (
-          <div key={lbl} className="card" style={{ padding: '12px 14px' }}>
-            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{num}</div>
-            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{lbl}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "'Cardo','Georgia',serif" }}>What's next</div>
+      <StatRow stats={[
+        [`${doneT}/${ev.tasks.length}`, 'Tasks done'],
+        [`${ev.guestCount.confirmed}/${ev.guestCount.invited}`, 'Guests confirmed'],
+        [`${ev.vendors.filter(v => v.confirmed).length}/${ev.vendors.length}`, 'Vendors confirmed'],
+        [`${money(budgetActual)}`, `Spent of ${money(budgetTotal)}`],
+      ]} />
+      <div style={SECTION_HEAD}>What's Next</div>
       {nextTasks.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>All tasks complete.</div>
       ) : nextTasks.map(t => (
-        <div key={t.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', marginBottom: 6 }}>
+        <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid var(--border-light)' }}>
           <span style={{ flex: 1, fontSize: 13 }}>{t.text}</span>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>{t.due ? fmtDateShort(t.due) : ''}</span>
         </div>
@@ -269,7 +286,7 @@ function OverviewTab({ ev }) {
 
 function ItemRow({ children, onDelete, done }) {
   return (
-    <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', marginBottom: 6, opacity: done ? 0.6 : 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid var(--border-light)', opacity: done ? 0.6 : 1 }}>
       {children}
       {onDelete && <button onClick={onDelete} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: '0 2px' }}>×</button>}
     </div>
@@ -374,7 +391,7 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
     onUpdate(e => ({ ...e, guestCount: { invited: Number(guests.invited) || 0, confirmed: Number(guests.confirmed) || 0 } }));
   }
 
-  const sectionTitle = { fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "'Cardo','Georgia',serif" };
+  const sectionTitle = SECTION_HEAD;
 
   return (
     <div>
@@ -486,7 +503,7 @@ function DayOfTab({ ev, onUpdate }) {
 
   return (
     <div>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "'Cardo','Georgia',serif" }}>Run of show</div>
+      <div style={SECTION_HEAD}>Run of Show</div>
       {sorted.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>No timeline items yet.</div>
       ) : sorted.map(t => (
@@ -563,23 +580,23 @@ function FinancialsTab({ ev }) {
       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>
         Pulled live from this event's entries in Portal's budget tracking (Op Budget / Op Earnings) — read-only here.
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 20 }}>
-        <div className="card" style={{ padding: '12px 14px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 36px', marginBottom: 22 }}>
+        <div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: '#4a5d3a' }}>{money(totalEarnings)}</div>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Earnings</div>
         </div>
-        <div className="card" style={{ padding: '12px 14px' }}>
+        <div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: '#8a4a2e' }}>{money(totalExpenses)}</div>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Expenses</div>
         </div>
-        <div className="card" style={{ padding: '12px 14px' }}>
+        <div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: totalEarnings - totalExpenses >= 0 ? '#4a5d3a' : '#8a4a2e' }}>{money(totalEarnings - totalExpenses)}</div>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Net</div>
         </div>
       </div>
 
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "'Cardo','Georgia',serif" }}>Earnings</div>
+        <div style={SECTION_HEAD}>Earnings</div>
         {earnings.length === 0 ? (
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>No earnings logged for this event yet.</div>
         ) : earnings.map(r => (
@@ -592,7 +609,7 @@ function FinancialsTab({ ev }) {
       </div>
 
       <div>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "'Cardo','Georgia',serif" }}>Expenses</div>
+        <div style={SECTION_HEAD}>Expenses</div>
         {expenses.length === 0 ? (
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>No expenses logged for this event yet.</div>
         ) : expenses.map(r => (
@@ -677,7 +694,7 @@ function ReviewsTab({ ev }) {
       </div>
 
       {showAdd && (
-        <form onSubmit={addReview} className="card" style={{ padding: 14, marginBottom: 16 }}>
+        <form onSubmit={addReview} style={{ padding: 14, marginBottom: 16, background: 'var(--bg)', border: '0.5px solid var(--border)', borderRadius: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
             <div>
               <div className="label">Source</div>
@@ -707,11 +724,11 @@ function ReviewsTab({ ev }) {
       {reviews.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>No reviews recorded for this event yet.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div>
           {reviews.map(f => {
             if (editingId === f.id && editForm) {
               return (
-                <div key={f.id} className="card" style={{ padding: 14 }}>
+                <div key={f.id} style={{ padding: '14px 0', borderBottom: '0.5px solid var(--border-light)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                     <input className="input" value={editForm.source} onChange={e => setEditForm(ff => ({ ...ff, source: e.target.value }))} placeholder="Source" />
                     <input className="input" value={editForm.name} onChange={e => setEditForm(ff => ({ ...ff, name: e.target.value }))} placeholder="Name" />
@@ -728,8 +745,8 @@ function ReviewsTab({ ev }) {
             }
             const isOpen = !!expanded[f.id];
             return (
-              <div key={f.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
+              <div key={f.id} style={{ borderBottom: '0.5px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
                   <button onClick={() => setExpanded(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
                     style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, minWidth: 0 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -742,7 +759,7 @@ function ReviewsTab({ ev }) {
                   <button onClick={() => startEdit(f)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', flexShrink: 0 }}>✎</button>
                   <button onClick={() => removeReview(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14, flexShrink: 0 }}>×</button>
                 </div>
-                {isOpen && <div style={{ padding: '0 16px 14px', fontSize: 13, color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{f.feedback}</div>}
+                {isOpen && <div style={{ padding: '0 0 14px', fontSize: 13, color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{f.feedback}</div>}
               </div>
             );
           })}
@@ -770,60 +787,66 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunt
     <div style={{ padding: '14px 14px 24px' }}>
       <button onClick={onBack} className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px', marginBottom: 14 }}>← All Events</button>
 
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <StatusBadge status={ev.status} />
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginTop: 6 }}>{ev.name}</div>
-            {ev.description && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{ev.description}</div>}
-            <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                {fmtDate(ev.date)}
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                {fmtTimeRange(ev.startTime, ev.endTime)}
-              </span>
-            </div>
-            {(ev.purpose || ev.expectedAttendance || ev.pricing) && (
-              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                {ev.purpose && <span className="badge" style={{ background: 'var(--light)', color: 'var(--gold)' }}>{ev.purpose}</span>}
-                {ev.expectedAttendance && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.expectedAttendance}</span>}
-                {ev.pricing && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.pricing}</span>}
+      {/* One continuous white panel — header, tabs, and tab content all
+          live inside it, rather than a stack of separately-floating cards. */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '20px 22px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <StatusBadge status={ev.status} />
+              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginTop: 6 }}>{ev.name}</div>
+              {ev.description && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{ev.description}</div>}
+              <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  {fmtDate(ev.date)}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {fmtTimeRange(ev.startTime, ev.endTime)}
+                </span>
               </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-            <select className="input" style={{ appearance: 'auto', fontSize: 12 }} value={ev.status}
-              onChange={e => onUpdate(x => ({ ...x, status: e.target.value }))}>
-              <option value="planning">Planning</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="needs_review">Needs Final Review</option>
-              <option value="completed">Completed</option>
-            </select>
-            <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onEdit}>Edit</button>
+              {(ev.purpose || ev.expectedAttendance || ev.pricing) && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                  {ev.purpose && <span className="badge" style={{ background: 'var(--light)', color: 'var(--gold)' }}>{ev.purpose}</span>}
+                  {ev.expectedAttendance && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.expectedAttendance}</span>}
+                  {ev.pricing && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.pricing}</span>}
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+              <select className="input" style={{ appearance: 'auto', fontSize: 12 }} value={ev.status}
+                onChange={e => onUpdate(x => ({ ...x, status: e.target.value }))}>
+                <option value="planning">Planning</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="needs_review">Needs Final Review</option>
+                <option value="completed">Completed</option>
+              </select>
+              <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onEdit}>Edit</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div style={{ display: 'flex', gap: 4, borderBottom: '0.5px solid var(--border)', marginBottom: 18 }}>
-        {tabs.map(([id, label]) => (
-          <div key={id} onClick={() => setTab(id)} style={{
-            fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4, padding: '9px 14px', cursor: 'pointer',
-            color: tab === id ? 'var(--text)' : 'var(--muted)', fontWeight: tab === id ? 700 : 400,
-            borderBottom: tab === id ? '2px solid var(--gold)' : '2px solid transparent', marginBottom: -1,
-          }}>{label}</div>
-        ))}
-      </div>
+        <div style={{ display: 'flex', gap: 4, borderBottom: '0.5px solid var(--border)', padding: '0 22px', overflowX: 'auto' }}>
+          {tabs.map(([id, label]) => (
+            <div key={id} onClick={() => setTab(id)} style={{
+              fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4, padding: '9px 14px', cursor: 'pointer', whiteSpace: 'nowrap',
+              color: tab === id ? 'var(--text)' : 'var(--muted)', fontWeight: tab === id ? 700 : 400,
+              borderBottom: tab === id ? '2px solid var(--gold)' : '2px solid transparent', marginBottom: -1,
+            }}>{label}</div>
+          ))}
+        </div>
 
-      {tab === 'overview' && <OverviewTab ev={ev} />}
-      {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
-      {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
-      {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
-      {tab === 'financials' && <FinancialsTab ev={ev} />}
-      {tab === 'reviews' && <ReviewsTab ev={ev} />}
-      {tab === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
+        <div style={{ padding: '20px 22px 24px' }}>
+          {tab === 'overview' && <OverviewTab ev={ev} />}
+          {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
+          {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
+          {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
+          {tab === 'financials' && <FinancialsTab ev={ev} />}
+          {tab === 'reviews' && <ReviewsTab ev={ev} />}
+          {tab === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
+        </div>
+      </div>
     </div>
   );
 }
