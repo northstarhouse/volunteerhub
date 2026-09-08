@@ -68,8 +68,8 @@ const EVENT_PURPOSES = ['Educational', 'Entertainment', 'Community Engagement', 
 function emptyEvent(name) {
   return {
     id: cryptoId(), name, date: '', startTime: '', endTime: '', location: '', description: '', status: 'planning',
-    purpose: '', expectedAttendance: '', pricing: '', details: '',
-    tasks: [], budget: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
+    purpose: '', expectedAttendance: '', pricing: '',
+    checklist: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
     afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
   };
 }
@@ -89,10 +89,8 @@ function fromDb(row) {
     purpose: row.purpose || '',
     expectedAttendance: row.expected_attendance || '',
     pricing: row.pricing || '',
-    details: row.details || '',
     guestCount: { invited: row.guest_invited || 0, confirmed: row.guest_confirmed || 0 },
-    tasks: row.tasks || [],
-    budget: row.budget || [],
+    checklist: row.checklist || [],
     vendors: row.vendors || [],
     timeline: row.timeline || [],
     afterNotes: (row.after_notes && Object.keys(row.after_notes).length)
@@ -112,15 +110,40 @@ function toDb(ev) {
     purpose: ev.purpose || null,
     expected_attendance: ev.expectedAttendance || null,
     pricing: ev.pricing || null,
-    details: ev.details || null,
     guest_invited: ev.guestCount.invited || 0,
     guest_confirmed: ev.guestCount.confirmed || 0,
-    tasks: ev.tasks,
-    budget: ev.budget,
+    checklist: ev.checklist,
     vendors: ev.vendors,
     timeline: ev.timeline,
     after_notes: ev.afterNotes,
   };
+}
+
+// One-time migration: events created before the unified checklist existed
+// have their items split across the old `tasks` and `budget` jsonb columns.
+// The first time such a row loads, merge both into `checklist` and persist
+// the merge (clearing tasks/budget) so it never runs again for that event —
+// nothing is lost, it just moves into the new shape.
+function migrateLegacyChecklist(rows) {
+  return Promise.all(rows.map(async row => {
+    const hasChecklist = Array.isArray(row.checklist) && row.checklist.length > 0;
+    const legacyTasks = Array.isArray(row.tasks) ? row.tasks : [];
+    const legacyBudget = Array.isArray(row.budget) ? row.budget : [];
+    if (hasChecklist || (!legacyTasks.length && !legacyBudget.length)) return row;
+    const merged = [
+      ...legacyTasks.map(t => ({
+        id: t.id || cryptoId(), done: !!t.done, text: t.text || '', due: t.due || '',
+        assignee: t.assignee || '', assigneeId: t.assigneeId || null, priority: t.priority || '',
+        estimated: 0, actual: 0, notes: '',
+      })),
+      ...legacyBudget.map(b => ({
+        id: b.id || cryptoId(), done: false, text: b.item || '', due: '', assignee: '', assigneeId: null,
+        priority: '', estimated: Number(b.estimated) || 0, actual: Number(b.actual) || 0, notes: '',
+      })),
+    ];
+    await updateCommitteeEvent(row.id, { checklist: merged, tasks: [], budget: [] });
+    return { ...row, checklist: merged, tasks: [], budget: [] };
+  }));
 }
 
 const money = (n) => `$${Number(n || 0).toLocaleString()}`;
@@ -165,7 +188,7 @@ function StatusBadge({ status }) {
 // ── Home: list / calendar ──────────────────────────────────────────────────
 
 function EventListRow({ ev, onOpen, onDelete, isPast }) {
-  const doneT = ev.tasks.filter(t => t.done).length;
+  const doneT = ev.checklist.filter(t => t.done).length;
   const d = ev.date ? new Date(`${ev.date}T00:00:00`) : null;
   return (
     <div className="card" style={{ marginBottom: 6, padding: '9px 14px', cursor: 'pointer', opacity: isPast ? 0.62 : 1 }} onClick={() => onOpen(ev.id)}>
@@ -182,7 +205,7 @@ function EventListRow({ ev, onOpen, onDelete, isPast }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{doneT}/{ev.tasks.length} tasks</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{doneT}/{ev.checklist.length} checklist items</div>
         </div>
         <div style={{ flexShrink: 0 }}><StatusBadge status={ev.status} /></div>
         <button onClick={(e) => { e.stopPropagation(); onDelete(ev); }}
@@ -261,24 +284,24 @@ function CalendarView({ events, calYear, setCalYear, onOpen }) {
 // ── Detail tabs ─────────────────────────────────────────────────────────────
 
 function OverviewTab({ ev }) {
-  const doneT = ev.tasks.filter(t => t.done).length;
-  const budgetTotal = ev.budget.reduce((s, b) => s + Number(b.estimated || 0), 0);
-  const budgetActual = ev.budget.reduce((s, b) => s + Number(b.actual || 0), 0);
+  const doneT = ev.checklist.filter(t => t.done).length;
+  const budgetTotal = ev.checklist.reduce((s, t) => s + Number(t.estimated || 0), 0);
+  const budgetActual = ev.checklist.reduce((s, t) => s + Number(t.actual || 0), 0);
   const PRIORITY_RANK = { high: 0, medium: 1, '': 2 };
-  const nextTasks = ev.tasks.filter(t => !t.done)
+  const nextTasks = ev.checklist.filter(t => !t.done)
     .slice().sort((a, b) => (PRIORITY_RANK[a.priority || ''] ?? 2) - (PRIORITY_RANK[b.priority || ''] ?? 2))
     .slice(0, 4);
   return (
     <div>
       <StatRow stats={[
-        [`${doneT}/${ev.tasks.length}`, 'Tasks done'],
+        [`${doneT}/${ev.checklist.length}`, 'Checklist done'],
         [`${ev.guestCount.confirmed}/${ev.guestCount.invited}`, 'Guests confirmed'],
         [`${ev.vendors.filter(v => v.confirmed).length}/${ev.vendors.length}`, 'Vendors confirmed'],
         [`${money(budgetActual)}`, `Spent of ${money(budgetTotal)}`],
       ]} />
       <div style={SECTION_HEAD}>What's Next</div>
       {nextTasks.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)' }}>All tasks complete.</div>
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Checklist complete.</div>
       ) : nextTasks.map(t => (
         <div key={t.id} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0 9px 10px',
@@ -373,42 +396,46 @@ function AssigneeMentionInput({ assignee, assigneeId, onChange, volunteers }) {
 }
 
 function PreplanningTab({ ev, onUpdate, volunteers }) {
-  const [taskForm, setTaskForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
-  const [budgetForm, setBudgetForm] = useState({ item: '', estimated: '', actual: '' });
+  const [itemForm, setItemForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
   const [guests, setGuests] = useState(ev.guestCount);
   const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing });
-  const [details, setDetails] = useState(ev.details || '');
+  const [expandedId, setExpandedId] = useState(null);
+  const [expandForm, setExpandForm] = useState({ estimated: '', actual: '', notes: '' });
 
   function saveBasics() {
     onUpdate(e => ({ ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim() }));
   }
-  function saveDetails() {
-    onUpdate(e => ({ ...e, details: details.trim() }));
+
+  function toggleItem(id) {
+    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id ? { ...t, done: !t.done } : t) }));
+  }
+  function deleteItem(id) {
+    onUpdate(e => ({ ...e, checklist: e.checklist.filter(t => t.id !== id) }));
+    if (expandedId === id) setExpandedId(null);
+  }
+  function cycleItemPriority(id) {
+    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id ? { ...t, priority: nextPriority(t.priority) } : t) }));
+  }
+  function addItem() {
+    if (!itemForm.text.trim()) return;
+    onUpdate(e => ({ ...e, checklist: [...e.checklist, {
+      id: cryptoId(), text: itemForm.text.trim(), done: false, due: itemForm.due,
+      assignee: itemForm.assignee.trim(), assigneeId: itemForm.assigneeId, priority: itemForm.priority || '',
+      estimated: 0, actual: 0, notes: '',
+    }] }));
+    setItemForm({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   }
 
-  function toggleTask(id) {
-    onUpdate(e => ({ ...e, tasks: e.tasks.map(t => t.id === id ? { ...t, done: !t.done } : t) }));
+  function startExpand(t) {
+    setExpandedId(expandedId === t.id ? null : t.id);
+    setExpandForm({ estimated: t.estimated ? String(t.estimated) : '', actual: t.actual ? String(t.actual) : '', notes: t.notes || '' });
   }
-  function deleteTask(id) {
-    onUpdate(e => ({ ...e, tasks: e.tasks.filter(t => t.id !== id) }));
-  }
-  function cycleTaskPriority(id) {
-    onUpdate(e => ({ ...e, tasks: e.tasks.map(t => t.id === id ? { ...t, priority: nextPriority(t.priority) } : t) }));
-  }
-  function addTask() {
-    if (!taskForm.text.trim()) return;
-    onUpdate(e => ({ ...e, tasks: [...e.tasks, { id: cryptoId(), text: taskForm.text.trim(), done: false, due: taskForm.due, assignee: taskForm.assignee.trim(), assigneeId: taskForm.assigneeId, priority: taskForm.priority || '' }] }));
-    setTaskForm({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
-  }
-
-  function deleteBudget(id) {
-    onUpdate(e => ({ ...e, budget: e.budget.filter(b => b.id !== id) }));
-  }
-  function addBudget() {
-    if (!budgetForm.item.trim()) return;
-    onUpdate(e => ({ ...e, budget: [...e.budget, { id: cryptoId(), item: budgetForm.item.trim(), estimated: Number(budgetForm.estimated) || 0, actual: Number(budgetForm.actual) || 0 }] }));
-    setBudgetForm({ item: '', estimated: '', actual: '' });
+  function saveExpand(id) {
+    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id
+      ? { ...t, estimated: Number(expandForm.estimated) || 0, actual: Number(expandForm.actual) || 0, notes: expandForm.notes.trim() }
+      : t) }));
+    setExpandedId(null);
   }
 
   function toggleVendor(id) {
@@ -454,57 +481,70 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
       </div>
 
       <div style={{ marginBottom: 24 }}>
-        <div style={sectionTitle}>Details</div>
-        <textarea className="input" rows={6} style={{ resize: 'vertical', marginBottom: 8 }} value={details}
-          onChange={e => setDetails(e.target.value)}
-          placeholder="Open-ended planning notes — layout ideas, run-of-show thoughts, anything that doesn't fit the fields below…" />
-        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={saveDetails}>Save details</button>
-      </div>
-
-      <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={sectionTitle}>Task checklist</div>
+          <div style={sectionTitle}>Checklist</div>
           <div style={{ display: 'flex', gap: 12, fontSize: 10, color: 'var(--muted)', marginBottom: 12 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: TASK_PRIORITY.high.color, display: 'inline-block' }} />High</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: TASK_PRIORITY.medium.color, display: 'inline-block' }} />Medium</span>
           </div>
         </div>
-        {ev.tasks.map(t => (
-          <ItemRow key={t.id} done={t.done} onDelete={() => deleteTask(t.id)} accent={t.priority ? TASK_PRIORITY[t.priority].color : null}>
-            <PriorityDot priority={t.priority} onClick={() => cycleTaskPriority(t.id)} />
-            <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id)} style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
-            <span style={{ flex: 1, fontSize: 13, textDecoration: t.done ? 'line-through' : 'none' }}>{t.text}</span>
-            <span style={{ fontSize: 11, color: t.assigneeId ? 'var(--gold)' : 'var(--muted)', whiteSpace: 'nowrap' }}>{t.assignee ? `${t.assigneeId ? '@' : ''}${t.assignee} · ` : ''}{t.due ? fmtDateShort(t.due) : ''}</span>
-          </ItemRow>
-        ))}
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
+          Each item can carry a due date, an assignee, a priority, an estimated/actual $ amount, and notes — click an item to open it.
+        </div>
+        {ev.checklist.map(t => {
+          const hasMoney = t.estimated > 0 || t.actual > 0;
+          const hasNotes = !!(t.notes && t.notes.trim());
+          const isOpen = expandedId === t.id;
+          return (
+            <div key={t.id}>
+              <ItemRow done={t.done} onDelete={() => deleteItem(t.id)} accent={t.priority ? TASK_PRIORITY[t.priority].color : null}>
+                <PriorityDot priority={t.priority} onClick={() => cycleItemPriority(t.id)} />
+                <input type="checkbox" checked={t.done} onChange={() => toggleItem(t.id)} style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
+                <button onClick={() => startExpand(t)} title="Open item"
+                  style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                  <span style={{ fontSize: 13, textDecoration: t.done ? 'line-through' : 'none', color: 'var(--text)' }}>{t.text}</span>
+                  {(hasMoney || hasNotes) && (
+                    <span style={{ fontSize: 11, color: 'var(--gold)', marginLeft: 8 }}>
+                      {hasMoney ? `Est. ${money(t.estimated)} · Act. ${money(t.actual)}` : ''}{hasMoney && hasNotes ? ' · ' : ''}{hasNotes ? 'notes' : ''}
+                    </span>
+                  )}
+                </button>
+                <span style={{ fontSize: 11, color: t.assigneeId ? 'var(--gold)' : 'var(--muted)', whiteSpace: 'nowrap' }}>{t.assignee ? `${t.assigneeId ? '@' : ''}${t.assignee} · ` : ''}{t.due ? fmtDateShort(t.due) : ''}</span>
+              </ItemRow>
+              {isOpen && (
+                <div style={{ padding: '10px 0 14px 33px' }}>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="label">Estimated $</div>
+                      <input className="input" type="number" value={expandForm.estimated} onChange={e => setExpandForm(f => ({ ...f, estimated: e.target.value }))} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="label">Actual $</div>
+                      <input className="input" type="number" value={expandForm.actual} onChange={e => setExpandForm(f => ({ ...f, actual: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="label">Notes</div>
+                  <textarea className="input" rows={3} style={{ resize: 'vertical', marginBottom: 8 }} value={expandForm.notes} onChange={e => setExpandForm(f => ({ ...f, notes: e.target.value }))} placeholder="Details for this item…" />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn-gold" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => saveExpand(t.id)}>Save</button>
+                    <button className="btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => setExpandedId(null)}>Close</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
         <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-          <input className="input" style={{ flex: 1, minWidth: 140 }} placeholder="Add a task…" value={taskForm.text} onChange={e => setTaskForm(f => ({ ...f, text: e.target.value }))} />
-          <select className="input" style={{ width: 118, appearance: 'auto' }} value={taskForm.priority} onChange={e => setTaskForm(f => ({ ...f, priority: e.target.value }))}>
+          <input className="input" style={{ flex: 1, minWidth: 140 }} placeholder="Add an item…" value={itemForm.text} onChange={e => setItemForm(f => ({ ...f, text: e.target.value }))} />
+          <select className="input" style={{ width: 118, appearance: 'auto' }} value={itemForm.priority} onChange={e => setItemForm(f => ({ ...f, priority: e.target.value }))}>
             <option value="">No priority</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
-          <input className="input" type="date" style={{ width: 130 }} value={taskForm.due} onChange={e => setTaskForm(f => ({ ...f, due: e.target.value }))} />
-          <AssigneeMentionInput assignee={taskForm.assignee} assigneeId={taskForm.assigneeId} volunteers={volunteers}
-            onChange={(assignee, assigneeId) => setTaskForm(f => ({ ...f, assignee, assigneeId }))} />
-          <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addTask}>Add</button>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 24 }}>
-        <div style={sectionTitle}>Budget</div>
-        {ev.budget.map(b => (
-          <ItemRow key={b.id} onDelete={() => deleteBudget(b.id)}>
-            <span style={{ flex: 1, fontSize: 13 }}>{b.item}</span>
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>Est. {money(b.estimated)}</span>
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>Actual {money(b.actual)}</span>
-          </ItemRow>
-        ))}
-        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          <input className="input" style={{ flex: 1 }} placeholder="Line item…" value={budgetForm.item} onChange={e => setBudgetForm(f => ({ ...f, item: e.target.value }))} />
-          <input className="input" type="number" style={{ width: 110 }} placeholder="Estimated" value={budgetForm.estimated} onChange={e => setBudgetForm(f => ({ ...f, estimated: e.target.value }))} />
-          <input className="input" type="number" style={{ width: 100 }} placeholder="Actual" value={budgetForm.actual} onChange={e => setBudgetForm(f => ({ ...f, actual: e.target.value }))} />
-          <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addBudget}>Add</button>
+          <input className="input" type="date" style={{ width: 130 }} value={itemForm.due} onChange={e => setItemForm(f => ({ ...f, due: e.target.value }))} />
+          <AssigneeMentionInput assignee={itemForm.assignee} assigneeId={itemForm.assigneeId} volunteers={volunteers}
+            onChange={(assignee, assigneeId) => setItemForm(f => ({ ...f, assignee, assigneeId }))} />
+          <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addItem}>Add</button>
         </div>
       </div>
 
@@ -1025,7 +1065,8 @@ export default function EventsCommittee() {
   // undated — add a date via Edit once known.
   function load() {
     setLoading(true);
-    fetchCommitteeEvents().then(async rows => {
+    fetchCommitteeEvents().then(async rawRows => {
+      const rows = await migrateLegacyChecklist(rawRows);
       const mapped = rows.map(fromDb);
       const names = await fetchEventNames().catch(() => []);
       const existing = new Set(mapped.map(e => e.name.trim().toLowerCase()));
