@@ -531,6 +531,8 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
 
 function DayOfTab({ ev, onUpdate }) {
   const [form, setForm] = useState({ time: '', activity: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ time: '', activity: '' });
 
   function deleteItem(id) {
     onUpdate(e => ({ ...e, timeline: e.timeline.filter(t => t.id !== id) }));
@@ -541,6 +543,17 @@ function DayOfTab({ ev, onUpdate }) {
     setForm({ time: '', activity: '' });
   }
 
+  function startEdit(t) {
+    setEditingId(t.id);
+    setEditForm({ time: t.time, activity: t.activity });
+  }
+  function saveEdit() {
+    if (!editForm.activity.trim()) return;
+    const id = editingId;
+    onUpdate(e => ({ ...e, timeline: e.timeline.map(t => t.id === id ? { ...t, time: editForm.time || '00:00', activity: editForm.activity.trim() } : t) }));
+    setEditingId(null);
+  }
+
   const sorted = [...ev.timeline].sort((a, b) => a.time.localeCompare(b.time));
 
   return (
@@ -549,10 +562,23 @@ function DayOfTab({ ev, onUpdate }) {
       {sorted.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>No timeline items yet.</div>
       ) : sorted.map(t => (
-        <ItemRow key={t.id} onDelete={() => deleteItem(t.id)}>
-          <span style={{ fontSize: 12, color: 'var(--muted)', width: 54 }}>{t.time}</span>
-          <span style={{ flex: 1, fontSize: 13 }}>{t.activity}</span>
-        </ItemRow>
+        editingId === t.id ? (
+          <div key={t.id} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '9px 0', borderBottom: '0.5px solid var(--border-light)' }}>
+            <TimeSelect value={editForm.time} onChange={v => setEditForm(f => ({ ...f, time: v }))} />
+            <input className="input" style={{ flex: 1 }} value={editForm.activity} onChange={e => setEditForm(f => ({ ...f, activity: e.target.value }))}
+              onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null); }} autoFocus />
+            <button className="btn-gold" style={{ padding: '7px 12px', fontSize: 12 }} onClick={saveEdit}>Save</button>
+            <button className="btn-ghost" style={{ padding: '7px 12px', fontSize: 12 }} onClick={() => setEditingId(null)}>Cancel</button>
+          </div>
+        ) : (
+          <ItemRow key={t.id} onDelete={() => deleteItem(t.id)}>
+            <span style={{ fontSize: 12, color: 'var(--muted)', width: 54, flexShrink: 0 }}>{t.time}</span>
+            <button onClick={() => startEdit(t)} title="Edit"
+              style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13, color: 'var(--text)', fontFamily: 'inherit' }}>
+              {t.activity}
+            </button>
+          </ItemRow>
+        )
       ))}
       <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
         <TimeSelect value={form.time} onChange={v => setForm(f => ({ ...f, time: v }))} />
