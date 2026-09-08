@@ -134,11 +134,11 @@ function migrateLegacyChecklist(rows) {
       ...legacyTasks.map(t => ({
         id: t.id || cryptoId(), done: !!t.done, text: t.text || '', due: t.due || '',
         assignee: t.assignee || '', assigneeId: t.assigneeId || null, priority: t.priority || '',
-        estimated: 0, actual: 0, notes: '',
+        estimated: 0, actual: 0, notes: '', subtasks: [],
       })),
       ...legacyBudget.map(b => ({
         id: b.id || cryptoId(), done: false, text: b.item || '', due: '', assignee: '', assigneeId: null,
-        priority: '', estimated: Number(b.estimated) || 0, actual: Number(b.actual) || 0, notes: '',
+        priority: '', estimated: Number(b.estimated) || 0, actual: Number(b.actual) || 0, notes: '', subtasks: [],
       })),
     ];
     await updateCommitteeEvent(row.id, { checklist: merged, tasks: [], budget: [] });
@@ -401,7 +401,8 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
   const [guests, setGuests] = useState(ev.guestCount);
   const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing });
   const [expandedId, setExpandedId] = useState(null);
-  const [expandForm, setExpandForm] = useState({ estimated: '', actual: '', notes: '' });
+  const [expandForm, setExpandForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '', estimated: '', actual: '', notes: '' });
+  const [subtaskInput, setSubtaskInput] = useState('');
 
   function saveBasics() {
     onUpdate(e => ({ ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim() }));
@@ -422,20 +423,47 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
     onUpdate(e => ({ ...e, checklist: [...e.checklist, {
       id: cryptoId(), text: itemForm.text.trim(), done: false, due: itemForm.due,
       assignee: itemForm.assignee.trim(), assigneeId: itemForm.assigneeId, priority: itemForm.priority || '',
-      estimated: 0, actual: 0, notes: '',
+      estimated: 0, actual: 0, notes: '', subtasks: [],
     }] }));
     setItemForm({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   }
 
   function startExpand(t) {
     setExpandedId(expandedId === t.id ? null : t.id);
-    setExpandForm({ estimated: t.estimated ? String(t.estimated) : '', actual: t.actual ? String(t.actual) : '', notes: t.notes || '' });
+    setExpandForm({
+      text: t.text, due: t.due || '', assignee: t.assignee || '', assigneeId: t.assigneeId || null, priority: t.priority || '',
+      estimated: t.estimated ? String(t.estimated) : '', actual: t.actual ? String(t.actual) : '', notes: t.notes || '',
+    });
+    setSubtaskInput('');
   }
   function saveExpand(id) {
+    if (!expandForm.text.trim()) return;
     onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id
-      ? { ...t, estimated: Number(expandForm.estimated) || 0, actual: Number(expandForm.actual) || 0, notes: expandForm.notes.trim() }
+      ? {
+          ...t, text: expandForm.text.trim(), due: expandForm.due, assignee: expandForm.assignee.trim(),
+          assigneeId: expandForm.assigneeId, priority: expandForm.priority,
+          estimated: Number(expandForm.estimated) || 0, actual: Number(expandForm.actual) || 0, notes: expandForm.notes.trim(),
+        }
       : t) }));
     setExpandedId(null);
+  }
+
+  function addSubtask(itemId) {
+    if (!subtaskInput.trim()) return;
+    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === itemId
+      ? { ...t, subtasks: [...(t.subtasks || []), { id: cryptoId(), text: subtaskInput.trim(), done: false }] }
+      : t) }));
+    setSubtaskInput('');
+  }
+  function toggleSubtask(itemId, subId) {
+    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === itemId
+      ? { ...t, subtasks: (t.subtasks || []).map(s => s.id === subId ? { ...s, done: !s.done } : s) }
+      : t) }));
+  }
+  function deleteSubtask(itemId, subId) {
+    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === itemId
+      ? { ...t, subtasks: (t.subtasks || []).filter(s => s.id !== subId) }
+      : t) }));
   }
 
   function toggleVendor(id) {
@@ -489,22 +517,26 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
           </div>
         </div>
         <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
-          Each item can carry a due date, an assignee, a priority, an estimated/actual $ amount, and notes — click an item to open it.
+          Click an item to edit it, add subtasks, or attach an estimated/actual $ amount and notes.
         </div>
         {ev.checklist.map(t => {
           const hasMoney = t.estimated > 0 || t.actual > 0;
           const hasNotes = !!(t.notes && t.notes.trim());
+          const subtasks = t.subtasks || [];
+          const subDone = subtasks.filter(s => s.done).length;
           const isOpen = expandedId === t.id;
           return (
             <div key={t.id}>
               <ItemRow done={t.done} onDelete={() => deleteItem(t.id)} accent={t.priority ? TASK_PRIORITY[t.priority].color : null}>
                 <PriorityDot priority={t.priority} onClick={() => cycleItemPriority(t.id)} />
                 <input type="checkbox" checked={t.done} onChange={() => toggleItem(t.id)} style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
-                <button onClick={() => startExpand(t)} title="Open item"
+                <button onClick={() => startExpand(t)} title="Edit item"
                   style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
                   <span style={{ fontSize: 13, textDecoration: t.done ? 'line-through' : 'none', color: 'var(--text)' }}>{t.text}</span>
-                  {(hasMoney || hasNotes) && (
+                  {(hasMoney || hasNotes || subtasks.length > 0) && (
                     <span style={{ fontSize: 11, color: 'var(--gold)', marginLeft: 8 }}>
+                      {subtasks.length > 0 ? `${subDone}/${subtasks.length} subtasks` : ''}
+                      {subtasks.length > 0 && (hasMoney || hasNotes) ? ' · ' : ''}
                       {hasMoney ? `Est. ${money(t.estimated)} · Act. ${money(t.actual)}` : ''}{hasMoney && hasNotes ? ' · ' : ''}{hasNotes ? 'notes' : ''}
                     </span>
                   )}
@@ -513,6 +545,27 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
               </ItemRow>
               {isOpen && (
                 <div style={{ padding: '10px 0 14px 33px' }}>
+                  <div className="label">Item</div>
+                  <input className="input" style={{ marginBottom: 8 }} value={expandForm.text} onChange={e => setExpandForm(f => ({ ...f, text: e.target.value }))} />
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+                    <div>
+                      <div className="label">Priority</div>
+                      <select className="input" style={{ width: 118, appearance: 'auto' }} value={expandForm.priority} onChange={e => setExpandForm(f => ({ ...f, priority: e.target.value }))}>
+                        <option value="">No priority</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                    <div>
+                      <div className="label">Due</div>
+                      <input className="input" type="date" style={{ width: 130 }} value={expandForm.due} onChange={e => setExpandForm(f => ({ ...f, due: e.target.value }))} />
+                    </div>
+                    <div>
+                      <div className="label">Assignee</div>
+                      <AssigneeMentionInput assignee={expandForm.assignee} assigneeId={expandForm.assigneeId} volunteers={volunteers}
+                        onChange={(assignee, assigneeId) => setExpandForm(f => ({ ...f, assignee, assigneeId }))} />
+                    </div>
+                  </div>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
                     <div style={{ flex: 1 }}>
                       <div className="label">Estimated $</div>
@@ -524,7 +577,23 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
                     </div>
                   </div>
                   <div className="label">Notes</div>
-                  <textarea className="input" rows={3} style={{ resize: 'vertical', marginBottom: 8 }} value={expandForm.notes} onChange={e => setExpandForm(f => ({ ...f, notes: e.target.value }))} placeholder="Details for this item…" />
+                  <textarea className="input" rows={3} style={{ resize: 'vertical', marginBottom: 12 }} value={expandForm.notes} onChange={e => setExpandForm(f => ({ ...f, notes: e.target.value }))} placeholder="Details for this item…" />
+
+                  <div className="label" style={{ marginBottom: 6 }}>Subtasks</div>
+                  {subtasks.map(s => (
+                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
+                      <input type="checkbox" checked={s.done} onChange={() => toggleSubtask(t.id, s.id)} style={{ accentColor: 'var(--gold)', width: 14, height: 14 }} />
+                      <span style={{ flex: 1, fontSize: 12, textDecoration: s.done ? 'line-through' : 'none', color: s.done ? 'var(--muted)' : 'var(--text)' }}>{s.text}</span>
+                      <button onClick={() => deleteSubtask(t.id, s.id)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', padding: '0 2px' }}>×</button>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, marginBottom: 12 }}>
+                    <input className="input" style={{ flex: 1, fontSize: 12 }} placeholder="Add a subtask…" value={subtaskInput}
+                      onChange={e => setSubtaskInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSubtask(t.id); } }} />
+                    <button className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => addSubtask(t.id)}>Add</button>
+                  </div>
+
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="btn-gold" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => saveExpand(t.id)}>Save</button>
                     <button className="btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => setExpandedId(null)}>Close</button>
