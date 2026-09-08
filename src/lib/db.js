@@ -100,11 +100,14 @@ export function photoUrl(value) {
 
 // ── Calendar ─────────────────────────────────────────────────────────────────
 
-const CALENDAR_ICAL_URL = 'https://calendar.google.com/calendar/ical/thenorthstarhouse%40gmail.com/private-06287b2ca0d9ee6acd4f49f9d4d0d2da/basic.ics';
+// Routed through the same fetch-calendar Supabase Edge Function Portal uses
+// (server-side ICS fetch, no CORS proxy) -- this used to go through
+// corsproxy.io directly, a free public proxy with no uptime/rate-limit
+// guarantees, which is why the Dashboard's upcoming-events section would
+// silently go empty whenever that proxy was down or throttled.
 
 export async function fetchCalendarEvents() {
-  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(CALENDAR_ICAL_URL);
-  const text = await fetch(proxy).then(r => r.text());
+  const text = await fetch(`${URL}/functions/v1/fetch-calendar`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } }).then(r => r.text());
   const unfolded = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n[ \t]/g, '');
   const events = [];
   let current = null;
