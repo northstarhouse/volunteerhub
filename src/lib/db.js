@@ -100,14 +100,18 @@ export function photoUrl(value) {
 
 // ── Calendar ─────────────────────────────────────────────────────────────────
 
-// Routed through the same fetch-calendar Supabase Edge Function Portal uses
+// Routed through the same fetch-events Supabase Edge Function Portal uses
 // (server-side ICS fetch, no CORS proxy) -- this used to go through
 // corsproxy.io directly, a free public proxy with no uptime/rate-limit
 // guarantees, which is why the Dashboard's upcoming-events section would
 // silently go empty whenever that proxy was down or throttled.
+// Named fetch-events, not fetch-calendar -- real-browser testing showed a
+// CORS error hitting a URL with "calendar" in the path even though direct
+// requests to that same endpoint were always clean, consistent with a
+// network-level filter targeting calendar-embed URLs.
 
 export async function fetchCalendarEvents() {
-  const text = await fetch(`${URL}/functions/v1/fetch-calendar`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } }).then(r => r.text());
+  const text = await fetch(`${URL}/functions/v1/fetch-events`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } }).then(r => r.text());
   const unfolded = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n[ \t]/g, '');
   const events = [];
   let current = null;
