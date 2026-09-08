@@ -262,7 +262,10 @@ function OverviewTab({ ev }) {
   const doneT = ev.tasks.filter(t => t.done).length;
   const budgetTotal = ev.budget.reduce((s, b) => s + Number(b.estimated || 0), 0);
   const budgetActual = ev.budget.reduce((s, b) => s + Number(b.actual || 0), 0);
-  const nextTasks = ev.tasks.filter(t => !t.done).slice(0, 4);
+  const PRIORITY_RANK = { high: 0, medium: 1, '': 2 };
+  const nextTasks = ev.tasks.filter(t => !t.done)
+    .slice().sort((a, b) => (PRIORITY_RANK[a.priority || ''] ?? 2) - (PRIORITY_RANK[b.priority || ''] ?? 2))
+    .slice(0, 4);
   return (
     <div>
       <StatRow stats={[
@@ -275,7 +278,10 @@ function OverviewTab({ ev }) {
       {nextTasks.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>All tasks complete.</div>
       ) : nextTasks.map(t => (
-        <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid var(--border-light)' }}>
+        <div key={t.id} style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0 9px 10px',
+          borderBottom: '0.5px solid var(--border-light)', borderLeft: `3px solid ${t.priority ? TASK_PRIORITY[t.priority].color : 'transparent'}`,
+        }}>
           <span style={{ flex: 1, fontSize: 13 }}>{t.text}</span>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>{t.due ? fmtDateShort(t.due) : ''}</span>
         </div>
@@ -284,12 +290,33 @@ function OverviewTab({ ev }) {
   );
 }
 
-function ItemRow({ children, onDelete, done }) {
+function ItemRow({ children, onDelete, done, accent }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '0.5px solid var(--border-light)', opacity: done ? 0.6 : 1 }}>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0 9px 10px',
+      borderBottom: '0.5px solid var(--border-light)', borderLeft: `3px solid ${accent || 'transparent'}`,
+      opacity: done ? 0.6 : 1,
+    }}>
       {children}
       {onDelete && <button onClick={onDelete} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: '0 2px' }}>×</button>}
     </div>
+  );
+}
+
+const TASK_PRIORITY = {
+  high:   { label: 'High priority',   color: '#c0392b' },
+  medium: { label: 'Medium priority', color: '#d9822b' },
+};
+function nextPriority(p) { return !p ? 'medium' : p === 'medium' ? 'high' : ''; }
+
+function PriorityDot({ priority, onClick }) {
+  const p = TASK_PRIORITY[priority];
+  return (
+    <button type="button" onClick={onClick} title={p ? `${p.label} — click to change` : 'No priority — click to set'}
+      style={{
+        width: 10, height: 10, borderRadius: '50%', flexShrink: 0, padding: 0, cursor: 'pointer',
+        border: p ? 'none' : '1.5px solid var(--border)', background: p ? p.color : 'transparent',
+      }} />
   );
 }
 
@@ -344,7 +371,7 @@ function AssigneeMentionInput({ assignee, assigneeId, onChange, volunteers }) {
 }
 
 function PreplanningTab({ ev, onUpdate, volunteers }) {
-  const [taskForm, setTaskForm] = useState({ text: '', due: '', assignee: '', assigneeId: null });
+  const [taskForm, setTaskForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   const [budgetForm, setBudgetForm] = useState({ item: '', estimated: '', actual: '' });
   const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
   const [guests, setGuests] = useState(ev.guestCount);
@@ -360,10 +387,13 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
   function deleteTask(id) {
     onUpdate(e => ({ ...e, tasks: e.tasks.filter(t => t.id !== id) }));
   }
+  function cycleTaskPriority(id) {
+    onUpdate(e => ({ ...e, tasks: e.tasks.map(t => t.id === id ? { ...t, priority: nextPriority(t.priority) } : t) }));
+  }
   function addTask() {
     if (!taskForm.text.trim()) return;
-    onUpdate(e => ({ ...e, tasks: [...e.tasks, { id: cryptoId(), text: taskForm.text.trim(), done: false, due: taskForm.due, assignee: taskForm.assignee.trim(), assigneeId: taskForm.assigneeId }] }));
-    setTaskForm({ text: '', due: '', assignee: '', assigneeId: null });
+    onUpdate(e => ({ ...e, tasks: [...e.tasks, { id: cryptoId(), text: taskForm.text.trim(), done: false, due: taskForm.due, assignee: taskForm.assignee.trim(), assigneeId: taskForm.assigneeId, priority: taskForm.priority || '' }] }));
+    setTaskForm({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   }
 
   function deleteBudget(id) {
@@ -418,16 +448,28 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
       </div>
 
       <div style={{ marginBottom: 24 }}>
-        <div style={sectionTitle}>Task checklist</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={sectionTitle}>Task checklist</div>
+          <div style={{ display: 'flex', gap: 12, fontSize: 10, color: 'var(--muted)', marginBottom: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: TASK_PRIORITY.high.color, display: 'inline-block' }} />High</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: TASK_PRIORITY.medium.color, display: 'inline-block' }} />Medium</span>
+          </div>
+        </div>
         {ev.tasks.map(t => (
-          <ItemRow key={t.id} done={t.done} onDelete={() => deleteTask(t.id)}>
+          <ItemRow key={t.id} done={t.done} onDelete={() => deleteTask(t.id)} accent={t.priority ? TASK_PRIORITY[t.priority].color : null}>
+            <PriorityDot priority={t.priority} onClick={() => cycleTaskPriority(t.id)} />
             <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id)} style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
             <span style={{ flex: 1, fontSize: 13, textDecoration: t.done ? 'line-through' : 'none' }}>{t.text}</span>
             <span style={{ fontSize: 11, color: t.assigneeId ? 'var(--gold)' : 'var(--muted)', whiteSpace: 'nowrap' }}>{t.assignee ? `${t.assigneeId ? '@' : ''}${t.assignee} · ` : ''}{t.due ? fmtDateShort(t.due) : ''}</span>
           </ItemRow>
         ))}
-        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          <input className="input" style={{ flex: 1 }} placeholder="Add a task…" value={taskForm.text} onChange={e => setTaskForm(f => ({ ...f, text: e.target.value }))} />
+        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+          <input className="input" style={{ flex: 1, minWidth: 140 }} placeholder="Add a task…" value={taskForm.text} onChange={e => setTaskForm(f => ({ ...f, text: e.target.value }))} />
+          <select className="input" style={{ width: 118, appearance: 'auto' }} value={taskForm.priority} onChange={e => setTaskForm(f => ({ ...f, priority: e.target.value }))}>
+            <option value="">No priority</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
           <input className="input" type="date" style={{ width: 130 }} value={taskForm.due} onChange={e => setTaskForm(f => ({ ...f, due: e.target.value }))} />
           <AssigneeMentionInput assignee={taskForm.assignee} assigneeId={taskForm.assigneeId} volunteers={volunteers}
             onChange={(assignee, assigneeId) => setTaskForm(f => ({ ...f, assignee, assigneeId }))} />
