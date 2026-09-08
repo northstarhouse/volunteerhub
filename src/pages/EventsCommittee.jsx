@@ -3,6 +3,7 @@ import { useVol } from '../App.jsx';
 import {
   fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
   fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
+  fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
 import AreasTab from './eventsCommitteeAreas.jsx';
 
@@ -609,6 +610,148 @@ function FinancialsTab({ ev }) {
   );
 }
 
+function emptyFeedback(eventName, todayStr) {
+  return { event_name: eventName, source: '', name: '', role: '', feedback: '', date: todayStr };
+}
+
+function ReviewsTab({ ev }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [reviews, setReviews] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState(emptyFeedback(ev.name, todayStr));
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [expanded, setExpanded] = useState({});
+
+  function load() {
+    fetchEventFeedback(ev.name).then(setReviews).catch(() => setReviews([]));
+  }
+  useEffect(() => { load(); }, [ev.name]);
+
+  async function addReview(e) {
+    e.preventDefault();
+    if (!form.feedback.trim()) return;
+    setSaving(true);
+    const res = await insertEventFeedback({ ...form, event_name: ev.name, source: form.source || null, name: form.name || null, role: form.role || null, date: form.date || null });
+    setSaving(false);
+    if (res.error) { alert(`Failed to save: ${res.error}`); return; }
+    if (res.row) setReviews(prev => [res.row, ...(prev || [])]);
+    setForm(emptyFeedback(ev.name, todayStr));
+    setShowAdd(false);
+  }
+
+  function startEdit(f) {
+    setEditingId(f.id);
+    setEditForm({ source: f.source || '', name: f.name || '', role: f.role || '', feedback: f.feedback || '', date: f.date || todayStr });
+  }
+  async function saveEdit() {
+    if (!editForm) return;
+    setSavingEdit(true);
+    const patch = { source: editForm.source || null, name: editForm.name || null, role: editForm.role || null, feedback: editForm.feedback, date: editForm.date || null };
+    const res = await updateEventFeedback(editingId, patch);
+    setSavingEdit(false);
+    if (res.error) { alert(`Failed to save: ${res.error}`); return; }
+    setReviews(prev => prev.map(f => f.id === editingId ? { ...f, ...patch } : f));
+    setEditingId(null);
+    setEditForm(null);
+  }
+  async function removeReview(id) {
+    if (!confirm('Delete this review?')) return;
+    setReviews(prev => prev.filter(f => f.id !== id));
+    await deleteEventFeedback(id);
+  }
+
+  if (reviews === null) return <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+          Shared with Portal's Events page — reviews added here show up there too, and vice versa.
+        </div>
+        <button className="btn-gold" style={{ fontSize: 12, padding: '7px 14px', flexShrink: 0 }} onClick={() => { setShowAdd(s => !s); setForm(emptyFeedback(ev.name, todayStr)); }}>
+          {showAdd ? 'Cancel' : '+ Add Review'}
+        </button>
+      </div>
+
+      {showAdd && (
+        <form onSubmit={addReview} className="card" style={{ padding: 14, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div>
+              <div className="label">Source</div>
+              <input className="input" value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} placeholder="e.g. Google review, comment card…" />
+            </div>
+            <div>
+              <div className="label">Name</div>
+              <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Who left this feedback (optional)" />
+            </div>
+            <div>
+              <div className="label">Role</div>
+              <input className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Guest, Vendor, Volunteer…" />
+            </div>
+            <div>
+              <div className="label">Date</div>
+              <input className="input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <div className="label">Feedback</div>
+            <textarea className="input" rows={3} style={{ resize: 'vertical' }} required value={form.feedback} onChange={e => setForm(f => ({ ...f, feedback: e.target.value }))} placeholder="What did they say…" />
+          </div>
+          <button type="submit" className="btn-gold" disabled={saving}>{saving ? 'Saving…' : 'Add Review'}</button>
+        </form>
+      )}
+
+      {reviews.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>No reviews recorded for this event yet.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {reviews.map(f => {
+            if (editingId === f.id && editForm) {
+              return (
+                <div key={f.id} className="card" style={{ padding: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                    <input className="input" value={editForm.source} onChange={e => setEditForm(ff => ({ ...ff, source: e.target.value }))} placeholder="Source" />
+                    <input className="input" value={editForm.name} onChange={e => setEditForm(ff => ({ ...ff, name: e.target.value }))} placeholder="Name" />
+                    <input className="input" value={editForm.role} onChange={e => setEditForm(ff => ({ ...ff, role: e.target.value }))} placeholder="Role" />
+                    <input className="input" type="date" value={editForm.date} onChange={e => setEditForm(ff => ({ ...ff, date: e.target.value }))} />
+                  </div>
+                  <textarea className="input" rows={3} style={{ resize: 'vertical', marginBottom: 8 }} value={editForm.feedback} onChange={e => setEditForm(ff => ({ ...ff, feedback: e.target.value }))} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn-gold" style={{ fontSize: 12, padding: '6px 14px' }} disabled={savingEdit} onClick={saveEdit}>{savingEdit ? 'Saving…' : 'Save'}</button>
+                    <button className="btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }} disabled={savingEdit} onClick={() => { setEditingId(null); setEditForm(null); }}>Cancel</button>
+                  </div>
+                </div>
+              );
+            }
+            const isOpen = !!expanded[f.id];
+            return (
+              <div key={f.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
+                  <button onClick={() => setExpanded(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, minWidth: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{f.name || 'Anonymous'}{f.role ? ` — ${f.role}` : ''}</div>
+                      {f.source && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{f.source}</div>}
+                    </div>
+                    {f.date && <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{fmtDateShort(f.date)}</span>}
+                    <span style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
+                  </button>
+                  <button onClick={() => startEdit(f)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', flexShrink: 0 }}>✎</button>
+                  <button onClick={() => removeReview(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14, flexShrink: 0 }}>×</button>
+                </div>
+                {isOpen && <div style={{ padding: '0 16px 14px', fontSize: 13, color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{f.feedback}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Detail page ───────────────────────────────────────────────────────────
 
 function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
@@ -619,6 +762,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunt
     ['areas', 'Areas'],
     ['dayof', 'Day-Of'],
     ['financials', 'Financials'],
+    ['reviews', 'Reviews'],
     ['after', 'After Notes'],
   ];
 
@@ -678,6 +822,7 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunt
       {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
       {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
       {tab === 'financials' && <FinancialsTab ev={ev} />}
+      {tab === 'reviews' && <ReviewsTab ev={ev} />}
       {tab === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
     </div>
   );

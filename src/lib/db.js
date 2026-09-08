@@ -437,6 +437,31 @@ export async function fetchEventFinancials(eventName) {
   };
 }
 
+// Reviews/feedback for one specific event (Portal's "Event Feedback" table,
+// same one its Events P&L page's "Reviews & Feedback" tab manages) — powers
+// the Reviews tab on the Events Committee page.
+export async function fetchEventFeedback(eventName) {
+  const rows = await get(`Event%20Feedback?event_name=eq.${encodeURIComponent(eventName)}&select=*&order=date.desc,id.desc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function insertEventFeedback(payload) {
+  const rows = await post('Event%20Feedback', payload);
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
+export async function updateEventFeedback(id, payload) {
+  const rows = await patch(`Event%20Feedback?id=eq.${id}`, payload);
+  if (rows && rows.code) return { error: rows.message || rows.code };
+  return { success: true, row: Array.isArray(rows) ? rows[0] : null };
+}
+
+export async function deleteEventFeedback(id) {
+  const ok = await del(`Event%20Feedback?id=eq.${id}`);
+  return { success: ok };
+}
+
 export async function fetchMyReimbursements(authUserId) {
   const rows = await get(`Op%20Budget?volunteer_auth_user_id=eq.${authUserId}&select=*&order=created_at.desc`);
   return Array.isArray(rows) ? rows : [];
