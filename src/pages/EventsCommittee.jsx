@@ -68,7 +68,7 @@ const EVENT_PURPOSES = ['Educational', 'Entertainment', 'Community Engagement', 
 function emptyEvent(name) {
   return {
     id: cryptoId(), name, date: '', startTime: '', endTime: '', location: '', description: '', status: 'planning',
-    purpose: '', expectedAttendance: '', pricing: '',
+    purpose: '', expectedAttendance: '', pricing: '', details: '',
     tasks: [], budget: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
     afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
   };
@@ -89,6 +89,7 @@ function fromDb(row) {
     purpose: row.purpose || '',
     expectedAttendance: row.expected_attendance || '',
     pricing: row.pricing || '',
+    details: row.details || '',
     guestCount: { invited: row.guest_invited || 0, confirmed: row.guest_confirmed || 0 },
     tasks: row.tasks || [],
     budget: row.budget || [],
@@ -111,6 +112,7 @@ function toDb(ev) {
     purpose: ev.purpose || null,
     expected_attendance: ev.expectedAttendance || null,
     pricing: ev.pricing || null,
+    details: ev.details || null,
     guest_invited: ev.guestCount.invited || 0,
     guest_confirmed: ev.guestCount.confirmed || 0,
     tasks: ev.tasks,
@@ -376,9 +378,13 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
   const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
   const [guests, setGuests] = useState(ev.guestCount);
   const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing });
+  const [details, setDetails] = useState(ev.details || '');
 
   function saveBasics() {
     onUpdate(e => ({ ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim() }));
+  }
+  function saveDetails() {
+    onUpdate(e => ({ ...e, details: details.trim() }));
   }
 
   function toggleTask(id) {
@@ -445,6 +451,14 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
           </div>
         </div>
         <button className="btn-ghost" style={{ fontSize: 12 }} onClick={saveBasics}>Save event basics</button>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <div style={sectionTitle}>Details</div>
+        <textarea className="input" rows={6} style={{ resize: 'vertical', marginBottom: 8 }} value={details}
+          onChange={e => setDetails(e.target.value)}
+          placeholder="Open-ended planning notes — layout ideas, run-of-show thoughts, anything that doesn't fit the fields below…" />
+        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={saveDetails}>Save details</button>
       </div>
 
       <div style={{ marginBottom: 24 }}>
