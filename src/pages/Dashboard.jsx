@@ -331,7 +331,7 @@ function MyEventTasksCard({ volunteerId, setView }) {
     fetchCommitteeEvents().then(rows => {
       const mine = [];
       rows.forEach(row => {
-        (row.tasks || []).forEach(t => {
+        (row.checklist || []).forEach(t => {
           if (t.assigneeId === volunteerId && !t.done) mine.push({ ...t, eventName: row.name });
         });
       });

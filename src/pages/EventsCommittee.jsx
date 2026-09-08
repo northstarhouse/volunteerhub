@@ -562,7 +562,7 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
                     </div>
                     <div>
                       <div className="label">Assignee</div>
-                      <AssigneeMentionInput assignee={expandForm.assignee} assigneeId={expandForm.assigneeId} volunteers={volunteers}
+                      <AssigneeMentionInput key={t.id} assignee={expandForm.assignee} assigneeId={expandForm.assigneeId} volunteers={volunteers}
                         onChange={(assignee, assigneeId) => setExpandForm(f => ({ ...f, assignee, assigneeId }))} />
                     </div>
                   </div>
