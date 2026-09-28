@@ -383,7 +383,7 @@ export default function Dashboard() {
       setLoading(false);
     });
 
-    if (isDocent) fetchRecentTourRequests(10).then(setTourRequests);
+    if (isDocent) fetchRecentTourRequests().then(setTourRequests);
 
     fetchHours().then(map => {
       const data = getVolunteerHours(map, volunteer['First Name'], volunteer['Last Name']);

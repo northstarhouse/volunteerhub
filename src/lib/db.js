@@ -146,9 +146,15 @@ export async function fetchAllActiveVolunteers() {
 // step). Docents don't have Portal access, so this is their only place to
 // see incoming tour requests.
 const DOCENT_TOUR_FORM_ID = '0635cd26-b0c7-4076-b9b1-bd25d1949467';
+// Requests older than this aren't shown at all -- set to the single most
+// recent real request as of when this was added, so the card starts out
+// showing just that one instead of the older backlog. From here on, every
+// new submission is after this cutoff, so the card naturally grows up to
+// `limit` as they come in.
+const TOUR_REQUESTS_CUTOFF = '2026-09-28T15:18:31.52054+00:00';
 
-export async function fetchRecentTourRequests(limit = 10) {
-  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&select=id,answers,created_at,tour_status&order=created_at.desc&limit=${limit}`);
+export async function fetchRecentTourRequests(limit = 4) {
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${TOUR_REQUESTS_CUTOFF}&select=id,answers,created_at,tour_status&order=created_at.desc&limit=${limit}`);
   return Array.isArray(rows) ? rows : [];
 }
 

@@ -202,7 +202,7 @@ function AreaDetail({ area, showBack, onBack }) {
       fetchOpQuarterGoals(area, quarter, year),
       fetchOpQuarterlyUpdate(area, quarter, year),
       fetchAllActiveVolunteers(),
-      area === 'Docents' ? fetchRecentTourRequests(10) : Promise.resolve([]),
+      area === 'Docents' ? fetchRecentTourRequests() : Promise.resolve([]),
     ]).then(([info, budgetRows, earningsRows, resourceRows, goalRows, updateRow, vols, tourRows]) => {
       if (cancelled) return;
       setAreaInfo(info);
