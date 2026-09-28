@@ -661,6 +661,32 @@ export async function logActivity({ vol, authUserId, action, description }) {
 
 // ── Events Committee Planning Notes ────────────────────────────────────────
 
+// These are the same sources and ticket fields used by Portal Event Overviews.
+// Fail visibly on denied/failed requests instead of showing misleading zero totals.
+export async function fetchEventOverviewData() {
+  const paths = {
+    budget: 'Op%20Budget?area=eq.Events&select=*',
+    earnings: 'Op%20Earnings?area=eq.Events&select=*',
+    inHouse: 'In-House%20Events?select=*&order=date.asc',
+    cards: 'event_overview_cards?select=*',
+    tickets: 'ticket_orders?select=event_title,event_slug,event_date,kind,quantity,amount,paypal_fee,net_amount&limit=5000',
+  };
+  return Object.fromEntries(await Promise.all(Object.entries(paths).map(async ([key, path]) => {
+    const rows = await get(path);
+    if (!Array.isArray(rows)) throw new Error(`Could not load event ${key}. Please try again.`);
+    return [key, rows];
+  })));
+}
+
+export async function fetchEventOverviewTab(tab) {
+  const path = tab === 'feedback'
+    ? 'Event%20Feedback?select=*&order=date.desc,id.desc'
+    : 'planning_templates?select=*&order=created_at.desc';
+  const rows = await get(path);
+  if (!Array.isArray(rows)) throw new Error('Could not load this section. Please try again.');
+  return rows;
+}
+
 export async function fetchCommitteeEvents() {
   const rows = await get('events_committee?select=*&order=date.asc.nullslast');
   return Array.isArray(rows) ? rows : [];

@@ -11,7 +11,7 @@ const Directory = lazy(() => import('./pages/Directory.jsx'));
 const Hours = lazy(() => import('./pages/Hours.jsx'));
 const OperationalAreas = lazy(() => import('./pages/OperationalAreas.jsx'));
 const Reimbursements = lazy(() => import('./pages/Reimbursements.jsx'));
-const EventsCommittee = lazy(() => import('./pages/EventsCommittee.jsx'));
+const EventsCommittee = lazy(() => import('./pages/EventOverviews.jsx'));
 const ArchiveUpload = lazy(() => import('./pages/ArchiveUpload.jsx'));
 const Resources = lazy(() => import('./pages/Resources.jsx'));
 
