@@ -2,6 +2,9 @@ import { useState, useRef } from 'react';
 import { useVol } from '../App.jsx';
 import { uploadArchiveFiles } from '../lib/db.js';
 
+const ARCHIVAL_PHOTOS_URL = 'https://drive.google.com/drive/folders/1sQmw-Gw65-SSp786cZG9-zNFEsz8jb5e?usp=sharing';
+const ARCHIVAL_DOCUMENTS_URL = 'https://drive.google.com/drive/folders/1N9mnKscP4fAs8qSY7QOZEmm4JfQUnBP2?usp=sharing';
+
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 20 }, (_, i) => CURRENT_YEAR - i);
 const MONTHS = [
@@ -124,6 +127,19 @@ export default function ArchiveUpload() {
               <button className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={() => startUpload('document')}>
                 <UploadIcon /> Upload Documents
               </button>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '0.5px solid var(--border-light)', margin: '18px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <a href={ARCHIVAL_PHOTOS_URL} target="_blank" rel="noreferrer" className="btn-ghost"
+                style={{ width: '100%', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box', display: 'block' }}>
+                View Photos
+              </a>
+              <a href={ARCHIVAL_DOCUMENTS_URL} target="_blank" rel="noreferrer" className="btn-ghost"
+                style={{ width: '100%', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box', display: 'block' }}>
+                View Documents
+              </a>
             </div>
           </>
         )}
