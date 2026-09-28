@@ -1,17 +1,19 @@
-import { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, lazy, Suspense } from 'react';
 import { supabase, initialAuthType } from './supabase.js';
 import { fetchVolunteerByEmail, fetchVolunteerById } from './lib/db.js';
 import Nav from './components/Nav.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import Profile from './pages/Profile.jsx';
-import Directory from './pages/Directory.jsx';
-import Hours from './pages/Hours.jsx';
-import OperationalAreas from './pages/OperationalAreas.jsx';
-import Reimbursements from './pages/Reimbursements.jsx';
-import EventsCommittee from './pages/EventsCommittee.jsx';
-import ArchiveUpload from './pages/ArchiveUpload.jsx';
-import Resources from './pages/Resources.jsx';
+
+// Keep the dashboard ready immediately; download other pages only when opened.
+const Profile = lazy(() => import('./pages/Profile.jsx'));
+const Directory = lazy(() => import('./pages/Directory.jsx'));
+const Hours = lazy(() => import('./pages/Hours.jsx'));
+const OperationalAreas = lazy(() => import('./pages/OperationalAreas.jsx'));
+const Reimbursements = lazy(() => import('./pages/Reimbursements.jsx'));
+const EventsCommittee = lazy(() => import('./pages/EventsCommittee.jsx'));
+const ArchiveUpload = lazy(() => import('./pages/ArchiveUpload.jsx'));
+const Resources = lazy(() => import('./pages/Resources.jsx'));
 
 export const VolContext = createContext(null);
 export const useVol = () => useContext(VolContext);
@@ -306,14 +308,18 @@ export default function App() {
     <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea, setView }}>
       {isMobile ? (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
-          {pages[view] ?? pages.dashboard}
+          <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>
+            {pages[view] ?? pages.dashboard}
+          </Suspense>
           <Nav view={view} setView={setView} />
         </div>
       ) : (
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
           <Sidebar view={view} setView={setView} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            {pages[view] ?? pages.dashboard}
+            <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>
+              {pages[view] ?? pages.dashboard}
+            </Suspense>
           </div>
         </div>
       )}
