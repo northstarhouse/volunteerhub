@@ -4,6 +4,7 @@ import {
   matchVolunteerAreas, AREA_DEFAULTS, currentQuarterStr, photoUrl,
   fetchOperationalAreaInfo, fetchOpBudget, fetchOpEarnings, fetchOpResources,
   fetchOpQuarterGoals, fetchOpQuarterlyUpdate, fetchAllActiveVolunteers,
+  fetchRecentTourRequests,
 } from '../lib/db.js';
 
 const GOLD = '#886c44';
@@ -175,6 +176,42 @@ function RosterCard({ area, roster }) {
   );
 }
 
+function fmtWhen(iso) {
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  catch { return iso; }
+}
+
+// Docents don't have Portal access, so this is the only place they can see
+// tour requests coming in from the public site's Docent Tour Form.
+function TourRequestsCard({ requests }) {
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <SectionLabel>Recent Tour Requests</SectionLabel>
+      {requests.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No tour requests yet.</div>
+      ) : requests.map((r, i) => {
+        const a = r.answers || {};
+        const name = `${a.dt_first || ''} ${a.dt_last || ''}`.trim() || 'Someone';
+        return (
+          <div key={r.id} style={{ marginBottom: i < requests.length - 1 ? 12 : 0, paddingBottom: i < requests.length - 1 ? 12 : 0, borderBottom: i < requests.length - 1 ? '0.5px solid var(--border-light)' : 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{name}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{fmtWhen(r.created_at)}</div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+              {a.dt_email && <div>{a.dt_email}</div>}
+              {a.dt_phone && <div>{a.dt_phone}</div>}
+              {a.dt_dates && <div>Preferred dates: {a.dt_dates}</div>}
+              {a.dt_count && <div>Participants: {a.dt_count}</div>}
+              {a.dt_notes && <div style={{ marginTop: 4, color: 'var(--text)' }}>{a.dt_notes}</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AreaDetail({ area, showBack, onBack }) {
   const { setView } = useVol();
   const [areaInfo, setAreaInfo]     = useState(null);
@@ -184,6 +221,7 @@ function AreaDetail({ area, showBack, onBack }) {
   const [goals, setGoals]           = useState(null);
   const [update, setUpdate]         = useState(null);
   const [roster, setRoster]         = useState([]);
+  const [tourRequests, setTourRequests] = useState([]);
   const [loading, setLoading]       = useState(true);
   const quarter = currentQuarterStr();
   const year = new Date().getFullYear();
@@ -199,7 +237,8 @@ function AreaDetail({ area, showBack, onBack }) {
       fetchOpQuarterGoals(area, quarter, year),
       fetchOpQuarterlyUpdate(area, quarter, year),
       fetchAllActiveVolunteers(),
-    ]).then(([info, budgetRows, earningsRows, resourceRows, goalRows, updateRow, vols]) => {
+      area === 'Docents' ? fetchRecentTourRequests(10) : Promise.resolve([]),
+    ]).then(([info, budgetRows, earningsRows, resourceRows, goalRows, updateRow, vols, tourRows]) => {
       if (cancelled) return;
       setAreaInfo(info);
       setBudget(budgetRows);
@@ -208,6 +247,7 @@ function AreaDetail({ area, showBack, onBack }) {
       setGoals(goalRows);
       setUpdate(updateRow);
       setRoster((Array.isArray(vols) ? vols : []).filter(v => matchVolunteerAreas(v.Team).includes(area)));
+      setTourRequests(tourRows);
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -253,6 +293,7 @@ function AreaDetail({ area, showBack, onBack }) {
         <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
       ) : (
         <>
+          {area === 'Docents' && <TourRequestsCard requests={tourRequests} />}
           <ReflectionCard update={update} />
           <ResourcesCard resources={resources} />
           <RosterCard area={area} roster={roster} />

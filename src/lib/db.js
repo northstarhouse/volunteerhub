@@ -141,6 +141,17 @@ export async function fetchAllActiveVolunteers() {
   return get(`${VOL}?Status=eq.Active&select=*&order=Last%20Name.asc,First%20Name.asc`);
 }
 
+// The public site's Docent Tour Form -- same nsh_form_responses table Portal
+// reads, so a new submission shows up here the moment it's saved (no sync
+// step). Docents don't have Portal access, so this is their only place to
+// see incoming tour requests.
+const DOCENT_TOUR_FORM_ID = '0635cd26-b0c7-4076-b9b1-bd25d1949467';
+
+export async function fetchRecentTourRequests(limit = 10) {
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&select=id,answers,created_at&order=created_at.desc&limit=${limit}`);
+  return Array.isArray(rows) ? rows : [];
+}
+
 export async function fetchVolunteerById(id) {
   const rows = await get(`${VOL}?id=eq.${id}&select=*`);
   return Array.isArray(rows) ? rows[0] ?? null : null;
