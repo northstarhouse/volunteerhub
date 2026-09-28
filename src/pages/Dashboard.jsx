@@ -439,6 +439,14 @@ export default function Dashboard() {
                 <OotCard notices={oot} />
               </>
             )}
+            <button onClick={() => setView('profile')}
+              className="btn-gold" style={{ display: 'block', width: '100%' }}>
+              Submit Out of Town Notice
+            </button>
+            <button onClick={() => setView('profile')}
+              className="btn-gold" style={{ display: 'block', width: '100%' }}>
+              Update My Profile
+            </button>
             <button onClick={() => setView('resources')}
               className="btn-gold" style={{ display: 'block', width: '100%' }}>
               Volunteer Resources
