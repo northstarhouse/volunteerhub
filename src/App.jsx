@@ -11,6 +11,7 @@ import OperationalAreas from './pages/OperationalAreas.jsx';
 import Reimbursements from './pages/Reimbursements.jsx';
 import EventsCommittee from './pages/EventsCommittee.jsx';
 import ArchiveUpload from './pages/ArchiveUpload.jsx';
+import Resources from './pages/Resources.jsx';
 
 export const VolContext = createContext(null);
 export const useVol = () => useContext(VolContext);
@@ -298,6 +299,7 @@ export default function App() {
     reimbursements: <Reimbursements />,
     'events-committee': <EventsCommittee />,
     'archive-upload': <ArchiveUpload />,
+    resources: <Resources />,
   };
 
   return (

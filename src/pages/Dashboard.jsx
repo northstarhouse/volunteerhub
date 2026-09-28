@@ -15,7 +15,7 @@ function PageHeader({ name }) {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   return (
     <div style={{ padding: '22px 20px 16px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
-      <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 4 }}>{today}</div>
+      <div style={{ fontSize: 12, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 4 }}>{today}</div>
       <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>
         Hey, {name}
       </div>
@@ -39,13 +39,13 @@ function ThisWeekCard({ events }) {
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   return (
     <div className="card" style={{ height: '100%', boxSizing: 'border-box' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         This Week at North Star House
       </div>
-      {events === null && <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>}
+      {events === null && <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>}
       {events !== null && events.length === 0 && (
-        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No upcoming events in the next 2 weeks.</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>No upcoming events in the next 2 weeks.</div>
       )}
       {events !== null && events.map((ev, i) => {
         const start = parseIcalDate(ev['DTSTART']);
@@ -69,17 +69,17 @@ function ThisWeekCard({ events }) {
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, marginTop: 5, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: 'var(--text)' }}>{title}</span>
-                {isToday && <span style={{ fontSize: 10, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8 }}>Today</span>}
+                <span style={{ fontSize: 14, fontWeight: isToday ? 700 : 500, color: 'var(--text)' }}>{title}</span>
+                {isToday && <span style={{ fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8 }}>Today</span>}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{dayStr}{timeStr !== 'All day' ? ` · ${timeStr}` : ''}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{dayStr}{timeStr !== 'All day' ? ` · ${timeStr}` : ''}</div>
             </div>
-            <span style={{ fontSize: 11, background: bg, color, borderRadius: 20, fontWeight: 500, flexShrink: 0, padding: '2px 10px', whiteSpace: 'nowrap' }}>{label}</span>
+            <span style={{ fontSize: 12, background: bg, color, borderRadius: 20, fontWeight: 500, flexShrink: 0, padding: '2px 10px', whiteSpace: 'nowrap' }}>{label}</span>
           </div>
         );
       })}
       {events !== null && events.length > 0 && (
-        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '0.5px solid var(--border-light)', fontSize: 11, color: 'var(--muted)' }}>Synced from Google Calendar</div>
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '0.5px solid var(--border-light)', fontSize: 12, color: 'var(--muted)' }}>Synced from Google Calendar</div>
       )}
     </div>
   );
@@ -113,17 +113,17 @@ function HoursSnapshotCard({ data }) {
   return (
     <div className="card" style={{ marginBottom: 14 }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
           {new Date().getFullYear()} Hours
         </div>
         {data === null ? (
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>
+          <div style={{ fontSize: 14, color: 'var(--muted)' }}>Loading…</div>
         ) : (
           <>
             <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: GOLD, lineHeight: 1 }}>
               {data.total % 1 === 0 ? data.total : data.total.toFixed(1)}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>hours volunteered so far</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>hours volunteered so far</div>
           </>
         )}
       </div>
@@ -135,9 +135,9 @@ function HoursSnapshotCard({ data }) {
             if (h === 0) return null;
             return (
               <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 26, fontSize: 10.5, color: 'var(--muted)', fontWeight: 500, flexShrink: 0 }}>{m}</div>
+                <div style={{ width: 26, fontSize: 11.5, color: 'var(--muted)', fontWeight: 500, flexShrink: 0 }}>{m}</div>
                 <HoursBar value={h} max={maxMonth} />
-                <div style={{ width: 30, fontSize: 11.5, fontWeight: 600, color: 'var(--text)', textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ width: 30, fontSize: 12.5, fontWeight: 600, color: 'var(--text)', textAlign: 'right', flexShrink: 0 }}>
                   {h % 1 === 0 ? h : h.toFixed(1)}
                 </div>
               </div>
@@ -160,12 +160,12 @@ function AnnouncementBoard() {
 
   return (
     <div className="card" style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <Megaphone size={13} color={GOLD} strokeWidth={2} />
         Announcements
       </div>
       {items === null ? (
-        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>
+        <div style={{ fontSize: 14, color: 'var(--muted)' }}>Loading…</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {items.map((a, i) => (
@@ -174,7 +174,7 @@ function AnnouncementBoard() {
                 <img src={a.image_url} alt="" style={{ width: '100%', borderRadius: 8, display: 'block', marginBottom: a.text || a.button_text ? 10 : 0 }} />
               )}
               {a.text && (
-                <div style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', marginBottom: a.button_text ? 10 : 0 }}>{a.text}</div>
+                <div style={{ fontSize: 14, color: 'var(--text)', whiteSpace: 'pre-wrap', marginBottom: a.button_text ? 10 : 0 }}>{a.text}</div>
               )}
               {a.button_text && a.button_url && (
                 <div style={{ textAlign: 'center' }}>
@@ -210,12 +210,12 @@ function BirthdayCard({ volunteers }) {
 
   return (
     <div className="card" style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <Cake size={13} color={GOLD} strokeWidth={2} />
         Upcoming Birthdays
       </div>
       {upcoming.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No birthdays in the next 30 days.</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>No birthdays in the next 30 days.</div>
       ) : upcoming.map((v, i) => {
         const isToday = v._days === 0;
         return (
@@ -229,15 +229,15 @@ function BirthdayCard({ volunteers }) {
           }}>
             <Avatar v={v} size={34} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {v['First Name']} {v['Last Name']}{v['Team'] && ` - ${v['Team']}`}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
                 {v._bday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{isToday ? ' 🎂' : ''}
                 {v._zodiac && <span style={{ fontStyle: 'italic', opacity: 0.65 }}> · {v._zodiac.name} <span style={{ color: GOLD }}>{v._zodiac.symbol}</span></span>}
               </div>
             </div>
-            {!isToday && <span style={{ fontSize: 10, fontWeight: 600, color: v._days <= 7 ? GOLD : 'var(--muted)', flexShrink: 0 }}>
+            {!isToday && <span style={{ fontSize: 11, fontWeight: 600, color: v._days <= 7 ? GOLD : 'var(--muted)', flexShrink: 0 }}>
               {v._days === 1 ? 'Tomorrow' : `${v._days}d`}
             </span>}
           </div>
@@ -261,12 +261,12 @@ function OotCard({ notices }) {
 
   return (
     <div className="card">
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.48 2 2 0 0 1 3.58 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.29 6.29l1.12-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         Out of Town
       </div>
       {all.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No one out of town right now.</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>No one out of town right now.</div>
       ) : all.map((n, i) => (
         <div key={i} style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -276,13 +276,13 @@ function OotCard({ notices }) {
           borderRadius: n._active ? 8 : 0,
           padding: n._active ? '8px 10px' : '2px 0',
         }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#f0ebe2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: GOLD, flexShrink: 0 }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#f0ebe2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: GOLD, flexShrink: 0 }}>
             {(n.name || '?')[0].toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{fmtRange(n)}{n._active ? ' ✈️' : ''}</div>
-            {n.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.notes}</div>}
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{fmtRange(n)}{n._active ? ' ✈️' : ''}</div>
+            {n.notes && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.notes}</div>}
           </div>
         </div>
       ))}
@@ -304,21 +304,21 @@ function ResourcesCard({ areas }) {
 
   return (
     <div className="card" style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         Resources
       </div>
       {resources === null ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>
       ) : resources.map((r, i) => (
         <div key={r.id ?? i} style={{ marginBottom: i < resources.length - 1 ? 10 : 0 }}>
           {r.url ? (
-            <a href={r.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: GOLD, textDecoration: 'none' }}>{r.title || r.url}</a>
+            <a href={r.url} target="_blank" rel="noreferrer" style={{ fontSize: 14, color: GOLD, textDecoration: 'none' }}>{r.title || r.url}</a>
           ) : (
-            <span style={{ fontSize: 13, color: 'var(--text)' }}>{r.title}</span>
+            <span style={{ fontSize: 14, color: 'var(--text)' }}>{r.title}</span>
           )}
-          {r.description && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{r.description}</div>}
-          {areas.length > 1 && <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{r._area}</div>}
+          {r.description && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 1 }}>{r.description}</div>}
+          {areas.length > 1 && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{r._area}</div>}
         </div>
       ))}
     </div>
@@ -346,16 +346,16 @@ function MyEventTasksCard({ volunteerId, setView }) {
 
   return (
     <div className="card" style={{ marginTop: 14, cursor: 'pointer' }} onClick={() => setView('events-committee')}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         My Event Tasks
       </div>
       {tasks === null ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>
       ) : tasks.map((t, i) => (
         <div key={t.id ?? i} style={{ marginBottom: i < tasks.length - 1 ? 10 : 0 }}>
-          <div style={{ fontSize: 13, color: 'var(--text)' }}>{t.text}</div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+          <div style={{ fontSize: 14, color: 'var(--text)' }}>{t.text}</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
             {t.eventName}{t.due && ` · Due ${new Date(`${t.due}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
           </div>
         </div>
@@ -432,17 +432,17 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <ThisWeekCard events={calEvents} />
             {loading ? (
-              <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
+              <div style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
             ) : (
               <>
                 <BirthdayCard volunteers={volunteers} />
                 <OotCard notices={oot} />
               </>
             )}
-            <a href="https://drive.google.com/drive/folders/1AGCE-jvZxgytP63lLjvdUYAkB-aOuTMO?usp=sharing" target="_blank" rel="noreferrer"
-              className="btn-gold" style={{ display: 'block', width: '100%', textAlign: 'center', textDecoration: 'none' }}>
+            <button onClick={() => setView('resources')}
+              className="btn-gold" style={{ display: 'block', width: '100%' }}>
               Volunteer Resources
-            </a>
+            </button>
             {isLeader && (
               <a href="https://northstarhouse.github.io/Portal/" target="_blank" rel="noreferrer"
                 className="btn-gold" style={{ display: 'block', width: '100%', textAlign: 'center', textDecoration: 'none' }}>

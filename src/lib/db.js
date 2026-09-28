@@ -154,7 +154,10 @@ const DOCENT_TOUR_FORM_ID = '0635cd26-b0c7-4076-b9b1-bd25d1949467';
 const TOUR_REQUESTS_CUTOFF = '2026-09-28T15:18:31.52054+00:00';
 
 export async function fetchRecentTourRequests(limit = 4) {
-  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${TOUR_REQUESTS_CUTOFF}&select=id,answers,created_at,tour_status&order=created_at.desc&limit=${limit}`);
+  // The cutoff's "+00:00" offset has to be URL-encoded -- an unencoded "+"
+  // in a query string is read as a literal space, which broke the date
+  // parse entirely (a silent-looking empty result, actually a 400).
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${encodeURIComponent(TOUR_REQUESTS_CUTOFF)}&select=id,answers,created_at,tour_status&order=created_at.desc&limit=${limit}`);
   return Array.isArray(rows) ? rows : [];
 }
 
