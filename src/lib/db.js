@@ -266,7 +266,7 @@ function buildLocalIso(dateStr, timeStr) {
   return Number.isNaN(value.getTime()) ? null : value.toISOString();
 }
 
-export async function insertManualHours(name, duty, { date, useSpecificTimes, startTime, endTime, hours }) {
+export async function insertManualHours(name, duty, { date, useSpecificTimes, startTime, endTime, hours, notes }) {
   let checkInIso, checkOutIso;
 
   if (useSpecificTimes) {
@@ -285,9 +285,10 @@ export async function insertManualHours(name, duty, { date, useSpecificTimes, st
     checkOutIso = new Date(new Date(checkInIso).getTime() + enteredHours * 3600000).toISOString();
   }
 
+  const trimmedNotes = (notes || '').trim() || null;
   const rows = [
-    { timestamp: checkInIso,  name, type: 'volunteer', duty, action: 'check-in',  source: 'manual-hours' },
-    { timestamp: checkOutIso, name, type: 'volunteer', duty, action: 'check-out', source: 'manual-hours' },
+    { timestamp: checkInIso,  name, type: 'volunteer', duty, action: 'check-in',  source: 'manual-hours', notes: trimmedNotes },
+    { timestamp: checkOutIso, name, type: 'volunteer', duty, action: 'check-out', source: 'manual-hours', notes: trimmedNotes },
   ];
 
   const res = await fetch(`${URL}/rest/v1/kiosk_logs`, {

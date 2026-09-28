@@ -16,13 +16,13 @@ const today = () => new Date().toISOString().slice(0, 10);
 function AddMissedHoursCard({ vol, authUserId, onSaved }) {
   const fullName = `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim();
   const [showForm, setShowForm]   = useState(false);
-  const [form, setForm]           = useState({ duty: 'other', date: today(), useSpecificTimes: false, hours: '', startTime: '', endTime: '' });
+  const [form, setForm]           = useState({ duty: 'other', date: today(), useSpecificTimes: false, hours: '', startTime: '', endTime: '', notes: '' });
   const [saving, setSaving]       = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [err, setErr]             = useState('');
 
   function openForm() {
-    setForm({ duty: 'other', date: today(), useSpecificTimes: false, hours: '', startTime: '', endTime: '' });
+    setForm({ duty: 'other', date: today(), useSpecificTimes: false, hours: '', startTime: '', endTime: '', notes: '' });
     setErr('');
     setSubmitted(false);
     setShowForm(true);
@@ -113,6 +113,11 @@ function AddMissedHoursCard({ vol, authUserId, onSaved }) {
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>When using Date + Hours, check-in is set to 9:00 AM on that date.</div>
             </div>
           )}
+
+          <div style={{ marginBottom: 12 }}>
+            <div className="label">Notes (optional)</div>
+            <input className="input" type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="What was this for?" />
+          </div>
 
           {err && <div style={{ color: '#c0392b', fontSize: 12, marginBottom: 10 }}>{err}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
