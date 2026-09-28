@@ -247,7 +247,7 @@ function BirthdayCard({ volunteers }) {
   );
 }
 
-function OotCard({ notices }) {
+function OotCard({ notices, setView }) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const current  = notices.filter(n => new Date(n.start_date + 'T12:00:00') <= today && new Date(n.end_date + 'T12:00:00') >= today);
   const upcoming = notices.filter(n => new Date(n.start_date + 'T12:00:00') > today).slice(0, 4);
@@ -286,6 +286,9 @@ function OotCard({ notices }) {
           </div>
         </div>
       ))}
+      <button onClick={() => setView('profile')} className="btn-ghost" style={{ display: 'block', width: '100%', marginTop: 12 }}>
+        Submit Your Notice
+      </button>
     </div>
   );
 }
@@ -436,17 +439,9 @@ export default function Dashboard() {
             ) : (
               <>
                 <BirthdayCard volunteers={volunteers} />
-                <OotCard notices={oot} />
+                <OotCard notices={oot} setView={setView} />
               </>
             )}
-            <button onClick={() => setView('profile')}
-              className="btn-gold" style={{ display: 'block', width: '100%' }}>
-              Submit Out of Town Notice
-            </button>
-            <button onClick={() => setView('profile')}
-              className="btn-gold" style={{ display: 'block', width: '100%' }}>
-              Update My Profile
-            </button>
             <button onClick={() => setView('resources')}
               className="btn-gold" style={{ display: 'block', width: '100%' }}>
               Volunteer Resources

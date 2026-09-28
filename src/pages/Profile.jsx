@@ -330,7 +330,7 @@ function OutOfTownCard({ vol }) {
     if (!form.start_date || !form.end_date) { setErr('Both dates are required.'); return; }
     if (form.end_date < form.start_date) { setErr('End date must be after start date.'); return; }
     setSaving(true); setErr('');
-    const result = await insertOotNotice({ name: fullName, start_date: form.start_date, end_date: form.end_date, notes: form.notes || null });
+    const result = await insertOotNotice({ name: fullName, start_date: form.start_date, end_date: form.end_date, notes: form.notes || null, volunteer_id: vol.id, auth_user_id: vol.auth_user_id || null });
     if (Array.isArray(result) && result[0]) {
       setShowForm(false);
       setSubmitted(true);

@@ -73,6 +73,11 @@ export default function ArchiveUpload() {
     setErr(''); setResult(null); setProgress(null); setShowForm(false);
   }
 
+  function startUpload(kindToUse) {
+    setKind(kindToUse);
+    setShowForm(true);
+  }
+
   async function handleSubmit() {
     if (!files.length || uploading) return;
     setUploading(true); setErr(''); setProgress({ done: 0, total: files.length });
@@ -108,9 +113,19 @@ export default function ArchiveUpload() {
 
       <div style={{ padding: '14px 14px 24px' }}>
         {!showForm && !result && (
-          <button className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={() => setShowForm(true)}>
-            <UploadIcon /> Upload Photos
-          </button>
+          <>
+            <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 16 }}>
+              Everything you share here becomes part of the permanent North Star Archives — our record of the house's restoration, events, and the people who make it happen. Photos and documents you upload may also be shared on our social media and in newsletters to help tell the NSH story, so anything you contribute helps us document and celebrate the house.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={() => startUpload('photo')}>
+                <UploadIcon /> Upload Photos
+              </button>
+              <button className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={() => startUpload('document')}>
+                <UploadIcon /> Upload Documents
+              </button>
+            </div>
+          </>
         )}
 
         {result && (

@@ -13,6 +13,8 @@ const LINKS = [
   { label: 'My Hours', view: 'hours' },
   { label: 'Submit Reimbursement', view: 'reimbursements' },
   { label: 'Upload Photos / Files to Archive', view: 'archive-upload' },
+  { label: 'Submit Out of Town Notice', view: 'profile' },
+  { label: 'Update My Profile', view: 'profile' },
 ];
 
 export default function Resources() {
@@ -33,7 +35,7 @@ export default function Resources() {
           </a>
         ))}
         {LINKS.map(l => (
-          <button key={l.view} onClick={() => setView(l.view)} className="btn-ghost" style={{ display: 'block', width: '100%' }}>
+          <button key={l.label} onClick={() => setView(l.view)} className="btn-ghost" style={{ display: 'block', width: '100%' }}>
             {l.label}
           </button>
         ))}
