@@ -289,7 +289,7 @@ function OotCard({ notices, setView, volunteers }) {
         </div>
       ))}
       <button onClick={() => setView('profile')} className="btn-ghost" style={{ display: 'block', width: '100%', marginTop: 12 }}>
-        Submit Your Notice
+        Submit Dates
       </button>
     </div>
   );
@@ -435,9 +435,21 @@ export default function Dashboard() {
               className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
               Volunteer Resources
             </button>
+            {isLeader && (
+              <a href="https://northstarhouse.github.io/Portal/" target="_blank" rel="noreferrer"
+                className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
+                Open Portal
+              </a>
+            )}
+            {myAreas.includes('Events') && (
+              <button onClick={() => setView('events-committee')}
+                className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
+                Events Committee Planning Notes
+              </button>
+            )}
           </div>
 
-          {/* Right: Calendar, Birthdays, OOT, then quick-link buttons */}
+          {/* Right: Calendar, Birthdays, and Out of Town */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <ThisWeekCard events={calEvents} />
             {loading ? (
@@ -447,22 +459,6 @@ export default function Dashboard() {
                 <BirthdayCard volunteers={volunteers} />
                 <OotCard notices={oot} setView={setView} volunteers={volunteers} />
               </>
-            )}
-            <button onClick={() => setView('resources')}
-              className="btn-gold" style={{ display: 'block', width: '100%' }}>
-              Volunteer Resources
-            </button>
-            {isLeader && (
-              <a href="https://northstarhouse.github.io/Portal/" target="_blank" rel="noreferrer"
-                className="btn-gold" style={{ display: 'block', width: '100%', textAlign: 'center', textDecoration: 'none' }}>
-                Open Portal
-              </a>
-            )}
-            {myAreas.includes('Events') && (
-              <button onClick={() => setView('events-committee')}
-                className="btn-gold" style={{ display: 'block', width: '100%' }}>
-                Events Committee Planning Notes
-              </button>
             )}
           </div>
         </div>
