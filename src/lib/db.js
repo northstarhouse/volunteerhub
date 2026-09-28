@@ -148,8 +148,32 @@ export async function fetchAllActiveVolunteers() {
 const DOCENT_TOUR_FORM_ID = '0635cd26-b0c7-4076-b9b1-bd25d1949467';
 
 export async function fetchRecentTourRequests(limit = 10) {
-  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&select=id,answers,created_at&order=created_at.desc&limit=${limit}`);
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&select=id,answers,created_at,tour_status&order=created_at.desc&limit=${limit}`);
   return Array.isArray(rows) ? rows : [];
+}
+
+// tour_status is separate from nsh_form_responses.status (which Portal's
+// generic Form Responses "Mark handled" checkbox already owns) so the two
+// features don't collide.
+export async function updateTourRequestStatus(id, tourStatus) {
+  const res = await fetch(`${URL}/rest/v1/nsh_form_responses?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: await hdr({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({ tour_status: tourStatus }),
+  });
+  return res.ok;
+}
+
+// Puts a real event on the North Star House Google Calendar -- the docent
+// picks the actual scheduled date/time by hand, since the tour request
+// itself only has preferred dates, not a confirmed slot.
+export async function addTourToCalendar({ summary, description, date, startTime, durationMin }) {
+  const res = await fetch(`${URL}/functions/v1/add-calendar-event`, {
+    method: 'POST',
+    headers: await hdr(),
+    body: JSON.stringify({ summary, description, date, startTime, durationMin }),
+  });
+  return res.json();
 }
 
 export async function fetchVolunteerById(id) {

@@ -5,7 +5,9 @@ import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, fetchAnnouncements,
   fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
+  fetchRecentTourRequests,
 } from '../lib/db.js';
+import TourRequestsCard from '../components/TourRequestsCard.jsx';
 
 const GOLD = '#886c44';
 
@@ -369,6 +371,10 @@ export default function Dashboard() {
   const [calEvents, setCalEvents]   = useState(null);
   const [loading, setLoading]       = useState(true);
   const [hoursData, setHoursData]   = useState(null);
+  const [tourRequests, setTourRequests] = useState([]);
+
+  const myAreas = matchVolunteerAreas(volunteer.Team);
+  const isDocent = myAreas.includes('Docents');
 
   useEffect(() => {
     Promise.all([fetchAllActiveVolunteers(), fetchOotNotices()]).then(([vols, notices]) => {
@@ -376,6 +382,8 @@ export default function Dashboard() {
       setOot(Array.isArray(notices) ? notices : []);
       setLoading(false);
     });
+
+    if (isDocent) fetchRecentTourRequests(10).then(setTourRequests);
 
     fetchHours().then(map => {
       const data = getVolunteerHours(map, volunteer['First Name'], volunteer['Last Name']);
@@ -395,7 +403,6 @@ export default function Dashboard() {
       .catch(() => setCalEvents([]));
   }, []);
 
-  const myAreas = matchVolunteerAreas(volunteer.Team);
   const myTeams = (volunteer.Team || '').split('|').map(t => t.trim());
   const isLeader = myTeams.includes('Team Lead') || myTeams.includes('Board Member');
 
@@ -414,6 +421,7 @@ export default function Dashboard() {
         >
           {/* Left: Hours snapshot + My Area cards */}
           <div>
+            {isDocent && <TourRequestsCard requests={tourRequests} />}
             <HoursSnapshotCard data={hoursData} />
             <AnnouncementBoard />
             <ResourcesCard areas={myAreas} />

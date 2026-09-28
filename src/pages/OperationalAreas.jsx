@@ -6,6 +6,7 @@ import {
   fetchOpQuarterGoals, fetchOpQuarterlyUpdate, fetchAllActiveVolunteers,
   fetchRecentTourRequests,
 } from '../lib/db.js';
+import TourRequestsCard from '../components/TourRequestsCard.jsx';
 
 const GOLD = '#886c44';
 
@@ -172,42 +173,6 @@ function RosterCard({ area, roster }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function fmtWhen(iso) {
-  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
-  catch { return iso; }
-}
-
-// Docents don't have Portal access, so this is the only place they can see
-// tour requests coming in from the public site's Docent Tour Form.
-function TourRequestsCard({ requests }) {
-  return (
-    <div className="card" style={{ marginBottom: 14 }}>
-      <SectionLabel>Recent Tour Requests</SectionLabel>
-      {requests.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No tour requests yet.</div>
-      ) : requests.map((r, i) => {
-        const a = r.answers || {};
-        const name = `${a.dt_first || ''} ${a.dt_last || ''}`.trim() || 'Someone';
-        return (
-          <div key={r.id} style={{ marginBottom: i < requests.length - 1 ? 12 : 0, paddingBottom: i < requests.length - 1 ? 12 : 0, borderBottom: i < requests.length - 1 ? '0.5px solid var(--border-light)' : 'none' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{name}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{fmtWhen(r.created_at)}</div>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
-              {a.dt_email && <div>{a.dt_email}</div>}
-              {a.dt_phone && <div>{a.dt_phone}</div>}
-              {a.dt_dates && <div>Preferred dates: {a.dt_dates}</div>}
-              {a.dt_count && <div>Participants: {a.dt_count}</div>}
-              {a.dt_notes && <div style={{ marginTop: 4, color: 'var(--text)' }}>{a.dt_notes}</div>}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
