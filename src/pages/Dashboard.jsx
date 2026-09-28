@@ -431,6 +431,10 @@ export default function Dashboard() {
             <AnnouncementBoard />
             <ResourcesCard areas={myAreas} />
             <MyEventTasksCard volunteerId={volunteer.id} setView={setView} />
+            <button onClick={() => setView('resources')}
+              className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
+              Volunteer Resources
+            </button>
           </div>
 
           {/* Right: Calendar, Birthdays, OOT, then quick-link buttons */}
