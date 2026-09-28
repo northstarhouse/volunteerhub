@@ -133,6 +133,11 @@ function ReimbursementForm({ vol, session, events, editing, onDone, onCancel }) 
           <input type="checkbox" checked={isInKind} onChange={e => setIsInKind(e.target.checked)} style={{ accentColor: 'var(--gold)', width: 14, height: 14 }} />
         </label>
       </div>
+      {!isInKind && (
+        <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 14 }}>
+          When you submit this request, it goes directly to our treasurer. She will issue a check and mail it to the address on file. Please make sure your mailing address is up to date in your profile before submitting.
+        </div>
+      )}
       {isInKind && (
         <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12, marginTop: -8 }}>
           In-kind donations are logged for the record — no reimbursement will be issued.
