@@ -247,7 +247,7 @@ function BirthdayCard({ volunteers }) {
   );
 }
 
-function OotCard({ notices, setView }) {
+function OotCard({ notices, setView, volunteers }) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const current  = notices.filter(n => new Date(n.start_date + 'T12:00:00') <= today && new Date(n.end_date + 'T12:00:00') >= today);
   const upcoming = notices.filter(n => new Date(n.start_date + 'T12:00:00') > today).slice(0, 4);
@@ -276,9 +276,11 @@ function OotCard({ notices, setView }) {
           borderRadius: n._active ? 8 : 0,
           padding: n._active ? '8px 10px' : '2px 0',
         }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#f0ebe2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: GOLD, flexShrink: 0 }}>
-            {(n.name || '?')[0].toUpperCase()}
-          </div>
+          <Avatar v={
+            (n.volunteer_id && volunteers.find(v => v.id === n.volunteer_id))
+            || volunteers.find(v => `${v['First Name'] || ''} ${v['Last Name'] || ''}`.trim().toLowerCase() === (n.name || '').trim().toLowerCase())
+            || { 'First Name': n.name, 'Last Name': '' }
+          } size={34} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{fmtRange(n)}{n._active ? ' ✈️' : ''}</div>
@@ -439,7 +441,7 @@ export default function Dashboard() {
             ) : (
               <>
                 <BirthdayCard volunteers={volunteers} />
-                <OotCard notices={oot} setView={setView} />
+                <OotCard notices={oot} setView={setView} volunteers={volunteers} />
               </>
             )}
             <button onClick={() => setView('resources')}
