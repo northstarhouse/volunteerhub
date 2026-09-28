@@ -354,6 +354,11 @@ export default function Reimbursements() {
 
       <div style={{ padding: '14px 14px 24px' }}>
         {!showForm && (
+          <div className="card" style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 14 }}>
+            When you submit a reimbursement request, it goes directly to our treasurer. She will issue a check and mail it to the address on file. Please make sure your mailing address is up to date in your profile before submitting.
+          </div>
+        )}
+        {!showForm && (
           <button className="btn-gold" style={{ width: '100%', marginBottom: 14 }} onClick={() => { setEditing(null); setShowForm(true); }}>+ New Request</button>
         )}
 
