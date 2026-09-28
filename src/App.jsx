@@ -110,7 +110,6 @@ function SetPasswordScreen({ onDone }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (password !== confirm) { setErr('Passwords do not match.'); return; }
-    if (password.length < 8) { setErr('Must be at least 8 characters.'); return; }
     setBusy(true); setErr('');
     const { error } = await supabase.auth.updateUser({ password, data: { must_change_password: false } });
     if (error) { setErr(error.message); setBusy(false); return; }
@@ -128,7 +127,7 @@ function SetPasswordScreen({ onDone }) {
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>You're all set. You can now use the hub.</div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <input className="input" type="password" placeholder="New password (8+ chars)" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} style={{ marginBottom: 10 }} />
+            <input className="input" type="password" placeholder="New password" value={password} onChange={e => setPassword(e.target.value)} required style={{ marginBottom: 10 }} />
             <input className="input" type="password" placeholder="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} required style={{ marginBottom: 14 }} />
             {err && <div style={{ color: '#c0392b', fontSize: 12, marginBottom: 12 }}>{err}</div>}
             <button type="submit" className="btn-gold" disabled={busy} style={{ width: '100%', padding: '11px' }}>

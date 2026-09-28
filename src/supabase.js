@@ -15,5 +15,12 @@ export const initialAuthType = _hash.get('type') // 'invite' | 'recovery' | 'sig
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     flowType: 'implicit', // puts tokens in hash so we can read type=invite / type=recovery
+    // Explicit (matches supabase-js defaults, but stated outright so a signed-in
+    // volunteer stays signed in across visits/reloads instead of being asked to
+    // log in every time -- the session is persisted to localStorage and its
+    // access token silently refreshed in the background).
+    persistSession: true,
+    autoRefreshToken: true,
+    storage: window.localStorage,
   },
 })
