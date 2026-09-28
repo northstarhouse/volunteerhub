@@ -15,7 +15,7 @@ const LINKS = [
   { label: 'Update My Profile', view: 'profile' },
 ];
 
-const btnStyle = { display: 'block', width: '100%', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' };
+const btnStyle = { display: 'block', width: '100%', background: '#fff', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' };
 
 export default function Resources() {
   const { setView, volunteer } = useVol();
@@ -27,7 +27,7 @@ export default function Resources() {
       <div style={{ padding: '22px 20px 16px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
         <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>Volunteer Resources</div>
       </div>
-      <div style={{ padding: '16px 20px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 520 }}>
+      <div style={{ padding: '16px 20px 24px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
         {DRIVE_FOLDERS.map(f => (
           <a key={f.url} href={f.url} target="_blank" rel="noreferrer" className="btn-ghost" style={btnStyle}>
             {f.label}
