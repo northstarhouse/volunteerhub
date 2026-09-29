@@ -350,7 +350,7 @@ function MyEventTasksCard({ volunteerId, setView }) {
   if (tasks !== null && tasks.length === 0) return null;
 
   return (
-    <div className="card" style={{ marginTop: 14, cursor: 'pointer' }} onClick={() => setView('events-committee')}>
+    <div className="card" style={{ marginTop: 14, cursor: 'pointer' }} onClick={() => setView('events-committee-planning')}>
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         My Event Tasks

@@ -1,14 +1,10 @@
 @import "tailwindcss";
 
-.event-financial-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-light);
-  font-size: 13px;
-  overflow-wrap: anywhere;
+.portal-event-overviews { font-family: system-ui, sans-serif; background: #f8f4ec; min-height: 100vh; }
+.portal-event-content { padding: 28px 32px 96px; }
+.portal-event-content > div:last-child { max-width: 900px; }
+@media (max-width: 767px) {
+  .portal-event-content { padding: 16px 14px 64px; }
 }
 
 :root {
