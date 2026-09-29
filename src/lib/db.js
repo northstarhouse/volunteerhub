@@ -182,7 +182,9 @@ export async function addTourToCalendar({ summary, description, date, startTime,
     headers: await hdr(),
     body: JSON.stringify({ summary, description, date, startTime, durationMin }),
   });
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, error: data.error || data.message || `Calendar request failed (${res.status}).` };
+  return data;
 }
 
 export async function fetchVolunteerById(id) {

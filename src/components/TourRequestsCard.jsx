@@ -28,7 +28,7 @@ function AddToCalendarRow({ request, onScheduled }) {
   const name = `${a.dt_first || ''} ${a.dt_last || ''}`.trim() || 'Someone';
 
   async function handleConfirm() {
-    if (!date || !time) return;
+    if (saving || !date || !time) return;
     setSaving(true);
     setResult(null);
     const description = [
@@ -37,20 +37,25 @@ function AddToCalendarRow({ request, onScheduled }) {
       a.dt_count ? `Participants: ${a.dt_count}` : null,
       a.dt_notes ? `Notes: ${a.dt_notes}` : null,
     ].filter(Boolean).join('\n');
-    const res = await addTourToCalendar({
-      summary: `Docent Tour with ${name}`,
-      description,
-      date,
-      startTime: time,
-      durationMin: 60,
-    });
-    setSaving(false);
-    if (res.ok) {
-      setResult({ ok: true, htmlLink: res.htmlLink });
-      setOpen(false);
-      onScheduled?.();
-    } else {
-      setResult({ ok: false, error: res.error || 'Failed to add to calendar.' });
+    try {
+      const res = await addTourToCalendar({
+        summary: `Docent Tour with ${name}`,
+        description,
+        date,
+        startTime: time,
+        durationMin: 60,
+      });
+      if (res.ok) {
+        setResult({ ok: true, htmlLink: res.htmlLink });
+        setOpen(false);
+        onScheduled?.();
+      } else {
+        setResult({ ok: false, error: res.error || 'Failed to add to calendar.' });
+      }
+    } catch {
+      setResult({ ok: false, error: 'Could not confirm the calendar update. Check the calendar before trying again.' });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -70,12 +75,12 @@ function AddToCalendarRow({ request, onScheduled }) {
         </button>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputSm} />
-          <input type="time" value={time} onChange={e => setTime(e.target.value)} style={inputSm} />
+          <input type="date" aria-label="Tour date" disabled={saving} value={date} onChange={e => setDate(e.target.value)} style={inputSm} />
+          <input type="time" aria-label="Tour time" disabled={saving} value={time} onChange={e => setTime(e.target.value)} style={inputSm} />
           <button type="button" onClick={handleConfirm} disabled={saving || !date || !time} className="btn-gold" style={{ fontSize: 11, padding: '5px 12px', opacity: (saving || !date || !time) ? 0.6 : 1 }}>
             {saving ? 'Adding…' : 'Confirm'}
           </button>
-          <button type="button" onClick={() => { setOpen(false); setResult(null); }} className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }}>Cancel</button>
+          <button type="button" disabled={saving} onClick={() => { setOpen(false); setResult(null); }} className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }}>Cancel</button>
         </div>
       )}
       {result?.ok === false && <div style={{ fontSize: 11, color: '#c0392b', marginTop: 4 }}>{result.error}</div>}
