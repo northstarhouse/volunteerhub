@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, createContext, useContext, lazy, Suspense } from 'react';
 import { supabase, initialAuthType } from './supabase.js';
-import { fetchVolunteerByEmail, fetchVolunteerById } from './lib/db.js';
+import { fetchVolunteerByEmail, fetchVolunteerById, logActivity } from './lib/db.js';
 import Nav from './components/Nav.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -48,6 +48,22 @@ function AuthScreen() {
       redirectTo: `${window.location.origin}${window.location.pathname}`,
     });
     if (error) { setErr(error.message); setBusy(false); return; }
+    // Nobody's signed in yet here, so this can't be tied to an auth user --
+    // best-effort match by email to get a name on the phone notification.
+    // Logged either way (matched or not) so a coordinator always hears about
+    // a reset request instead of relying on the volunteer to follow up if
+    // the email never arrives/gets found.
+    fetchVolunteerByEmail(email).then(vol => {
+      logActivity({
+        vol: vol || null,
+        authUserId: null,
+        action: 'password_reset_requested',
+        tag: 'Volunteer Hub',
+        description: vol
+          ? `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim() + ' requested a Volunteer Hub password reset'
+          : `Someone (${email}) requested a Volunteer Hub password reset — no matching volunteer found`,
+      });
+    }).catch(() => {});
     setMsg('Check your email for a reset link.');
     setBusy(false);
   }
