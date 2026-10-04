@@ -6,7 +6,7 @@ const TABS = [
   { id: 'directory',      label: 'Volunteer Directory', icon: PeopleIcon },
   { id: 'hours',          label: 'My Hours',            icon: ClockIcon },
   { id: 'reimbursements', label: 'Submit Reimbursement', icon: ReceiptIcon },
-  { id: 'archive-upload', label: 'Upload Photos',  icon: PhotoIcon },
+  { id: 'archive-upload', label: 'Upload Photos & Docs', icon: PhotoIcon },
 ];
 
 function HomeIcon({ active }) {
