@@ -110,7 +110,6 @@ function AddMissedHoursCard({ vol, authUserId, onSaved }) {
             <div style={{ marginBottom: 12 }}>
               <div className="label">Total Hours</div>
               <input className="input" type="number" min="0.5" max="12" step="0.5" value={form.hours} onChange={e => setForm(p => ({ ...p, hours: e.target.value }))} placeholder="Example: 3.5" required />
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>When using Date + Hours, check-in is set to 9:00 AM on that date.</div>
             </div>
           )}
 

@@ -351,6 +351,7 @@ export const DUTY_LABELS = {
   docents:            'Docent',
   interiors:          'Interiors',
   events:             'Events Team',
+  development:        'Development',
   volunteerExchange:  'Volunteer Exchange',
   other:              'Other',
 };
