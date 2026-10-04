@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
-import { updateTourRequestStatus, updateTourRequestNotes, addTourToCalendar } from '../lib/db.js';
+import { updateTourRequestStatus, updateTourRequestNotes, addTourToCalendar, setTourRequestCalendarEventId } from '../lib/db.js';
 
 const GOLD = '#886c44';
 
@@ -49,7 +49,8 @@ function AddToCalendarRow({ request, onScheduled }) {
       if (res.ok) {
         setResult({ ok: true, htmlLink: res.htmlLink });
         setOpen(false);
-        onScheduled?.();
+        if (res.eventId) setTourRequestCalendarEventId(request.id, res.eventId).catch(() => {});
+        onScheduled?.(res.eventId);
       } else {
         setResult({ ok: false, error: res.error || 'Failed to add to calendar.' });
       }
@@ -60,10 +61,13 @@ function AddToCalendarRow({ request, onScheduled }) {
     }
   }
 
-  if (result?.ok) {
+  // request.calendar_event_id is the persisted record of a past success
+  // (survives a reload); result.ok is this session's own fresh success
+  // (carries the htmlLink the persisted id alone doesn't).
+  if (result?.ok || request.calendar_event_id) {
     return (
       <div style={{ fontSize: 12, color: '#2e7d32', marginTop: 8 }}>
-        ✓ Added to calendar{result.htmlLink && <> — <a href={result.htmlLink} target="_blank" rel="noreferrer" style={{ color: '#2e7d32' }}>view</a></>}
+        ✓ Added to Calendar{result?.htmlLink && <> — <a href={result.htmlLink} target="_blank" rel="noreferrer" style={{ color: '#2e7d32' }}>view</a></>}
       </div>
     );
   }
@@ -100,6 +104,7 @@ export default function TourRequestsCard({ requests }) {
   const [savingId, setSavingId] = useState(null);
   const [notesDraft, setNotesDraft] = useState({});
   const [savingNotesId, setSavingNotesId] = useState(null);
+  const [editingNotesId, setEditingNotesId] = useState(null);
 
   useEffect(() => {
     setItems(requests);
@@ -115,12 +120,25 @@ export default function TourRequestsCard({ requests }) {
     setSavingId(null);
   }
 
+  function startEditingNotes(id) {
+    setNotesDraft(prev => ({ ...prev, [id]: items.find(r => r.id === id)?.internal_notes || '' }));
+    setEditingNotesId(id);
+  }
+
+  function cancelEditingNotes(id) {
+    setNotesDraft(prev => ({ ...prev, [id]: items.find(r => r.id === id)?.internal_notes || '' }));
+    setEditingNotesId(null);
+  }
+
   async function handleSaveNotes(id) {
     if (savingNotesId === id) return;
     setSavingNotesId(id);
     const value = notesDraft[id] || '';
     const ok = await updateTourRequestNotes(id, value || null, volunteer, session?.user?.id);
-    if (ok) setItems(prev => prev.map(r => (r.id === id ? { ...r, internal_notes: value || null } : r)));
+    if (ok) {
+      setItems(prev => prev.map(r => (r.id === id ? { ...r, internal_notes: value || null } : r)));
+      setEditingNotesId(null);
+    }
     setSavingNotesId(null);
   }
 
@@ -166,26 +184,51 @@ export default function TourRequestsCard({ requests }) {
               </select>
               {savingId === r.id && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Saving…</span>}
             </div>
-            <AddToCalendarRow request={r} onScheduled={() => { if (!r.tour_status) handleStatusChange(r.id, 'Scheduled Tour'); }} />
+            <AddToCalendarRow request={r} onScheduled={eventId => {
+              setItems(prev => prev.map(x => (x.id === r.id ? { ...x, calendar_event_id: eventId || x.calendar_event_id } : x)));
+              if (!r.tour_status) handleStatusChange(r.id, 'Scheduled Tour');
+            }} />
             <div style={{ marginTop: 8 }}>
-              <textarea
-                value={notesDraft[r.id] || ''}
-                onChange={e => setNotesDraft(prev => ({ ...prev, [r.id]: e.target.value }))}
-                placeholder="Add a note (shows up on this submission in Portal too)…"
-                rows={2}
-                style={{ ...inputSm, width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => handleSaveNotes(r.id)}
-                  disabled={savingNotesId === r.id || (notesDraft[r.id] || '') === (r.internal_notes || '')}
-                  className="btn-ghost"
-                  style={{ fontSize: 11, padding: '4px 10px', opacity: (savingNotesId === r.id || (notesDraft[r.id] || '') === (r.internal_notes || '')) ? 0.5 : 1 }}
-                >
-                  {savingNotesId === r.id ? 'Saving…' : 'Save Note'}
+              {editingNotesId === r.id ? (
+                <>
+                  <textarea
+                    value={notesDraft[r.id] || ''}
+                    onChange={e => setNotesDraft(prev => ({ ...prev, [r.id]: e.target.value }))}
+                    placeholder="Add Internal Notes Here"
+                    rows={2}
+                    autoFocus
+                    style={{ ...inputSm, width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+                    <button type="button" onClick={() => cancelEditingNotes(r.id)} disabled={savingNotesId === r.id}
+                      className="btn-ghost" style={{ fontSize: 11, padding: '4px 10px' }}>
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveNotes(r.id)}
+                      disabled={savingNotesId === r.id}
+                      className="btn-gold"
+                      style={{ fontSize: 11, padding: '4px 10px', opacity: savingNotesId === r.id ? 0.6 : 1 }}
+                    >
+                      {savingNotesId === r.id ? 'Saving…' : 'Save Note'}
+                    </button>
+                  </div>
+                </>
+              ) : r.internal_notes ? (
+                <div style={{ background: 'var(--light)', border: '0.5px solid var(--border)', borderRadius: 8, padding: '8px 10px' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{r.internal_notes}</div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                    <button type="button" onClick={() => startEditingNotes(r.id)} className="btn-ghost" style={{ fontSize: 11, padding: '3px 10px' }}>
+                      Edit Note
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => startEditingNotes(r.id)} className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }}>
+                  + Add Note
                 </button>
-              </div>
+              )}
             </div>
           </div>
         );

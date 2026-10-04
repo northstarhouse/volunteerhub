@@ -157,7 +157,7 @@ export async function fetchRecentTourRequests(limit = 4) {
   // The cutoff's "+00:00" offset has to be URL-encoded -- an unencoded "+"
   // in a query string is read as a literal space, which broke the date
   // parse entirely (a silent-looking empty result, actually a 400).
-  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${encodeURIComponent(TOUR_REQUESTS_CUTOFF)}&select=id,answers,created_at,tour_status,internal_notes&order=created_at.desc&limit=${limit}`);
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${encodeURIComponent(TOUR_REQUESTS_CUTOFF)}&select=id,answers,created_at,tour_status,internal_notes,calendar_event_id&order=created_at.desc&limit=${limit}`);
   return Array.isArray(rows) ? rows : [];
 }
 
@@ -187,6 +187,18 @@ export async function updateTourRequestStatus(id, tourStatus, vol, authUserId) {
       detail: { response_id: id, tour_status: tourStatus },
     }).catch(() => {});
   }
+  return res.ok;
+}
+
+// Persists the Google Calendar event id straight onto the submission, once
+// created, so "Add to Calendar" can show "Added to Calendar" permanently
+// instead of only remembering it for this one page view.
+export async function setTourRequestCalendarEventId(id, eventId) {
+  const res = await fetch(`${URL}/rest/v1/nsh_form_responses?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: await hdr({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({ calendar_event_id: eventId }),
+  });
   return res.ok;
 }
 
