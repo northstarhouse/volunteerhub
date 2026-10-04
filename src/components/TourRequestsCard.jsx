@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { updateTourRequestStatus, addTourToCalendar } from '../lib/db.js';
+import { useVol } from '../App.jsx';
+import { updateTourRequestStatus, updateTourRequestNotes, addTourToCalendar } from '../lib/db.js';
 
 const GOLD = '#886c44';
 
@@ -94,16 +95,33 @@ function AddToCalendarRow({ request, onScheduled }) {
 // Tour Form. Reads/writes nsh_form_responses directly (same table Portal's
 // notification trigger inserts into), so it's always current.
 export default function TourRequestsCard({ requests }) {
+  const { volunteer, session } = useVol();
   const [items, setItems] = useState(requests);
   const [savingId, setSavingId] = useState(null);
+  const [notesDraft, setNotesDraft] = useState({});
+  const [savingNotesId, setSavingNotesId] = useState(null);
 
-  useEffect(() => { setItems(requests); }, [requests]);
+  useEffect(() => {
+    setItems(requests);
+    const drafts = {};
+    requests.forEach(r => { drafts[r.id] = r.internal_notes || ''; });
+    setNotesDraft(drafts);
+  }, [requests]);
 
   async function handleStatusChange(id, value) {
     setSavingId(id);
-    const ok = await updateTourRequestStatus(id, value || null);
+    const ok = await updateTourRequestStatus(id, value || null, volunteer, session?.user?.id);
     if (ok) setItems(prev => prev.map(r => (r.id === id ? { ...r, tour_status: value || null } : r)));
     setSavingId(null);
+  }
+
+  async function handleSaveNotes(id) {
+    if (savingNotesId === id) return;
+    setSavingNotesId(id);
+    const value = notesDraft[id] || '';
+    const ok = await updateTourRequestNotes(id, value || null, volunteer, session?.user?.id);
+    if (ok) setItems(prev => prev.map(r => (r.id === id ? { ...r, internal_notes: value || null } : r)));
+    setSavingNotesId(null);
   }
 
   return (
@@ -149,6 +167,26 @@ export default function TourRequestsCard({ requests }) {
               {savingId === r.id && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Saving…</span>}
             </div>
             <AddToCalendarRow request={r} onScheduled={() => { if (!r.tour_status) handleStatusChange(r.id, 'Scheduled Tour'); }} />
+            <div style={{ marginTop: 8 }}>
+              <textarea
+                value={notesDraft[r.id] || ''}
+                onChange={e => setNotesDraft(prev => ({ ...prev, [r.id]: e.target.value }))}
+                placeholder="Add a note (shows up on this submission in Portal too)…"
+                rows={2}
+                style={{ ...inputSm, width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => handleSaveNotes(r.id)}
+                  disabled={savingNotesId === r.id || (notesDraft[r.id] || '') === (r.internal_notes || '')}
+                  className="btn-ghost"
+                  style={{ fontSize: 11, padding: '4px 10px', opacity: (savingNotesId === r.id || (notesDraft[r.id] || '') === (r.internal_notes || '')) ? 0.5 : 1 }}
+                >
+                  {savingNotesId === r.id ? 'Saving…' : 'Save Note'}
+                </button>
+              </div>
+            </div>
           </div>
         );
       })}

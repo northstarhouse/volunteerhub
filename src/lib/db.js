@@ -157,19 +157,55 @@ export async function fetchRecentTourRequests(limit = 4) {
   // The cutoff's "+00:00" offset has to be URL-encoded -- an unencoded "+"
   // in a query string is read as a literal space, which broke the date
   // parse entirely (a silent-looking empty result, actually a 400).
-  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${encodeURIComponent(TOUR_REQUESTS_CUTOFF)}&select=id,answers,created_at,tour_status&order=created_at.desc&limit=${limit}`);
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${encodeURIComponent(TOUR_REQUESTS_CUTOFF)}&select=id,answers,created_at,tour_status,internal_notes&order=created_at.desc&limit=${limit}`);
   return Array.isArray(rows) ? rows : [];
 }
 
 // tour_status is separate from nsh_form_responses.status (which Portal's
 // generic Form Responses "Mark handled" checkbox already owns) so the two
-// features don't collide.
-export async function updateTourRequestStatus(id, tourStatus) {
+// features don't collide. internal_notes, however, IS the same field
+// Portal's own Form Responses notes box reads/writes -- a note added here
+// shows up there and vice versa, no separate sync needed.
+//
+// Both writes also log to activity_log (Portal's Activity Log + the ntfy
+// phone-notification trigger it already fires on insert), with the
+// response id in `detail` so it's traceable back to the exact submission
+// in Portal's Form Responses view.
+export async function updateTourRequestStatus(id, tourStatus, vol, authUserId) {
   const res = await fetch(`${URL}/rest/v1/nsh_form_responses?id=eq.${id}`, {
     method: 'PATCH',
     headers: await hdr({ Prefer: 'return=minimal' }),
     body: JSON.stringify({ tour_status: tourStatus }),
   });
+  if (res.ok) {
+    const name = vol ? `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim() : 'A docent';
+    logActivity({
+      vol, authUserId,
+      action: 'tour_status_updated',
+      tag: 'Tour',
+      description: tourStatus ? `${name} set a tour request to "${tourStatus}"` : `${name} cleared a tour request's status`,
+      detail: { response_id: id, tour_status: tourStatus },
+    }).catch(() => {});
+  }
+  return res.ok;
+}
+
+export async function updateTourRequestNotes(id, notes, vol, authUserId) {
+  const res = await fetch(`${URL}/rest/v1/nsh_form_responses?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: await hdr({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({ internal_notes: notes || null }),
+  });
+  if (res.ok) {
+    const name = vol ? `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim() : 'A docent';
+    logActivity({
+      vol, authUserId,
+      action: 'tour_notes_updated',
+      tag: 'Tour',
+      description: `${name} updated the notes on a tour request`,
+      detail: { response_id: id, internal_notes: notes },
+    }).catch(() => {});
+  }
   return res.ok;
 }
 
@@ -650,7 +686,7 @@ export async function uploadArchiveFiles(files, { kind, year, month, description
 
 // ── Activity log (surfaced in Portal's "Recent Activity" on the home page) ────
 
-export async function logActivity({ vol, authUserId, action, description }) {
+export async function logActivity({ vol, authUserId, action, description, tag, detail }) {
   const volunteerName = vol ? `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim() : null;
   return post('activity_log', {
     volunteer_name: volunteerName,
@@ -658,6 +694,8 @@ export async function logActivity({ vol, authUserId, action, description }) {
     auth_user_id: authUserId,
     action,
     description,
+    ...(tag !== undefined ? { tag } : {}),
+    ...(detail !== undefined ? { detail } : {}),
   });
 }
 
