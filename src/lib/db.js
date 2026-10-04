@@ -648,6 +648,75 @@ export async function uploadArchiveFiles(files, { kind, year, month, description
   return lastResult; // { url, fileId, folderUrl } for the last file — all files in a batch share the same folder
 }
 
+// ── Upload Photos & Documents → existing Google Drive folders ──────────────
+// Backed by the `archive-upload` edge function (Portal repo). Categories come
+// live from the Drive folder structure; files go straight from the browser to
+// Google Drive through a resumable-upload session, so large videos work.
+
+async function archiveUploadCall(body) {
+  const res = await fetch(`${URL}/functions/v1/archive-upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${KEY}` },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.');
+  return data;
+}
+
+// -> { photo: [{ id, label }], document: [{ id, label }] }
+export async function fetchArchiveCategories() {
+  const { photo, document } = await archiveUploadCall({ action: 'categories' });
+  return { photo: photo || [], document: document || [] };
+}
+
+function putToDrive(uploadUrl, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    if (file.type) xhr.setRequestHeader('Content-Type', file.type);
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(e.loaded / e.total); };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed for ${file.name} (${xhr.status})`)));
+    xhr.onerror = () => reject(new Error(`Upload failed for ${file.name}. Check your connection and try again.`));
+    xhr.send(file);
+  });
+}
+
+// opts: { kind, categoryId ('other' for Other), categoryLabel, otherText,
+//         title, description, date }
+// onProgress({ fileIndex, total, fraction }) — fraction is 0..1 overall.
+export async function uploadToDriveArchive(files, opts, uploaderName, onProgress) {
+  const total = files.length;
+  const totalBytes = files.reduce((s, f) => s + (f.size || 1), 0) || 1;
+  let doneBytes = 0;
+  let folderUrl = null;
+  for (let i = 0; i < total; i++) {
+    const file = files[i];
+    const start = await archiveUploadCall({
+      action: 'start',
+      kind: opts.kind,
+      categoryId: opts.categoryId,
+      otherText: opts.otherText,
+      title: opts.title,
+      description: opts.description,
+      date: opts.date,
+      uploaderName,
+      filename: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+      index: i,
+      total,
+    });
+    folderUrl = start.folderUrl;
+    await putToDrive(start.uploadUrl, file, (f) =>
+      onProgress?.({ fileIndex: i, total, fraction: (doneBytes + f * (file.size || 1)) / totalBytes }));
+    doneBytes += file.size || 1;
+    onProgress?.({ fileIndex: i + 1, total, fraction: doneBytes / totalBytes });
+  }
+  archiveUploadCall({ action: 'done', kind: opts.kind, categoryLabel: opts.categoryLabel, count: total, uploaderName }).catch(() => {});
+  return { folderUrl, count: total };
+}
+
 // ── Activity log (surfaced in Portal's "Recent Activity" on the home page) ────
 
 export async function logActivity({ vol, authUserId, action, description }) {
