@@ -7,6 +7,7 @@ import {
   fetchRecentTourRequests,
 } from '../lib/db.js';
 import TourRequestsCard from '../components/TourRequestsCard.jsx';
+import PublicTourRsvpsCard from '../components/PublicTourRsvpsCard.jsx';
 
 const GOLD = '#886c44';
 
@@ -258,6 +259,7 @@ function AreaDetail({ area, showBack, onBack }) {
         <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
       ) : (
         <>
+          {area === 'Docents' && <PublicTourRsvpsCard />}
           {area === 'Docents' && <TourRequestsCard requests={tourRequests} />}
           <ReflectionCard update={update} />
           <ResourcesCard resources={resources} />

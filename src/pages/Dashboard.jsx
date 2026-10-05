@@ -8,6 +8,7 @@ import {
   fetchRecentTourRequests,
 } from '../lib/db.js';
 import TourRequestsCard from '../components/TourRequestsCard.jsx';
+import PublicTourRsvpsCard from '../components/PublicTourRsvpsCard.jsx';
 
 const GOLD = '#886c44';
 
@@ -426,6 +427,7 @@ export default function Dashboard() {
         >
           {/* Left: Hours snapshot + My Area cards */}
           <div>
+            {isDocent && <PublicTourRsvpsCard />}
             {isDocent && <TourRequestsCard requests={tourRequests} />}
             <HoursSnapshotCard data={hoursData} />
             <AnnouncementBoard />

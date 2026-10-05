@@ -161,6 +161,18 @@ export async function fetchRecentTourRequests(limit = 4) {
   return Array.isArray(rows) ? rows : [];
 }
 
+// RSVPs from the public site's "View upcoming tour dates" pop-up (2nd & 4th
+// Thursday docent tours). pt_tour_date is YYYY-MM-DD; only today's and future
+// tours are returned, so a tour's list disappears once its date has passed.
+const PUBLIC_TOUR_RSVP_FORM_ID = '74efea38-e863-4050-921e-234b563be78e';
+
+export async function fetchUpcomingPublicTourRsvps() {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const rows = await get(`nsh_form_responses?form_id=eq.${PUBLIC_TOUR_RSVP_FORM_ID}&answers->>pt_tour_date=gte.${today}&select=id,answers,created_at&order=created_at.asc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
 // tour_status is separate from nsh_form_responses.status (which Portal's
 // generic Form Responses "Mark handled" checkbox already owns) so the two
 // features don't collide. internal_notes, however, IS the same field
