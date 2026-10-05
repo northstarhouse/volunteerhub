@@ -47,7 +47,14 @@ export default function PublicTourRsvpsCard() {
                 <div key={r.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 12, padding: '6px 0', borderBottom: '0.5px solid var(--border-light)' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: 'var(--text)', fontWeight: 500 }}>{a.pt_name || 'Someone'}</div>
-                    {a.pt_email && <a href={`mailto:${a.pt_email}`} style={{ color: 'var(--muted)', wordBreak: 'break-all' }}>{a.pt_email}</a>}
+                    {a.pt_email
+                      ? <div><a href={`mailto:${a.pt_email}`} style={{ color: 'var(--gold)', wordBreak: 'break-all' }}>{a.pt_email}</a></div>
+                      : <div style={{ color: 'var(--muted)', fontStyle: 'italic' }}>No email given</div>}
+                    {a.pt_notes && (
+                      <div style={{ marginTop: 4, color: 'var(--text)', whiteSpace: 'pre-wrap', background: 'var(--bg)', borderLeft: '2px solid var(--gold)', padding: '4px 8px', borderRadius: 4 }}>
+                        {a.pt_notes}
+                      </div>
+                    )}
                   </div>
                   <div style={{ color: 'var(--muted)', flexShrink: 0 }}>{a.pt_count || 1} {Number(a.pt_count) === 1 ? 'person' : 'people'}</div>
                 </div>
