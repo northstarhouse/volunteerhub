@@ -331,6 +331,82 @@ function ResourcesCard({ areas }) {
   );
 }
 
+const EVENTS_COMMITTEE_STATUS_STYLE = {
+  planning:      { bg: '#fde8e0', fg: '#8a4a2e', label: 'Planning' },
+  upcoming:      { bg: '#f0ebe2', fg: GOLD,       label: 'Upcoming' },
+  needs_review:  { bg: '#fde8e0', fg: '#c2410c', label: 'Needs Final Review' },
+  completed:     { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
+};
+
+// A condensed version of EventsCommittee.jsx's EventListRow, just for the
+// dashboard preview -- Events-team volunteers were only seeing a plain
+// "Events Committee" button here, with no sense of what's actually on the
+// board until they clicked through. Read-only: tapping a card jumps to the
+// full Events Committee view (same as the button below), not a specific
+// event -- the view router has no per-item deep-link today, same as how
+// MyEventTasksCard's click-through already works.
+function MyEventsCard({ setView }) {
+  const [events, setEvents] = useState(null);
+
+  useEffect(() => {
+    fetchCommitteeEvents().then(rows => {
+      const mapped = (Array.isArray(rows) ? rows : [])
+        .map(row => ({
+          id: row.id,
+          name: row.name,
+          date: row.date || '',
+          status: row.status || 'planning',
+          checklist: Array.isArray(row.checklist) ? row.checklist : [],
+        }))
+        .filter(ev => ev.status !== 'completed')
+        .slice(0, 5);
+      setEvents(mapped);
+    }).catch(() => setEvents([]));
+  }, []);
+
+  if (events !== null && events.length === 0) return null;
+
+  return (
+    <div className="card" style={{ marginTop: 14, padding: '14px 14px 6px' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Events Committee Board
+      </div>
+      {events === null ? (
+        <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Loading…</div>
+      ) : events.map(ev => {
+        const doneT = ev.checklist.filter(t => t.done).length;
+        const d = ev.date ? new Date(`${ev.date}T00:00:00`) : null;
+        const s = EVENTS_COMMITTEE_STATUS_STYLE[ev.status] || EVENTS_COMMITTEE_STATUS_STYLE.upcoming;
+        return (
+          <div key={ev.id} onClick={() => setView('events-committee')}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, cursor: 'pointer' }}>
+            <div style={{ textAlign: 'center', width: 36, flexShrink: 0 }}>
+              {d ? (
+                <>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", lineHeight: 1.15 }}>{d.getDate()}</div>
+                </>
+              ) : (
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#c2410c' }}>No date</div>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{doneT}/{ev.checklist.length} checklist items</div>
+            </div>
+            <span className="badge" style={{ background: s.bg, color: s.fg, fontWeight: 600, flexShrink: 0 }}>{s.label}</span>
+          </div>
+        );
+      })}
+      <div onClick={() => setView('events-committee')}
+        style={{ fontSize: 12, color: GOLD, fontWeight: 600, cursor: 'pointer', paddingBottom: 10, marginTop: 2 }}>
+        See all events →
+      </div>
+    </div>
+  );
+}
+
 function MyEventTasksCard({ volunteerId, setView }) {
   const [tasks, setTasks] = useState(null);
 
@@ -444,10 +520,13 @@ export default function Dashboard() {
               </a>
             )}
             {myAreas.includes('Events') && (
-              <button onClick={() => setView('events-committee')}
-                className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
-                Events Committee
-              </button>
+              <>
+                <MyEventsCard setView={setView} />
+                <button onClick={() => setView('events-committee')}
+                  className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
+                  Events Committee
+                </button>
+              </>
             )}
           </div>
 
