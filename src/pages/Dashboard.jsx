@@ -361,9 +361,9 @@ function UpcomingEventsCard({ setView }) {
               <div key={c.name} onClick={() => setView('events-committee')}
                 style={{ background: '#fff', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
                 <div style={{
-                  width: '100%', aspectRatio: '4/3', backgroundColor: '#f0ebe2',
+                  width: '100%', aspectRatio: '3/4', backgroundColor: '#f0ebe2',
                   backgroundImage: c.image_url ? `url(${c.image_url})` : 'linear-gradient(135deg,#f0ebe2,#e4d9c6)',
-                  backgroundSize: 'cover', backgroundPosition: 'center',
+                  backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
                 }} />
                 <div style={{ padding: '10px 12px' }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
