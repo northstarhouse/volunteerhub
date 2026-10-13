@@ -582,11 +582,22 @@ export async function fetchUpcomingEventCards(limit = 4) {
   ]);
   const byKey = {};
   const keyOf = (n) => (n || '').trim().toLowerCase();
+  // event_overview_cards.event_date is already ISO (YYYY-MM-DD), but
+  // ticket_orders.event_date is a human string ("October 23, 2026") --
+  // comparing those as raw strings against todayStr below sorts wrong, so
+  // normalize everything to ISO before it's ever stored on the merged card.
+  function toIsoDate(d) {
+    if (!d) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
+    const parsed = new Date(d);
+    return isNaN(parsed) ? null : parsed.toISOString().slice(0, 10);
+  }
   function ensure(name, date) {
     const k = keyOf(name);
     if (!k) return null;
-    if (!byKey[k]) byKey[k] = { name: name.trim(), date: date || null, earnings: 0, costs: 0, image_url: null };
-    if (date && !byKey[k].date) byKey[k].date = date;
+    const iso = toIsoDate(date);
+    if (!byKey[k]) byKey[k] = { name: name.trim(), date: iso, earnings: 0, costs: 0, image_url: null };
+    if (iso && !byKey[k].date) byKey[k].date = iso;
     return byKey[k];
   }
   (Array.isArray(cardMeta) ? cardMeta : []).forEach(r => {
