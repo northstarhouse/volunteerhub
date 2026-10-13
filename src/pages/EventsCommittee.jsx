@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
-  fetchEventNames, fetchEventFinancials, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
+  fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
   fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
@@ -68,7 +68,7 @@ const EVENT_PURPOSES = ['Educational', 'Entertainment', 'Community Engagement', 
 function emptyEvent(name) {
   return {
     id: cryptoId(), name, date: '', startTime: '', endTime: '', location: '', description: '', status: 'planning',
-    purpose: '', expectedAttendance: '', pricing: '',
+    purpose: '', expectedAttendance: '', pricing: '', eventLead: '', volunteersNeeded: '',
     checklist: [], vendors: [], guestCount: { invited: 0, confirmed: 0 }, timeline: [],
     afterNotes: { wentWell: '', wentWrong: '', finalAttendance: '', finalBudget: '', followUps: '' },
   };
@@ -89,6 +89,8 @@ function fromDb(row) {
     purpose: row.purpose || '',
     expectedAttendance: row.expected_attendance || '',
     pricing: row.pricing || '',
+    eventLead: row.event_lead || '',
+    volunteersNeeded: row.volunteers_needed ?? '',
     guestCount: { invited: row.guest_invited || 0, confirmed: row.guest_confirmed || 0 },
     checklist: row.checklist || [],
     vendors: row.vendors || [],
@@ -110,6 +112,8 @@ function toDb(ev) {
     purpose: ev.purpose || null,
     expected_attendance: ev.expectedAttendance || null,
     pricing: ev.pricing || null,
+    event_lead: ev.eventLead || null,
+    volunteers_needed: ev.volunteersNeeded === '' || ev.volunteersNeeded == null ? null : Number(ev.volunteersNeeded),
     guest_invited: ev.guestCount.invited || 0,
     guest_confirmed: ev.guestCount.confirmed || 0,
     checklist: ev.checklist,
@@ -399,13 +403,16 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
   const [itemForm, setItemForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
   const [guests, setGuests] = useState(ev.guestCount);
-  const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing });
+  const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing, eventLead: ev.eventLead, volunteersNeeded: ev.volunteersNeeded });
   const [expandedId, setExpandedId] = useState(null);
   const [expandForm, setExpandForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '', estimated: '', actual: '', notes: '' });
   const [subtaskInput, setSubtaskInput] = useState('');
 
   function saveBasics() {
-    onUpdate(e => ({ ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim() }));
+    onUpdate(e => ({
+      ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim(),
+      eventLead: basics.eventLead.trim(), volunteersNeeded: basics.volunteersNeeded === '' ? '' : Number(basics.volunteersNeeded) || 0,
+    }));
   }
 
   function toggleItem(id) {

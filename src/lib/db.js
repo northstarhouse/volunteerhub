@@ -552,6 +552,60 @@ export async function fetchEventFinancials(eventName) {
   };
 }
 
+// Live website ticket sales for one event (Portal's ticket_orders table,
+// same project, read-only here) -- matched by event_title the same way
+// fetchEventFinancials matches Op Budget/Op Earnings by event name.
+// "paid" is only one of several order kinds that actually involve money --
+// donations/memberships/brick orders are real captures too, only rsvp/comp
+// are free (mirrors the same fix in Portal's Website Payments view).
+const TICKET_ORDER_MONEY_KINDS = new Set(['paid', 'donation', 'membership', 'brick']);
+export async function fetchEventTicketStats(eventName) {
+  const rows = await get(`ticket_orders?event_title=eq.${encodeURIComponent(eventName)}&select=kind,quantity,amount`);
+  const paid = (Array.isArray(rows) ? rows : []).filter(o => TICKET_ORDER_MONEY_KINDS.has(o.kind));
+  return {
+    ticketsSold: paid.reduce((s, o) => s + Number(o.quantity || 0), 0),
+    revenue: paid.reduce((s, o) => s + Number(o.amount || 0), 0),
+  };
+}
+
+// Dashboard teaser version of Portal's Event Overviews cards (same
+// event_overview_cards/Op Budget/Op Earnings/ticket_orders tables, merged
+// by event-name the same way) -- just the handful of fields a small card
+// needs (image, date, net-ish earnings/costs), for the next few upcoming
+// events. The full breakdown lives in the Event Overviews page itself.
+export async function fetchUpcomingEventCards(limit = 4) {
+  const [cardMeta, budget, earnings, tickets] = await Promise.all([
+    get('event_overview_cards?select=event_name,event_date,image_url'),
+    get(`Op%20Budget?area=eq.Events&select=event_name,amount`),
+    get(`Op%20Earnings?area=eq.Events&select=event,amount`),
+    get('ticket_orders?select=event_title,event_date,kind,amount'),
+  ]);
+  const byKey = {};
+  const keyOf = (n) => (n || '').trim().toLowerCase();
+  function ensure(name, date) {
+    const k = keyOf(name);
+    if (!k) return null;
+    if (!byKey[k]) byKey[k] = { name: name.trim(), date: date || null, earnings: 0, costs: 0, image_url: null };
+    if (date && !byKey[k].date) byKey[k].date = date;
+    return byKey[k];
+  }
+  (Array.isArray(cardMeta) ? cardMeta : []).forEach(r => {
+    const b = ensure(r.event_name, r.event_date);
+    if (b) b.image_url = r.image_url || null;
+  });
+  (Array.isArray(budget) ? budget : []).forEach(r => { const b = ensure(r.event_name); if (b) b.costs += Number(r.amount || 0); });
+  (Array.isArray(earnings) ? earnings : []).forEach(r => { const b = ensure(r.event); if (b) b.earnings += Number(r.amount || 0); });
+  (Array.isArray(tickets) ? tickets : [])
+    .filter(o => TICKET_ORDER_MONEY_KINDS.has(o.kind))
+    .forEach(o => { const b = ensure(o.event_title, o.event_date); if (b) b.earnings += Number(o.amount || 0); });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  return Object.values(byKey)
+    .filter(c => c.date && c.date >= todayStr)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, limit);
+}
+
 // Reviews/feedback for one specific event (Portal's "Event Feedback" table,
 // same one its Events P&L page's "Reviews & Feedback" tab manages) — powers
 // the Reviews tab on the Events Committee page.

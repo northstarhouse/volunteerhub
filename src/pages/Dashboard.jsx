@@ -5,7 +5,7 @@ import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, fetchAnnouncements,
   fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
-  fetchRecentTourRequests,
+  fetchRecentTourRequests, fetchUpcomingEventCards,
 } from '../lib/db.js';
 import TourRequestsCard from '../components/TourRequestsCard.jsx';
 import PublicTourRsvpsCard from '../components/PublicTourRsvpsCard.jsx';
@@ -407,6 +407,59 @@ function MyEventsCard({ setView }) {
   );
 }
 
+const money = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// Teaser of Portal's Event Overviews cards (flyer image + real ticket/
+// earnings vs. expenses) -- a few upcoming shows, with a button through to
+// the full Event Overviews page for the rest.
+function UpcomingEventsCard({ setView }) {
+  const [cards, setCards] = useState(null);
+
+  useEffect(() => {
+    fetchUpcomingEventCards(4).then(setCards).catch(() => setCards([]));
+  }, []);
+
+  if (cards !== null && cards.length === 0) return null;
+
+  return (
+    <div className="card" style={{ marginTop: 14, padding: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+        Upcoming Events
+      </div>
+      {cards === null ? (
+        <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Loading…</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 12 }}>
+          {cards.map(c => {
+            const dateStr = c.date ? new Date(`${c.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set';
+            return (
+              <div key={c.name} onClick={() => setView('events-committee')}
+                style={{ background: '#fff', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+                <div style={{
+                  width: '100%', aspectRatio: '4/3', backgroundColor: '#f0ebe2',
+                  backgroundImage: c.image_url ? `url(${c.image_url})` : 'linear-gradient(135deg,#f0ebe2,#e4d9c6)',
+                  backgroundSize: 'cover', backgroundPosition: 'center',
+                }} />
+                <div style={{ padding: '10px 12px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{dateStr}</div>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: 11 }}>
+                    <span style={{ color: '#4a5d3a', fontWeight: 600 }}>{money(c.earnings)}</span>
+                    <span style={{ color: '#c07040', fontWeight: 600 }}>-{money(c.costs)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <button onClick={() => setView('events-committee')} className="btn-ghost" style={{ width: '100%' }}>
+        View all events →
+      </button>
+    </div>
+  );
+}
+
 function MyEventTasksCard({ volunteerId, setView }) {
   const [tasks, setTasks] = useState(null);
 
@@ -522,6 +575,7 @@ export default function Dashboard() {
             {myAreas.includes('Events') && (
               <>
                 <MyEventsCard setView={setView} />
+                <UpcomingEventsCard setView={setView} />
                 <button onClick={() => setView('events-committee')}
                   className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
                   Events Committee
