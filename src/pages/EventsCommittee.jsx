@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import {
-  fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
+  fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
   fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
@@ -287,34 +287,140 @@ function CalendarView({ events, calYear, setCalYear, onOpen }) {
 
 // ── Detail tabs ─────────────────────────────────────────────────────────────
 
-function OverviewTab({ ev }) {
+const PLANNING_SECTION_ICONS = {
+  marketing: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>,
+  volunteers: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  vendors: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>,
+  budget: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
+};
+
+const PLANNING_SECTIONS = [
+  { key: 'marketing', title: 'Marketing & Promotion', desc: 'Flyers, newsletters, website, social media', area: 'marketing' },
+  { key: 'volunteers', title: 'Volunteers & Staffing', desc: 'Assignments, shifts, contact information', area: 'volunteers' },
+  { key: 'vendors', title: 'Vendors & Supplies', desc: 'Catering, rentals, orders, deliveries', tab: 'preplanning' },
+  { key: 'budget', title: 'Budget & Transactions', desc: 'Income, expenses, reimbursements', tab: 'financials' },
+];
+
+function OverviewTab({ ev, onUpdate, onNavigate }) {
+  const [ticketStats, setTicketStats] = useState(null);
+  const [financials, setFinancials] = useState(null);
+  const [flyerUrl, setFlyerUrl] = useState(null);
+
+  useEffect(() => {
+    fetchEventTicketStats(ev.name).then(setTicketStats).catch(() => setTicketStats({ ticketsSold: 0, revenue: 0 }));
+    fetchEventFinancials(ev.name).then(setFinancials).catch(() => setFinancials({ expenses: [], earnings: [] }));
+    fetchEventCardImage(ev.name).then(setFlyerUrl).catch(() => setFlyerUrl(null));
+  }, [ev.name]);
+
   const doneT = ev.checklist.filter(t => t.done).length;
-  const budgetTotal = ev.checklist.reduce((s, t) => s + Number(t.estimated || 0), 0);
-  const budgetActual = ev.checklist.reduce((s, t) => s + Number(t.actual || 0), 0);
-  const PRIORITY_RANK = { high: 0, medium: 1, '': 2 };
-  const nextTasks = ev.checklist.filter(t => !t.done)
-    .slice().sort((a, b) => (PRIORITY_RANK[a.priority || ''] ?? 2) - (PRIORITY_RANK[b.priority || ''] ?? 2))
-    .slice(0, 4);
+  const total = ev.checklist.length;
+  const pct = total ? Math.round((doneT / total) * 100) : 0;
+
+  // Revenue combines two separate, non-overlapping income sources: live
+  // website ticket sales (ticket_orders) and other earnings logged by hand
+  // in Portal's Op Earnings (sponsorships, door cash, etc.) -- "Tickets
+  // sold" below is ticket_orders alone, since that's the only one that's
+  // literally a ticket count.
+  const otherEarnings = financials ? financials.earnings.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0) : 0;
+  const revenue = (ticketStats ? ticketStats.revenue : 0) + otherEarnings;
+  const expenses = financials ? financials.expenses.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0) : 0;
+  const netProfit = revenue - expenses;
+
+  const upcomingDeadlines = ev.checklist
+    .filter(t => !t.done && t.due)
+    .slice().sort((a, b) => a.due.localeCompare(b.due))
+    .slice(0, 3);
+
+  function toggleChecklistItem(id) {
+    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id ? { ...t, done: !t.done } : t) }));
+  }
+
   return (
     <div>
-      <StatRow stats={[
-        [`${doneT}/${ev.checklist.length}`, 'Checklist done'],
-        [`${ev.guestCount.confirmed}/${ev.guestCount.invited}`, 'Guests confirmed'],
-        [`${ev.vendors.filter(v => v.confirmed).length}/${ev.vendors.length}`, 'Vendors confirmed'],
-        [`${money(budgetActual)}`, `Spent of ${money(budgetTotal)}`],
-      ]} />
-      <div style={SECTION_HEAD}>What's Next</div>
-      {nextTasks.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Checklist complete.</div>
-      ) : nextTasks.map(t => (
-        <div key={t.id} style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0 9px 10px',
-          borderBottom: '0.5px solid var(--border-light)', borderLeft: `3px solid ${t.priority ? TASK_PRIORITY[t.priority].color : 'transparent'}`,
-        }}>
-          <span style={{ flex: 1, fontSize: 13 }}>{t.text}</span>
-          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{t.due ? fmtDateShort(t.due) : ''}</span>
+      {flyerUrl && (
+        <div style={{ marginBottom: 20, textAlign: 'center' }}>
+          <img src={flyerUrl} alt="Event flyer" style={{ maxWidth: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }} />
         </div>
-      ))}
+      )}
+
+      <StatRow stats={[
+        [ticketStats === null ? '…' : ticketStats.ticketsSold, 'Tickets sold'],
+        [money(revenue), 'Revenue'],
+        [money(expenses), 'Expenses'],
+        [money(netProfit), 'Net profit'],
+      ]} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Planning progress</div>
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>{doneT} of {total} tasks complete</div>
+      </div>
+      <div style={{ height: 6, background: 'var(--light)', borderRadius: 4, marginBottom: 24, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--gold)', borderRadius: 4 }} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Planning checklist</div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          {ev.checklist.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>No checklist items yet -- add some in Pre-Planning.</div>
+          ) : ev.checklist.slice(0, 6).map(t => (
+            <div key={t.id} onClick={() => toggleChecklistItem(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', cursor: 'pointer' }}>
+              <span style={{
+                width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: t.done ? 'var(--text)' : 'transparent', border: t.done ? 'none' : '1.5px solid var(--border)',
+              }}>
+                {t.done && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </span>
+              <span style={{ fontSize: 13, color: t.done ? 'var(--muted)' : 'var(--text)', textDecoration: t.done ? 'line-through' : 'none' }}>{t.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Event details</div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {ev.eventLead && <div><strong>Event lead:</strong> {ev.eventLead}</div>}
+            {ev.location && <div><strong>Location:</strong> {ev.location}</div>}
+            {(ev.guestCount.invited || ev.expectedAttendance) && <div><strong>Expected guests:</strong> {ev.guestCount.invited || ev.expectedAttendance}</div>}
+            {ev.volunteersNeeded !== '' && ev.volunteersNeeded != null && <div><strong>Volunteers needed:</strong> {ev.volunteersNeeded}</div>}
+            {!ev.eventLead && !ev.location && !ev.guestCount.invited && !ev.expectedAttendance && (ev.volunteersNeeded === '' || ev.volunteersNeeded == null) && (
+              <div style={{ color: 'var(--muted)' }}>Nothing set yet -- fill these in under Pre-Planning.</div>
+            )}
+          </div>
+          {upcomingDeadlines.length > 0 && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, marginTop: 14, marginBottom: 6, paddingTop: 12, borderTop: '0.5px solid var(--border-light)' }}>Upcoming deadlines</div>
+              {upcomingDeadlines.map(t => (
+                <div key={t.id} style={{ fontSize: 13, marginBottom: 4 }}>{fmtDateShort(t.due)} &middot; {t.text}</div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '0.5px solid var(--border-light)' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Planning sections</div>
+          <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{PLANNING_SECTIONS.length} sections</span>
+        </div>
+        {PLANNING_SECTIONS.map((s, i) => (
+          <div key={s.key} onClick={() => onNavigate(s.tab || 'areas', s.area)}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: i < PLANNING_SECTIONS.length - 1 ? '0.5px solid var(--border-light)' : 'none' }}>
+            <span style={{ color: 'var(--gold)', flexShrink: 0 }}>{PLANNING_SECTION_ICONS[s.key]}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{s.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.desc}</div>
+            </div>
+            <span style={{ color: 'var(--muted)', flexShrink: 0 }}>&rsaquo;</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -510,6 +616,16 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
           <div style={{ flex: 1 }}>
             <div className="label">Ticket Price / Free / Donation-Based</div>
             <input className="input" value={basics.pricing} onChange={e => setBasics(b => ({ ...b, pricing: e.target.value }))} placeholder="e.g. $25/ticket, Free, Donation-based" />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
+          <div style={{ flex: 1 }}>
+            <div className="label">Event Lead</div>
+            <input className="input" value={basics.eventLead} onChange={e => setBasics(b => ({ ...b, eventLead: e.target.value }))} placeholder="Who's running point on this event" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="label">Volunteers Needed</div>
+            <input className="input" type="number" min="0" value={basics.volunteersNeeded} onChange={e => setBasics(b => ({ ...b, volunteersNeeded: e.target.value }))} placeholder="e.g. 8" />
           </div>
         </div>
         <button className="btn-ghost" style={{ fontSize: 12 }} onClick={saveBasics}>Save event basics</button>
@@ -971,6 +1087,15 @@ function ReviewsTab({ ev }) {
 
 function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
   const [tab, setTab] = useState('overview');
+  const [initialArea, setInitialArea] = useState(null);
+
+  // Overview's "Planning sections" rows jump straight to the right tab --
+  // Marketing/Volunteers go into Areas pre-opened to that specific area.
+  function navigateFromOverview(tabId, areaKey) {
+    if (areaKey) setInitialArea(areaKey);
+    setTab(tabId);
+  }
+
   const tabs = [
     ['overview', 'Overview'],
     ['preplanning', 'Pre-Planning'],
@@ -1036,9 +1161,9 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunt
         </div>
 
         <div style={{ padding: '20px 22px 24px' }}>
-          {tab === 'overview' && <OverviewTab ev={ev} />}
+          {tab === 'overview' && <OverviewTab ev={ev} onUpdate={onUpdate} onNavigate={navigateFromOverview} />}
           {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
-          {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
+          {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} initialArea={initialArea} />}
           {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
           {tab === 'financials' && <FinancialsTab ev={ev} />}
           {tab === 'reviews' && <ReviewsTab ev={ev} />}

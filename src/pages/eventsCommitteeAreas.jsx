@@ -338,9 +338,9 @@ function AreaFormSection({ fields, data, onFieldChange }) {
 
 // ---------- Top-level Areas tab ----------
 
-export default function AreasTab({ event, session, volunteer }) {
+export default function AreasTab({ event, session, volunteer, initialArea }) {
   const [rows, setRows] = useState(null);
-  const [activeArea, setActiveArea] = useState('programs');
+  const [activeArea, setActiveArea] = useState(initialArea || 'programs');
   const [phase, setPhase] = useState('pre');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

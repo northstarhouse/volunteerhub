@@ -568,6 +568,13 @@ export async function fetchEventTicketStats(eventName) {
   };
 }
 
+// Just the flyer image for one event (event_overview_cards, same table
+// fetchUpcomingEventCards reads) -- for Events Committee's Overview tab.
+export async function fetchEventCardImage(eventName) {
+  const rows = await get(`event_overview_cards?event_name=eq.${encodeURIComponent(eventName)}&select=image_url&limit=1`);
+  return Array.isArray(rows) && rows[0] ? rows[0].image_url || null : null;
+}
+
 // Dashboard teaser version of Portal's Event Overviews cards (same
 // event_overview_cards/Op Budget/Op Earnings/ticket_orders tables, merged
 // by event-name the same way) -- just the handful of fields a small card
