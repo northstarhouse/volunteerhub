@@ -358,7 +358,7 @@ function UpcomingEventsCard({ setView }) {
           {cards.map(c => {
             const dateStr = c.date ? new Date(`${c.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set';
             return (
-              <div key={c.name} onClick={() => setView('events-committee')}
+              <div key={c.name} onClick={() => setView('events-committee-planning')}
                 style={{ background: '#fff', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
                 <div style={{
                   width: '100%', aspectRatio: '3/4', backgroundColor: '#f0ebe2',
@@ -378,7 +378,7 @@ function UpcomingEventsCard({ setView }) {
           })}
         </div>
       )}
-      <button onClick={() => setView('events-committee')} className="btn-ghost" style={{ width: '100%' }}>
+      <button onClick={() => setView('events-committee-planning')} className="btn-ghost" style={{ width: '100%' }}>
         View all events →
       </button>
     </div>
@@ -500,7 +500,7 @@ export default function Dashboard() {
             {myAreas.includes('Events') && (
               <>
                 <UpcomingEventsCard setView={setView} />
-                <button onClick={() => setView('events-committee')}
+                <button onClick={() => setView('events-committee-planning')}
                   className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
                   Events Committee
                 </button>

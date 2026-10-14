@@ -526,6 +526,10 @@ export const REIMBURSEMENT_STATUSES = [
 // Same source Portal's own "Event Expenses"/"Event Earnings" forms suggest
 // from: distinct event names already used in Op Budget/Op Earnings for the
 // Events area (not the separate, no-longer-used "In-House Events" table).
+// Not a real planned event -- the general giving bucket shows up in Op
+// Earnings because it's logged under area=Events, but it has no date/
+// checklist/etc. and shouldn't appear on the Events Committee board.
+const NON_EVENT_NAMES = new Set(['general donation']);
 export async function fetchEventNames() {
   const [budgetRows, earningsRows] = await Promise.all([
     get(`Op%20Budget?area=eq.Events&select=event_name`),
@@ -534,7 +538,7 @@ export async function fetchEventNames() {
   const names = new Set();
   (Array.isArray(budgetRows) ? budgetRows : []).forEach(r => { if (r.event_name) names.add(r.event_name.trim()); });
   (Array.isArray(earningsRows) ? earningsRows : []).forEach(r => { if (r.event) names.add(r.event.trim()); });
-  return Array.from(names).filter(Boolean).sort();
+  return Array.from(names).filter(n => n && !NON_EVENT_NAMES.has(n.trim().toLowerCase())).sort();
 }
 
 // Budget/earnings entries for one specific event (Op Budget event_name /
