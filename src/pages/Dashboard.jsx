@@ -337,7 +337,7 @@ const money = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractio
 // Teaser of Portal's Event Overviews cards (flyer image + real ticket/
 // earnings vs. expenses) -- a few upcoming shows, with a button through to
 // the full Event Overviews page for the rest.
-function UpcomingEventsCard({ setView }) {
+function UpcomingEventsCard({ setView, openCommitteeEvent }) {
   const [cards, setCards] = useState(null);
 
   useEffect(() => {
@@ -358,7 +358,7 @@ function UpcomingEventsCard({ setView }) {
           {cards.map(c => {
             const dateStr = c.date ? new Date(`${c.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set';
             return (
-              <div key={c.name} onClick={() => setView('events-committee-planning')}
+              <div key={c.name} onClick={() => openCommitteeEvent(c.name)}
                 style={{ background: '#fff', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
                 <div style={{
                   width: '100%', aspectRatio: '3/4', backgroundColor: '#f0ebe2',
@@ -425,7 +425,7 @@ function MyEventTasksCard({ volunteerId, setView }) {
 }
 
 export default function Dashboard() {
-  const { volunteer, setView } = useVol();
+  const { volunteer, setView, openCommitteeEvent } = useVol();
   const [volunteers, setVolunteers] = useState([]);
   const [oot, setOot]               = useState([]);
   const [calEvents, setCalEvents]   = useState(null);
@@ -499,7 +499,7 @@ export default function Dashboard() {
             )}
             {myAreas.includes('Events') && (
               <>
-                <UpcomingEventsCard setView={setView} />
+                <UpcomingEventsCard setView={setView} openCommitteeEvent={openCommitteeEvent} />
                 <button onClick={() => setView('events-committee-planning')}
                   className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
                   Events Committee

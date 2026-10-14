@@ -207,6 +207,12 @@ export default function App() {
   // 404 on refresh; the hash is what survives.
   const [view, setViewState]              = useState(() => window.location.hash.replace(/^#\/?/, '') || 'dashboard');
   const [currentArea, setCurrentArea]     = useState(null);
+  // Same deep-link pattern as currentArea/openArea above, for jumping
+  // straight into one event on the Events Committee planning page instead
+  // of landing on its list and making the volunteer find it again --
+  // EventsCommittee.jsx reads this once on mount, selects the matching
+  // event, then clears it.
+  const [currentCommitteeEvent, setCurrentCommitteeEvent] = useState(null);
   const [isMobile, setIsMobile]           = useState(window.innerWidth < 768);
 
   function setView(next) {
@@ -217,6 +223,11 @@ export default function App() {
   function openArea(area) {
     setCurrentArea(area);
     setView('areas');
+  }
+
+  function openCommitteeEvent(eventName) {
+    setCurrentCommitteeEvent(eventName);
+    setView('events-committee-planning');
   }
 
   useEffect(() => {
@@ -323,7 +334,7 @@ export default function App() {
   };
 
   return (
-    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea, setView }}>
+    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea, currentCommitteeEvent, setCurrentCommitteeEvent, openCommitteeEvent, setView }}>
       {isMobile ? (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
           <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>

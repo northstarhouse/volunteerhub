@@ -1269,7 +1269,7 @@ function EventModal({ editing, onSave, onCancel }) {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function EventsCommittee() {
-  const { session, volunteer } = useVol();
+  const { session, volunteer, currentCommitteeEvent, setCurrentCommitteeEvent } = useVol();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('list');
@@ -1302,6 +1302,23 @@ export default function EventsCommittee() {
         // name first — nothing to add locally, it'll show up on next load.
         results.forEach(res => { if (res.row) mapped.push(fromDb(res.row)); });
       }
+
+      // Deep-link from the dashboard (its Upcoming Events card/openCommitteeEvent)
+      // -- open straight into this one event instead of landing on the list.
+      // If it isn't tracked here yet (e.g. it only exists via ticket_orders,
+      // not Op Budget/Earnings, so the sync above never picked it up),
+      // create it on the fly so the link always resolves to something.
+      if (currentCommitteeEvent) {
+        const key = currentCommitteeEvent.trim().toLowerCase();
+        let match = mapped.find(e => e.name.trim().toLowerCase() === key);
+        if (!match) {
+          const res = await insertCommitteeEventIfMissing({ ...toDb(emptyEvent(currentCommitteeEvent)), created_by: session.user.id });
+          if (res.row) { match = fromDb(res.row); mapped.push(match); }
+        }
+        if (match) setSelectedId(match.id);
+        setCurrentCommitteeEvent(null);
+      }
+
       setEvents(mapped);
       setLoading(false);
     }).catch(() => setLoading(false));
