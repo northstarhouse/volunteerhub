@@ -167,42 +167,12 @@ const STATUS_STYLE = {
   needs_review:  { bg: '#fde8e0', fg: '#c2410c', label: 'Needs Final Review' },
   completed:     { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
 };
-const STATUS_ORDER = { upcoming: 0, planning: 1, needs_review: 2, completed: 3 };
-
 function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || STATUS_STYLE.upcoming;
   return <span className="badge" style={{ background: s.bg, color: s.fg, fontWeight: 600 }}>{s.label}</span>;
 }
 
-// ── Home: list / calendar ──────────────────────────────────────────────────
-
-function EventListRow({ ev, onOpen, onDelete, isPast }) {
-  const doneT = ev.checklist.filter(t => t.done).length;
-  const d = ev.date ? new Date(`${ev.date}T00:00:00`) : null;
-  return (
-    <div className="card" style={{ marginBottom: 6, padding: '9px 14px', cursor: 'pointer', opacity: isPast ? 0.62 : 1 }} onClick={() => onOpen(ev.id)}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ textAlign: 'center', width: 42, flexShrink: 0 }}>
-          {d ? (
-            <>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</div>
-              <div style={{ fontSize: 21, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", lineHeight: 1.15 }}>{d.getDate()}</div>
-            </>
-          ) : (
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#c2410c' }}>No date</div>
-          )}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{doneT}/{ev.checklist.length} checklist items</div>
-        </div>
-        <div style={{ flexShrink: 0 }}><StatusBadge status={ev.status} /></div>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(ev); }}
-          style={{ background: 'none', border: 'none', color: '#c0392b', fontSize: 14, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>×</button>
-      </div>
-    </div>
-  );
-}
+// ── Home: calendar ──────────────────────────────────────────────────────────
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -1272,7 +1242,6 @@ export default function EventsCommittee() {
   const { session, volunteer, currentCommitteeEvent, setCurrentCommitteeEvent } = useVol();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState('list');
   const [selectedId, setSelectedId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -1432,19 +1401,6 @@ export default function EventsCommittee() {
     setEditingEvent(null);
   }
 
-  const sorted = [...events].sort((a, b) => {
-    const so = (STATUS_ORDER[a.status] ?? 1) - (STATUS_ORDER[b.status] ?? 1);
-    if (so !== 0) return so;
-    if (!a.date && !b.date) return a.name.localeCompare(b.name);
-    if (!a.date) return -1;
-    if (!b.date) return 1;
-    return a.date.localeCompare(b.date);
-  });
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const upcomingEvents = sorted.filter(ev => !ev.date || ev.date >= todayStr);
-  const pastEvents = sorted.filter(ev => ev.date && ev.date < todayStr)
-    .sort((a, b) => b.date.localeCompare(a.date));
-
   return (
     <div className="ec-page">
       <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, background: '#fff' }}>
@@ -1453,13 +1409,7 @@ export default function EventsCommittee() {
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>Events Committee Planning Notes</div>
         </div>
         {!selected && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ display: 'flex', border: '0.5px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-              <button onClick={() => setMode('list')} style={{ fontSize: 12, padding: '7px 14px', border: 'none', cursor: 'pointer', background: mode === 'list' ? 'var(--text)' : 'transparent', color: mode === 'list' ? '#fff' : 'var(--text)' }}>List</button>
-              <button onClick={() => setMode('calendar')} style={{ fontSize: 12, padding: '7px 14px', border: 'none', cursor: 'pointer', background: mode === 'calendar' ? 'var(--text)' : 'transparent', color: mode === 'calendar' ? '#fff' : 'var(--text)' }}>Calendar</button>
-            </div>
-            <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
-          </div>
+          <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
         )}
       </div>
 
@@ -1473,20 +1423,6 @@ export default function EventsCommittee() {
             <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 6 }}>Nothing on the docket yet</div>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Create your first event to start planning.</div>
             <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
-          </div>
-        ) : mode === 'list' ? (
-          <div>
-            {upcomingEvents.map(ev => <EventListRow key={ev.id} ev={ev} onOpen={setSelectedId} onDelete={deleteEvent} />)}
-            {pastEvents.length > 0 && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 10px' }}>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Past Events</span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                </div>
-                {pastEvents.map(ev => <EventListRow key={ev.id} ev={ev} onOpen={setSelectedId} onDelete={deleteEvent} isPast />)}
-              </>
-            )}
           </div>
         ) : (
           <CalendarView events={events} calYear={calYear} setCalYear={setCalYear} onOpen={setSelectedId} />
