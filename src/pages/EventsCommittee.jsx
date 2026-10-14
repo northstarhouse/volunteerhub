@@ -252,8 +252,8 @@ const PLANNING_SECTION_ICONS = {
 const PLANNING_SECTIONS = [
   { key: 'marketing', title: 'Marketing & Promotion', desc: 'Flyers, newsletters, website, social media', area: 'marketing' },
   { key: 'volunteers', title: 'Volunteers & Staffing', desc: 'Assignments, shifts, contact information', area: 'volunteers' },
-  { key: 'vendors', title: 'Vendors & Supplies', desc: 'Catering, rentals, orders, deliveries', tab: 'preplanning' },
-  { key: 'budget', title: 'Budget & Transactions', desc: 'Income, expenses, reimbursements', tab: 'financials' },
+  { key: 'vendors', title: 'Vendors & Supplies', desc: 'Catering, rentals, orders, deliveries' },
+  { key: 'budget', title: 'Budget & Transactions', desc: 'Income, expenses, reimbursements' },
 ];
 
 function StatBox({ label, value, sub, color }) {
@@ -266,11 +266,12 @@ function StatBox({ label, value, sub, color }) {
   );
 }
 
-function OverviewTab({ ev, onUpdate, onNavigate }) {
+function OverviewTab({ ev, onUpdate, session, volunteer }) {
   const [ticketStats, setTicketStats] = useState(null);
   const [financials, setFinancials] = useState(null);
   const [flyerUrl, setFlyerUrl] = useState(null);
   const [uploadingFlyer, setUploadingFlyer] = useState(false);
+  const [expandedSection, setExpandedSection] = useState(null);
   const flyerInputRef = useRef(null);
 
   useEffect(() => {
@@ -401,17 +402,31 @@ function OverviewTab({ ev, onUpdate, onNavigate }) {
           <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Planning sections</div>
           <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{PLANNING_SECTIONS.length} sections</span>
         </div>
-        {PLANNING_SECTIONS.map((s, i) => (
-          <div key={s.key} onClick={() => onNavigate(s.tab || 'areas', s.area)}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: i < PLANNING_SECTIONS.length - 1 ? '0.5px solid var(--border-light)' : 'none' }}>
-            <span style={{ color: 'var(--gold)', flexShrink: 0 }}>{PLANNING_SECTION_ICONS[s.key]}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{s.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.desc}</div>
+        {PLANNING_SECTIONS.map((s, i) => {
+          const isOpen = expandedSection === s.key;
+          return (
+            <div key={s.key} style={{ borderBottom: i < PLANNING_SECTIONS.length - 1 || isOpen ? '0.5px solid var(--border-light)' : 'none' }}>
+              <div onClick={() => setExpandedSection(isOpen ? null : s.key)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer' }}>
+                <span style={{ color: 'var(--gold)', flexShrink: 0 }}>{PLANNING_SECTION_ICONS[s.key]}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{s.title}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.desc}</div>
+                </div>
+                <span style={{ color: 'var(--muted)', flexShrink: 0, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>&rsaquo;</span>
+              </div>
+              {isOpen && (
+                <div style={{ padding: '4px 16px 18px' }}>
+                  {s.key === 'vendors' && <VendorsPanel ev={ev} onUpdate={onUpdate} />}
+                  {s.key === 'budget' && <FinancialsTab ev={ev} />}
+                  {(s.key === 'marketing' || s.key === 'volunteers') && (
+                    <AreasTab event={ev} session={session} volunteer={volunteer} initialArea={s.area} />
+                  )}
+                </div>
+              )}
             </div>
-            <span style={{ color: 'var(--muted)', flexShrink: 0 }}>&rsaquo;</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -497,9 +512,45 @@ function AssigneeMentionInput({ assignee, assigneeId, onChange, volunteers }) {
   );
 }
 
+// Extracted so Overview's "Vendors & Supplies" planning-section dropdown
+// can embed the exact same vendor list/add-form Pre-Planning uses, instead
+// of duplicating it.
+function VendorsPanel({ ev, onUpdate }) {
+  const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
+
+  function toggleVendor(id) {
+    onUpdate(e => ({ ...e, vendors: e.vendors.map(v => v.id === id ? { ...v, confirmed: !v.confirmed } : v) }));
+  }
+  function deleteVendor(id) {
+    onUpdate(e => ({ ...e, vendors: e.vendors.filter(v => v.id !== id) }));
+  }
+  function addVendor() {
+    if (!vendorForm.name.trim()) return;
+    onUpdate(e => ({ ...e, vendors: [...e.vendors, { id: cryptoId(), name: vendorForm.name.trim(), role: vendorForm.role.trim(), contact: vendorForm.contact.trim(), confirmed: false }] }));
+    setVendorForm({ name: '', role: '', contact: '' });
+  }
+
+  return (
+    <div>
+      {ev.vendors.map(v => (
+        <ItemRow key={v.id} onDelete={() => deleteVendor(v.id)}>
+          <input type="checkbox" checked={v.confirmed} onChange={() => toggleVendor(v.id)} title="Confirmed" style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
+          <span style={{ flex: 1, fontSize: 13 }}>{v.name} <span style={{ color: 'var(--muted)' }}>— {v.role}</span></span>
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{v.contact}</span>
+        </ItemRow>
+      ))}
+      <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+        <input className="input" style={{ width: 140 }} placeholder="Vendor name" value={vendorForm.name} onChange={e => setVendorForm(f => ({ ...f, name: e.target.value }))} />
+        <input className="input" style={{ width: 110 }} placeholder="Role" value={vendorForm.role} onChange={e => setVendorForm(f => ({ ...f, role: e.target.value }))} />
+        <input className="input" style={{ flex: 1, minWidth: 140 }} placeholder="Contact info" value={vendorForm.contact} onChange={e => setVendorForm(f => ({ ...f, contact: e.target.value }))} />
+        <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addVendor}>Add</button>
+      </div>
+    </div>
+  );
+}
+
 function PreplanningTab({ ev, onUpdate, volunteers }) {
   const [itemForm, setItemForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
-  const [vendorForm, setVendorForm] = useState({ name: '', role: '', contact: '' });
   const [guests, setGuests] = useState(ev.guestCount);
   const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing, eventLead: ev.eventLead, volunteersNeeded: ev.volunteersNeeded });
   const [expandedId, setExpandedId] = useState(null);
@@ -569,18 +620,6 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
     onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === itemId
       ? { ...t, subtasks: (t.subtasks || []).filter(s => s.id !== subId) }
       : t) }));
-  }
-
-  function toggleVendor(id) {
-    onUpdate(e => ({ ...e, vendors: e.vendors.map(v => v.id === id ? { ...v, confirmed: !v.confirmed } : v) }));
-  }
-  function deleteVendor(id) {
-    onUpdate(e => ({ ...e, vendors: e.vendors.filter(v => v.id !== id) }));
-  }
-  function addVendor() {
-    if (!vendorForm.name.trim()) return;
-    onUpdate(e => ({ ...e, vendors: [...e.vendors, { id: cryptoId(), name: vendorForm.name.trim(), role: vendorForm.role.trim(), contact: vendorForm.contact.trim(), confirmed: false }] }));
-    setVendorForm({ name: '', role: '', contact: '' });
   }
 
   function saveGuests() {
@@ -734,19 +773,7 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
 
       <div style={{ marginBottom: 24 }}>
         <div style={sectionTitle}>Vendors & contacts</div>
-        {ev.vendors.map(v => (
-          <ItemRow key={v.id} onDelete={() => deleteVendor(v.id)}>
-            <input type="checkbox" checked={v.confirmed} onChange={() => toggleVendor(v.id)} title="Confirmed" style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
-            <span style={{ flex: 1, fontSize: 13 }}>{v.name} <span style={{ color: 'var(--muted)' }}>— {v.role}</span></span>
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{v.contact}</span>
-          </ItemRow>
-        ))}
-        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          <input className="input" style={{ width: 140 }} placeholder="Vendor name" value={vendorForm.name} onChange={e => setVendorForm(f => ({ ...f, name: e.target.value }))} />
-          <input className="input" style={{ width: 110 }} placeholder="Role" value={vendorForm.role} onChange={e => setVendorForm(f => ({ ...f, role: e.target.value }))} />
-          <input className="input" style={{ flex: 1 }} placeholder="Contact info" value={vendorForm.contact} onChange={e => setVendorForm(f => ({ ...f, contact: e.target.value }))} />
-          <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addVendor}>Add</button>
-        </div>
+        <VendorsPanel ev={ev} onUpdate={onUpdate} />
       </div>
 
       <div>
@@ -1079,14 +1106,6 @@ function ReviewsTab({ ev }) {
 
 function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
   const [tab, setTab] = useState('overview');
-  const [initialArea, setInitialArea] = useState(null);
-
-  // Overview's "Planning sections" rows jump straight to the right tab --
-  // Marketing/Volunteers go into Areas pre-opened to that specific area.
-  function navigateFromOverview(tabId, areaKey) {
-    if (areaKey) setInitialArea(areaKey);
-    setTab(tabId);
-  }
 
   const tabs = [
     ['overview', 'Overview'],
@@ -1153,9 +1172,9 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunt
         </div>
 
         <div style={{ padding: '20px 22px 24px' }}>
-          {tab === 'overview' && <OverviewTab ev={ev} onUpdate={onUpdate} onNavigate={navigateFromOverview} />}
+          {tab === 'overview' && <OverviewTab ev={ev} onUpdate={onUpdate} session={session} volunteer={volunteer} />}
           {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
-          {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} initialArea={initialArea} />}
+          {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
           {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
           {tab === 'financials' && <FinancialsTab ev={ev} />}
           {tab === 'reviews' && <ReviewsTab ev={ev} />}
