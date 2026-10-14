@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useVol } from '../App.jsx';
 import {
-  fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, uploadEventFlyer, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
+  fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, uploadEventFlyer, fetchAllEventCards, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
   fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
@@ -15,18 +15,6 @@ const nextDate = (offsetDays) => {
 };
 const fmtDate = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set';
 const fmtDateShort = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date';
-const fmt12hr = (hhmm) => {
-  if (!hhmm) return '';
-  const [h, m] = hhmm.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
-};
-const fmtTimeRange = (start, end) => {
-  if (!start && !end) return 'No time set';
-  if (start && end) return `${fmt12hr(start)} – ${fmt12hr(end)}`;
-  return fmt12hr(start || end);
-};
-
 const MINUTES = ['00', '15', '30', '45'];
 const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
@@ -167,75 +155,61 @@ const STATUS_STYLE = {
   needs_review:  { bg: '#fde8e0', fg: '#c2410c', label: 'Needs Final Review' },
   completed:     { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
 };
-function StatusBadge({ status }) {
-  const s = STATUS_STYLE[status] || STATUS_STYLE.upcoming;
-  return <span className="badge" style={{ background: s.bg, color: s.fg, fontWeight: 600 }}>{s.label}</span>;
+// ── Home: event cards (flyer + revenue/expenses), grouped Upcoming/Past ─────
+// Same data/markup as Dashboard's "Upcoming Events" teaser card and Portal's
+// Event Overviews page -- the committee's full list should look like those,
+// not a from-scratch calendar grid.
+
+function EventFlyerCard({ c, onOpen }) {
+  const dateStr = c.date ? new Date(`${c.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set';
+  return (
+    <div onClick={() => onOpen(c.name)}
+      style={{ background: '#fff', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+      <div style={{
+        width: '100%', aspectRatio: '3/4', backgroundColor: 'var(--light)',
+        backgroundImage: c.image_url ? `url(${c.image_url})` : 'linear-gradient(135deg,var(--light),#e4d9c6)',
+        backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
+      }} />
+      <div style={{ padding: '10px 12px' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{dateStr}</div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: 11 }}>
+          <span style={{ color: '#4a5d3a', fontWeight: 600 }}>{money(c.earnings)}</span>
+          <span style={{ color: '#c07040', fontWeight: 600 }}>-{money(c.costs)}</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-// ── Home: calendar ──────────────────────────────────────────────────────────
+function EventCardsGrid({ onOpen }) {
+  const [cards, setCards] = useState(null);
 
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  useEffect(() => { fetchAllEventCards().then(setCards).catch(() => setCards({ upcoming: [], past: [] })); }, []);
 
-function CalendarView({ events, calYear, setCalYear, onOpen }) {
-  const todayYear = new Date().getFullYear();
-  const todayMonth = new Date().getMonth();
-
-  const byMonth = Array.from({ length: 12 }, () => []);
-  const undated = [];
-  events.forEach(ev => {
-    if (!ev.date) { undated.push(ev); return; }
-    const d = new Date(`${ev.date}T00:00:00`);
-    if (d.getFullYear() === calYear) byMonth[d.getMonth()].push(ev);
-  });
-  byMonth.forEach(list => list.sort((a, b) => a.date.localeCompare(b.date)));
+  if (cards === null) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>;
+  if (cards.upcoming.length === 0 && cards.past.length === 0) {
+    return <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '30px 0' }}>No events on the books yet.</div>;
+  }
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{calYear}</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => setCalYear(y => y - 1)}>← {calYear - 1}</button>
-          {calYear !== todayYear && <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => setCalYear(todayYear)}>Today</button>}
-          <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => setCalYear(y => y + 1)}>{calYear + 1} →</button>
-        </div>
-      </div>
-      {undated.length > 0 && (
-        <div className="card" style={{ padding: '12px 14px', marginBottom: 12, border: '1px solid #f0d0b8' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 8, color: '#c2410c' }}>Needs a Date</div>
-          {undated.map(ev => {
-            const s = STATUS_STYLE[ev.status] || STATUS_STYLE.upcoming;
-            return (
-              <div key={ev.id} onClick={() => onOpen(ev.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, cursor: 'pointer' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.fg, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 500 }}>{ev.name}</span>
-              </div>
-            );
-          })}
+      {cards.upcoming.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>Upcoming Events</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+            {cards.upcoming.map(c => <EventFlyerCard key={c.name} c={c} onOpen={onOpen} />)}
+          </div>
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-        {MONTH_NAMES.map((name, i) => {
-          const isCurrentMonth = calYear === todayYear && i === todayMonth;
-          const evs = byMonth[i];
-          return (
-            <div key={name} className="card" style={{ padding: '12px 14px', border: isCurrentMonth ? '1px solid var(--gold)' : undefined }}>
-              <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 8, color: isCurrentMonth ? 'var(--gold)' : 'var(--text)' }}>{name}</div>
-              {evs.length === 0 ? (
-                <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No events</div>
-              ) : evs.map(ev => {
-                const s = STATUS_STYLE[ev.status] || STATUS_STYLE.upcoming;
-                return (
-                  <div key={ev.id} onClick={() => onOpen(ev.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, cursor: 'pointer' }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.fg, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{fmtDateShort(ev.date)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
+      {cards.past.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>Past Events</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+            {cards.past.map(c => <EventFlyerCard key={c.name} c={c} onOpen={onOpen} />)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -276,7 +250,7 @@ function StatBox({ label, value, sub, color }) {
   );
 }
 
-function OverviewTab({ ev, onUpdate, volunteers, session, volunteer }) {
+function OverviewTab({ ev, onUpdate, onEdit, volunteers, session, volunteer }) {
   const [ticketStats, setTicketStats] = useState(null);
   const [financials, setFinancials] = useState(null);
   const [flyerUrl, setFlyerUrl] = useState(null);
@@ -326,8 +300,22 @@ function OverviewTab({ ev, onUpdate, volunteers, session, volunteer }) {
     <div>
       <div style={{ display: 'flex', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 280 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 4 }}>{ev.name}</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{fmtDate(ev.date)}</div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 4 }}>{ev.name}</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{fmtDate(ev.date)}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <select className="input" style={{ appearance: 'auto', fontSize: 12 }} value={ev.status}
+                onChange={e => onUpdate(x => ({ ...x, status: e.target.value }))}>
+                <option value="planning">Planning</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="needs_review">Needs Final Review</option>
+                <option value="completed">Completed</option>
+              </select>
+              <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onEdit}>Edit</button>
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <StatBox label="Ticket Sales" value={money(ticketSales)} sub={ticketStats ? `${ticketStats.ticketsSold} sold` : null} />
             <StatBox label="Other Earnings" value={money(otherEarnings)} />
@@ -1124,49 +1112,8 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunt
     <div style={{ padding: '14px 14px 24px' }}>
       <button onClick={onBack} className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px', marginBottom: 14 }}>← All Events</button>
 
-      {/* One continuous white panel — header, tabs, and tab content all
-          live inside it, rather than a stack of separately-floating cards. */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '20px 22px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <StatusBadge status={ev.status} />
-              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginTop: 6 }}>{ev.name}</div>
-              {ev.description && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{ev.description}</div>}
-              <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  {fmtDate(ev.date)}
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  {fmtTimeRange(ev.startTime, ev.endTime)}
-                </span>
-              </div>
-              {(ev.purpose || ev.expectedAttendance || ev.pricing) && (
-                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                  {ev.purpose && <span className="badge" style={{ background: 'var(--light)', color: 'var(--gold)' }}>{ev.purpose}</span>}
-                  {ev.expectedAttendance && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.expectedAttendance}</span>}
-                  {ev.pricing && <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)' }}>{ev.pricing}</span>}
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-              <select className="input" style={{ appearance: 'auto', fontSize: 12 }} value={ev.status}
-                onChange={e => onUpdate(x => ({ ...x, status: e.target.value }))}>
-                <option value="planning">Planning</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="needs_review">Needs Final Review</option>
-                <option value="completed">Completed</option>
-              </select>
-              <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onEdit}>Edit</button>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ borderTop: '0.5px solid var(--border-light)', padding: '20px 22px 24px' }}>
-          <OverviewTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} session={session} volunteer={volunteer} />
-        </div>
+      <div className="card" style={{ padding: '20px 22px 24px' }}>
+        <OverviewTab ev={ev} onUpdate={onUpdate} onEdit={onEdit} volunteers={volunteers} session={session} volunteer={volunteer} />
       </div>
     </div>
   );
@@ -1251,7 +1198,6 @@ export default function EventsCommittee() {
   const [selectedId, setSelectedId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [volunteers, setVolunteers] = useState([]);
 
   useEffect(() => { fetchAllActiveVolunteers().then(rows => setVolunteers(Array.isArray(rows) ? rows : [])).catch(() => setVolunteers([])); }, []);
@@ -1300,6 +1246,22 @@ export default function EventsCommittee() {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Clicking a flyer card in EventCardsGrid -- find the matching committee
+  // event by name and select it, creating one on the fly if this event
+  // (e.g. a brand-new ticket_orders-only show) isn't tracked here yet.
+  function openEventByName(name) {
+    const key = name.trim().toLowerCase();
+    const match = events.find(e => e.name.trim().toLowerCase() === key);
+    if (match) { setSelectedId(match.id); return; }
+    insertCommitteeEventIfMissing({ ...toDb(emptyEvent(name)), created_by: session.user.id }).then(res => {
+      if (res.row) {
+        const created = fromDb(res.row);
+        setEvents(prev => [...prev, created]);
+        setSelectedId(created.id);
+      }
+    });
+  }
 
   const selected = events.find(e => e.id === selectedId) || null;
 
@@ -1431,7 +1393,7 @@ export default function EventsCommittee() {
             <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
           </div>
         ) : (
-          <CalendarView events={events} calYear={calYear} setCalYear={setCalYear} onOpen={setSelectedId} />
+          <EventCardsGrid onOpen={openEventByName} />
         )}
       </div>
 

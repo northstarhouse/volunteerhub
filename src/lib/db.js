@@ -605,12 +605,12 @@ export async function uploadEventFlyer(eventName, file) {
   return (Array.isArray(rows) && rows[0] ? rows[0].image_url : null) || data.url;
 }
 
-// Dashboard teaser version of Portal's Event Overviews cards (same
-// event_overview_cards/Op Budget/Op Earnings/ticket_orders tables, merged
-// by event-name the same way) -- just the handful of fields a small card
-// needs (image, date, net-ish earnings/costs), for the next few upcoming
-// events. The full breakdown lives in the Event Overviews page itself.
-export async function fetchUpcomingEventCards(limit = 4) {
+// Shared by fetchUpcomingEventCards (dashboard teaser) and
+// fetchAllEventCards (Events Committee's full grid) -- merges
+// event_overview_cards/Op Budget/Op Earnings/ticket_orders by event-name
+// into one card per event (image, date, earnings, costs). General Donation
+// is excluded -- it's the general giving bucket, not a planned event.
+async function fetchMergedEventCards() {
   const [cardMeta, budget, earnings, tickets] = await Promise.all([
     get('event_overview_cards?select=event_name,event_date,image_url'),
     get(`Op%20Budget?area=eq.Events&select=event_name,amount`),
@@ -621,8 +621,8 @@ export async function fetchUpcomingEventCards(limit = 4) {
   const keyOf = (n) => (n || '').trim().toLowerCase();
   // event_overview_cards.event_date is already ISO (YYYY-MM-DD), but
   // ticket_orders.event_date is a human string ("October 23, 2026") --
-  // comparing those as raw strings against todayStr below sorts wrong, so
-  // normalize everything to ISO before it's ever stored on the merged card.
+  // comparing those as raw strings sorts wrong, so normalize to ISO before
+  // it's ever stored on the merged card.
   function toIsoDate(d) {
     if (!d) return null;
     if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
@@ -631,7 +631,7 @@ export async function fetchUpcomingEventCards(limit = 4) {
   }
   function ensure(name, date) {
     const k = keyOf(name);
-    if (!k) return null;
+    if (!k || NON_EVENT_NAMES.has(k)) return null;
     const iso = toIsoDate(date);
     if (!byKey[k]) byKey[k] = { name: name.trim(), date: iso, earnings: 0, costs: 0, image_url: null };
     if (iso && !byKey[k].date) byKey[k].date = iso;
@@ -646,12 +646,28 @@ export async function fetchUpcomingEventCards(limit = 4) {
   (Array.isArray(tickets) ? tickets : [])
     .filter(o => TICKET_ORDER_MONEY_KINDS.has(o.kind))
     .forEach(o => { const b = ensure(o.event_title, o.event_date); if (b) b.earnings += Number(o.amount || 0); });
+  return Object.values(byKey);
+}
 
+// Dashboard teaser -- just the next few upcoming events.
+export async function fetchUpcomingEventCards(limit = 4) {
+  const all = await fetchMergedEventCards();
   const todayStr = new Date().toISOString().slice(0, 10);
-  return Object.values(byKey)
+  return all
     .filter(c => c.date && c.date >= todayStr)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit);
+}
+
+// Events Committee's full grid -- every event, split into upcoming (dated
+// today or later, soonest first) and past (everything else, including
+// undated events, most recent first).
+export async function fetchAllEventCards() {
+  const all = await fetchMergedEventCards();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const upcoming = all.filter(c => c.date && c.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
+  const past = all.filter(c => !c.date || c.date < todayStr).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return { upcoming, past };
 }
 
 // Reviews/feedback for one specific event (Portal's "Event Feedback" table,
