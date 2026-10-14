@@ -243,17 +243,27 @@ function CalendarView({ events, calYear, setCalYear, onOpen }) {
 // ── Detail tabs ─────────────────────────────────────────────────────────────
 
 const PLANNING_SECTION_ICONS = {
+  preplanning: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
   marketing: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>,
   volunteers: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   vendors: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>,
+  'areas-other': <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
   budget: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
+  dayof: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  reviews: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>,
+  after: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
 };
 
 const PLANNING_SECTIONS = [
+  { key: 'preplanning', title: 'Event Basics & Checklist', desc: 'Purpose, attendance, event lead, detailed checklist' },
   { key: 'marketing', title: 'Marketing & Promotion', desc: 'Flyers, newsletters, website, social media', area: 'marketing' },
   { key: 'volunteers', title: 'Volunteers & Staffing', desc: 'Assignments, shifts, contact information', area: 'volunteers' },
+  { key: 'areas-other', title: 'Other Planning Areas', desc: 'Logistics, hospitality, finance, sponsorship, interiors' },
   { key: 'vendors', title: 'Vendors & Supplies', desc: 'Catering, rentals, orders, deliveries' },
   { key: 'budget', title: 'Budget & Transactions', desc: 'Income, expenses, reimbursements' },
+  { key: 'dayof', title: 'Day-Of Timeline', desc: 'Run of show for the day' },
+  { key: 'reviews', title: 'Reviews & Feedback', desc: 'Guest and volunteer feedback' },
+  { key: 'after', title: 'After Notes', desc: "What went well, final numbers, follow-ups" },
 ];
 
 function StatBox({ label, value, sub, color }) {
@@ -266,7 +276,7 @@ function StatBox({ label, value, sub, color }) {
   );
 }
 
-function OverviewTab({ ev, onUpdate, session, volunteer }) {
+function OverviewTab({ ev, onUpdate, volunteers, session, volunteer }) {
   const [ticketStats, setTicketStats] = useState(null);
   const [financials, setFinancials] = useState(null);
   const [flyerUrl, setFlyerUrl] = useState(null);
@@ -417,11 +427,16 @@ function OverviewTab({ ev, onUpdate, session, volunteer }) {
               </div>
               {isOpen && (
                 <div style={{ padding: '4px 16px 18px' }}>
+                  {s.key === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
                   {s.key === 'vendors' && <VendorsPanel ev={ev} onUpdate={onUpdate} />}
                   {s.key === 'budget' && <FinancialsTab ev={ev} />}
+                  {s.key === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
+                  {s.key === 'reviews' && <ReviewsTab ev={ev} />}
+                  {s.key === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
                   {(s.key === 'marketing' || s.key === 'volunteers') && (
                     <AreasTab event={ev} session={session} volunteer={volunteer} initialArea={s.area} />
                   )}
+                  {s.key === 'areas-other' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
                 </div>
               )}
             </div>
@@ -1105,18 +1120,6 @@ function ReviewsTab({ ev }) {
 // ── Detail page ───────────────────────────────────────────────────────────
 
 function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
-  const [tab, setTab] = useState('overview');
-
-  const tabs = [
-    ['overview', 'Overview'],
-    ['preplanning', 'Pre-Planning'],
-    ['areas', 'Areas'],
-    ['dayof', 'Day-Of'],
-    ['financials', 'Financials'],
-    ['reviews', 'Reviews'],
-    ['after', 'After Notes'],
-  ];
-
   return (
     <div style={{ padding: '14px 14px 24px' }}>
       <button onClick={onBack} className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px', marginBottom: 14 }}>← All Events</button>
@@ -1161,24 +1164,8 @@ function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunt
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, borderBottom: '0.5px solid var(--border)', padding: '0 22px', overflowX: 'auto' }}>
-          {tabs.map(([id, label]) => (
-            <div key={id} onClick={() => setTab(id)} style={{
-              fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4, padding: '9px 14px', cursor: 'pointer', whiteSpace: 'nowrap',
-              color: tab === id ? 'var(--text)' : 'var(--muted)', fontWeight: tab === id ? 700 : 400,
-              borderBottom: tab === id ? '2px solid var(--gold)' : '2px solid transparent', marginBottom: -1,
-            }}>{label}</div>
-          ))}
-        </div>
-
-        <div style={{ padding: '20px 22px 24px' }}>
-          {tab === 'overview' && <OverviewTab ev={ev} onUpdate={onUpdate} session={session} volunteer={volunteer} />}
-          {tab === 'preplanning' && <PreplanningTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} />}
-          {tab === 'areas' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
-          {tab === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
-          {tab === 'financials' && <FinancialsTab ev={ev} />}
-          {tab === 'reviews' && <ReviewsTab ev={ev} />}
-          {tab === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
+        <div style={{ borderTop: '0.5px solid var(--border-light)', padding: '20px 22px 24px' }}>
+          <OverviewTab ev={ev} onUpdate={onUpdate} volunteers={volunteers} session={session} volunteer={volunteer} />
         </div>
       </div>
     </div>
