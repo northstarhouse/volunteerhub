@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useVol } from '../App.jsx';
 import {
-  fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
+  fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, uploadEventFlyer, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
   fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
@@ -161,21 +161,6 @@ const SECTION_HEAD = {
   marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid var(--border-light)',
 };
 
-// Flat stat row (no per-tile card/border) — a set of numbers is a single
-// unit, not a handful of separate bubbles.
-function StatRow({ stats }) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 36px', marginBottom: 22 }}>
-      {stats.map(([num, lbl]) => (
-        <div key={lbl}>
-          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{num}</div>
-          <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{lbl}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 const STATUS_STYLE = {
   planning:      { bg: '#fde8e0', fg: '#8a4a2e', label: 'Planning' },
   upcoming:      { bg: '#f0ebe2', fg: 'var(--gold)', label: 'Upcoming' },
@@ -301,10 +286,22 @@ const PLANNING_SECTIONS = [
   { key: 'budget', title: 'Budget & Transactions', desc: 'Income, expenses, reimbursements', tab: 'financials' },
 ];
 
+function StatBox({ label, value, sub, color }) {
+  return (
+    <div style={{ border: '0.5px solid var(--border)', borderRadius: 10, padding: 14 }}>
+      <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: color || 'var(--text)' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
 function OverviewTab({ ev, onUpdate, onNavigate }) {
   const [ticketStats, setTicketStats] = useState(null);
   const [financials, setFinancials] = useState(null);
   const [flyerUrl, setFlyerUrl] = useState(null);
+  const [uploadingFlyer, setUploadingFlyer] = useState(false);
+  const flyerInputRef = useRef(null);
 
   useEffect(() => {
     fetchEventTicketStats(ev.name).then(setTicketStats).catch(() => setTicketStats({ ticketsSold: 0, revenue: 0 }));
@@ -316,15 +313,15 @@ function OverviewTab({ ev, onUpdate, onNavigate }) {
   const total = ev.checklist.length;
   const pct = total ? Math.round((doneT / total) * 100) : 0;
 
-  // Revenue combines two separate, non-overlapping income sources: live
-  // website ticket sales (ticket_orders) and other earnings logged by hand
-  // in Portal's Op Earnings (sponsorships, door cash, etc.) -- "Tickets
-  // sold" below is ticket_orders alone, since that's the only one that's
-  // literally a ticket count.
+  // Ticket Sales and Other Earnings are two separate, non-overlapping
+  // income sources -- live website ticket sales (ticket_orders) vs. other
+  // earnings logged by hand in Portal's Op Earnings (sponsorships, door
+  // cash, etc.) -- shown as their own boxes rather than combined, since
+  // that's how the committee actually tracks where the money came from.
+  const ticketSales = ticketStats ? ticketStats.revenue : 0;
   const otherEarnings = financials ? financials.earnings.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0) : 0;
-  const revenue = (ticketStats ? ticketStats.revenue : 0) + otherEarnings;
   const expenses = financials ? financials.expenses.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0) : 0;
-  const netProfit = revenue - expenses;
+  const netProfit = ticketSales + otherEarnings - expenses;
 
   const upcomingDeadlines = ev.checklist
     .filter(t => !t.done && t.due)
@@ -335,20 +332,45 @@ function OverviewTab({ ev, onUpdate, onNavigate }) {
     onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id ? { ...t, done: !t.done } : t) }));
   }
 
+  function handleFlyerUpload(file) {
+    if (!file || uploadingFlyer) return;
+    setUploadingFlyer(true);
+    uploadEventFlyer(ev.name, file).then(url => {
+      setFlyerUrl(url);
+      setUploadingFlyer(false);
+    }).catch(err => { setUploadingFlyer(false); alert('Upload failed: ' + (err.message || 'unknown error')); });
+  }
+
   return (
     <div>
-      {flyerUrl && (
-        <div style={{ marginBottom: 20, textAlign: 'center' }}>
-          <img src={flyerUrl} alt="Event flyer" style={{ maxWidth: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }} />
+      <div style={{ display: 'flex', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 4 }}>{ev.name}</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{fmtDate(ev.date)}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <StatBox label="Ticket Sales" value={money(ticketSales)} sub={ticketStats ? `${ticketStats.ticketsSold} sold` : null} />
+            <StatBox label="Other Earnings" value={money(otherEarnings)} />
+            <StatBox label="Expenses" value={money(expenses)} />
+            <StatBox label="Net" value={money(netProfit)} color={netProfit >= 0 ? '#4a5d3a' : '#8a4a2e'} />
+          </div>
         </div>
-      )}
 
-      <StatRow stats={[
-        [ticketStats === null ? '…' : ticketStats.ticketsSold, 'Tickets sold'],
-        [money(revenue), 'Revenue'],
-        [money(expenses), 'Expenses'],
-        [money(netProfit), 'Net profit'],
-      ]} />
+        <div style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          {flyerUrl ? (
+            <img src={flyerUrl} alt="Event flyer" style={{ width: '100%', borderRadius: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }} />
+          ) : (
+            <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 10 }}>
+              No flyer yet
+            </div>
+          )}
+          <input ref={flyerInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleFlyerUpload(f); }} />
+          <button className="btn-ghost" style={{ width: '100%' }} disabled={uploadingFlyer}
+            onClick={() => flyerInputRef.current && flyerInputRef.current.click()}>
+            {uploadingFlyer ? 'Uploading…' : (flyerUrl ? 'Replace Flyer' : '+ Upload Flyer')}
+          </button>
+        </div>
+      </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
         <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>Planning progress</div>

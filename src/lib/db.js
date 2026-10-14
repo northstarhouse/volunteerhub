@@ -579,6 +579,32 @@ export async function fetchEventCardImage(eventName) {
   return Array.isArray(rows) && rows[0] ? rows[0].image_url || null : null;
 }
 
+// Uploads a flyer image to the same Drive folder/edge function Portal's
+// Event Overviews page uses, then upserts it onto this event's
+// event_overview_cards row (on_conflict=event_name, so first upload creates
+// the row and later ones just replace the image).
+export async function uploadEventFlyer(eventName, file) {
+  const base64 = await fileToBase64(file);
+  const ext = (file.name.match(/\.[a-zA-Z0-9]+$/) || [''])[0];
+  const safeName = eventName.replace(/[^a-zA-Z0-9 _-]/g, '').trim() || 'Event';
+  const filename = `${safeName} Flyer ${Date.now()}${ext}`;
+  const res = await fetch(`${URL}/functions/v1/upload-archive-file`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${KEY}` },
+    body: JSON.stringify({
+      filename, mimeType: file.type || 'application/octet-stream', base64,
+      kind: 'general', subfolder: 'Event Flyers', makePublic: true, driveDescription: `Flyer for ${eventName}`,
+    }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || 'Upload failed');
+  const rows = await post('event_overview_cards?on_conflict=event_name', {
+    event_name: eventName, image_url: data.url, image_drive_file_id: data.fileId, image_drive_folder_url: data.folderUrl,
+    updated_at: new Date().toISOString(),
+  }, { Prefer: 'resolution=merge-duplicates,return=representation' });
+  return (Array.isArray(rows) && rows[0] ? rows[0].image_url : null) || data.url;
+}
+
 // Dashboard teaser version of Portal's Event Overviews cards (same
 // event_overview_cards/Op Budget/Op Earnings/ticket_orders tables, merged
 // by event-name the same way) -- just the handful of fields a small card
