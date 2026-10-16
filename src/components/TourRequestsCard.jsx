@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
+import QuarterHourSelect from './QuarterHourSelect.jsx';
 import { updateTourRequestStatus, updateTourRequestNotes, addTourToCalendar, setTourRequestCalendarEventId } from '../lib/db.js';
 
 const GOLD = '#886c44';
@@ -81,7 +82,7 @@ function AddToCalendarRow({ request, onScheduled }) {
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           <input type="date" aria-label="Tour date" disabled={saving} value={date} onChange={e => setDate(e.target.value)} style={inputSm} />
-          <input type="time" aria-label="Tour time" disabled={saving} value={time} onChange={e => setTime(e.target.value)} style={inputSm} />
+          <QuarterHourSelect ariaLabel="Tour time" disabled={saving} value={time} onChange={setTime} style={inputSm} />
           <button type="button" onClick={handleConfirm} disabled={saving || !date || !time} className="btn-gold" style={{ fontSize: 11, padding: '5px 12px', opacity: (saving || !date || !time) ? 0.6 : 1 }}>
             {saving ? 'Adding…' : 'Confirm'}
           </button>
