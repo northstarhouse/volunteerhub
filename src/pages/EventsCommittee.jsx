@@ -181,7 +181,7 @@ function EventFlyerCard({ c, onOpen }) {
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
         <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{dateStr}</div>
         <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: 11 }}>
-          <span style={{ color: '#4a5d3a', fontWeight: 600 }}>{money(c.earnings)}</span>
+          {!cancelled && <span style={{ color: '#4a5d3a', fontWeight: 600 }}>{money(c.earnings)}</span>}
           <span style={{ color: '#c07040', fontWeight: 600 }}>-{money(c.costs)}</span>
         </div>
       </div>
