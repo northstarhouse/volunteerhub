@@ -611,11 +611,12 @@ export async function uploadEventFlyer(eventName, file) {
 // into one card per event (image, date, earnings, costs). General Donation
 // is excluded -- it's the general giving bucket, not a planned event.
 async function fetchMergedEventCards() {
-  const [cardMeta, budget, earnings, tickets] = await Promise.all([
+  const [cardMeta, budget, earnings, tickets, committee] = await Promise.all([
     get('event_overview_cards?select=event_name,event_date,image_url'),
     get(`Op%20Budget?area=eq.Events&select=event_name,amount`),
     get(`Op%20Earnings?area=eq.Events&select=event,amount`),
     get('ticket_orders?select=event_title,event_date,kind,amount'),
+    get('events_committee?select=name,status'),
   ]);
   const byKey = {};
   const keyOf = (n) => (n || '').trim().toLowerCase();
@@ -633,7 +634,7 @@ async function fetchMergedEventCards() {
     const k = keyOf(name);
     if (!k || NON_EVENT_NAMES.has(k)) return null;
     const iso = toIsoDate(date);
-    if (!byKey[k]) byKey[k] = { name: name.trim(), date: iso, earnings: 0, costs: 0, image_url: null };
+    if (!byKey[k]) byKey[k] = { name: name.trim(), date: iso, earnings: 0, costs: 0, image_url: null, status: null };
     if (iso && !byKey[k].date) byKey[k].date = iso;
     return byKey[k];
   }
@@ -646,6 +647,13 @@ async function fetchMergedEventCards() {
   (Array.isArray(tickets) ? tickets : [])
     .filter(o => TICKET_ORDER_MONEY_KINDS.has(o.kind))
     .forEach(o => { const b = ensure(o.event_title, o.event_date); if (b) b.earnings += Number(o.amount || 0); });
+  // events_committee is the source of truth for status (e.g. 'cancelled') --
+  // only set it on events that already exist from the sources above, since a
+  // committee row with no budget/earnings/tickets/flyer yet isn't a real card.
+  (Array.isArray(committee) ? committee : []).forEach(r => {
+    const k = keyOf(r.name);
+    if (byKey[k]) byKey[k].status = r.status || null;
+  });
   return Object.values(byKey);
 }
 

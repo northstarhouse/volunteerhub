@@ -357,13 +357,18 @@ function UpcomingEventsCard({ setView, openCommitteeEvent }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 12 }}>
           {cards.map(c => {
             const dateStr = c.date ? new Date(`${c.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set';
+            const cancelled = c.status === 'cancelled';
             return (
               <div key={c.name} onClick={() => openCommitteeEvent(c.name)}
-                style={{ background: '#fff', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+                style={{ background: '#fff', border: '0.5px solid ' + (cancelled ? '#a04545' : 'var(--border-light)'), borderRadius: 12, overflow: 'hidden', cursor: 'pointer', position: 'relative', opacity: cancelled ? 0.75 : 1 }}>
+                {cancelled && (
+                  <div style={{ position: 'absolute', top: 8, right: 8, background: '#f5e2e2', color: '#a04545', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.4, zIndex: 1 }}>Cancelled</div>
+                )}
                 <div style={{
                   width: '100%', aspectRatio: '3/4', backgroundColor: '#f0ebe2',
                   backgroundImage: c.image_url ? `url(${c.image_url})` : 'linear-gradient(135deg,#f0ebe2,#e4d9c6)',
                   backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
+                  filter: cancelled ? 'grayscale(0.6)' : 'none',
                 }} />
                 <div style={{ padding: '10px 12px' }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>

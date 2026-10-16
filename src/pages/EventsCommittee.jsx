@@ -154,6 +154,7 @@ const STATUS_STYLE = {
   upcoming:      { bg: '#f0ebe2', fg: 'var(--gold)', label: 'Upcoming' },
   needs_review:  { bg: '#fde8e0', fg: '#c2410c', label: 'Needs Final Review' },
   completed:     { bg: '#e3f6ec', fg: '#4a5d3a', label: 'Completed' },
+  cancelled:     { bg: '#f5e2e2', fg: '#a04545', label: 'Cancelled' },
 };
 // ── Home: event cards (flyer + revenue/expenses), grouped Upcoming/Past ─────
 // Same data/markup as Dashboard's "Upcoming Events" teaser card and Portal's
@@ -162,13 +163,19 @@ const STATUS_STYLE = {
 
 function EventFlyerCard({ c, onOpen }) {
   const dateStr = c.date ? new Date(`${c.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set';
+  const cancelled = c.status === 'cancelled';
+  const style = cancelled ? STATUS_STYLE.cancelled : null;
   return (
     <div onClick={() => onOpen(c.name)}
-      style={{ background: '#fff', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+      style={{ background: '#fff', border: '0.5px solid ' + (cancelled ? style.fg : 'var(--border-light)'), borderRadius: 12, overflow: 'hidden', cursor: 'pointer', position: 'relative', opacity: cancelled ? 0.75 : 1 }}>
+      {cancelled && (
+        <div style={{ position: 'absolute', top: 8, right: 8, background: style.bg, color: style.fg, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.4, zIndex: 1 }}>{style.label}</div>
+      )}
       <div style={{
         width: '100%', aspectRatio: '3/4', backgroundColor: 'var(--light)',
         backgroundImage: c.image_url ? `url(${c.image_url})` : 'linear-gradient(135deg,var(--light),#e4d9c6)',
         backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
+        filter: cancelled ? 'grayscale(0.6)' : 'none',
       }} />
       <div style={{ padding: '10px 12px' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
@@ -312,6 +319,7 @@ function OverviewTab({ ev, onUpdate, onEdit, volunteers, session, volunteer }) {
                 <option value="upcoming">Upcoming</option>
                 <option value="needs_review">Needs Final Review</option>
                 <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
               </select>
               <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onEdit}>Edit</button>
             </div>
@@ -1177,6 +1185,7 @@ function EventModal({ editing, onSave, onCancel }) {
             <option value="upcoming">Upcoming</option>
             <option value="needs_review">Needs Final Review</option>
             <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
 

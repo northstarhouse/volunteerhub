@@ -388,15 +388,23 @@ export default function AreasTab({ event, session, volunteer, initialArea }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-        {AREA_DEFAULTS.map(a => (
-          <button key={a.key} onClick={() => setActiveArea(a.key)}
-            className={activeArea === a.key ? 'btn-gold' : 'btn-ghost'}
-            style={{ fontSize: 12, padding: '6px 12px' }}>
-            {a.label}
-          </button>
-        ))}
-      </div>
+      {/* Only show the area switcher when no specific area was requested --
+          Overview's Marketing/Volunteers planning-section rows pass
+          initialArea to jump straight to that area's form, so repeating
+          the full picker (including that area, already highlighted) here
+          would just be redundant chrome. "Other Planning Areas" passes no
+          initialArea and still needs it, to reach the other 6 areas. */}
+      {!initialArea && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+          {AREA_DEFAULTS.map(a => (
+            <button key={a.key} onClick={() => setActiveArea(a.key)}
+              className={activeArea === a.key ? 'btn-gold' : 'btn-ghost'}
+              style={{ fontSize: 12, padding: '6px 12px' }}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
