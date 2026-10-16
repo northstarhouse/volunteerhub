@@ -564,6 +564,8 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
   const [itemForm, setItemForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   const [guests, setGuests] = useState(ev.guestCount);
   const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing, eventLead: ev.eventLead, volunteersNeeded: ev.volunteersNeeded });
+  const [basicsEditing, setBasicsEditing] = useState(false);
+  const [guestsEditing, setGuestsEditing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [expandForm, setExpandForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '', estimated: '', actual: '', notes: '' });
   const [subtaskInput, setSubtaskInput] = useState('');
@@ -573,6 +575,11 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
       ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim(),
       eventLead: basics.eventLead.trim(), volunteersNeeded: basics.volunteersNeeded === '' ? '' : Number(basics.volunteersNeeded) || 0,
     }));
+    setBasicsEditing(false);
+  }
+  function cancelBasics() {
+    setBasics({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing, eventLead: ev.eventLead, volunteersNeeded: ev.volunteersNeeded });
+    setBasicsEditing(false);
   }
 
   function toggleItem(id) {
@@ -635,6 +642,11 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
 
   function saveGuests() {
     onUpdate(e => ({ ...e, guestCount: { invited: Number(guests.invited) || 0, confirmed: Number(guests.confirmed) || 0 } }));
+    setGuestsEditing(false);
+  }
+  function cancelGuests() {
+    setGuests(ev.guestCount);
+    setGuestsEditing(false);
   }
 
   const sectionTitle = SECTION_HEAD;
@@ -642,35 +654,56 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <div style={sectionTitle}>Event Basics</div>
-        <div style={{ marginBottom: 10 }}>
-          <div className="label">Main Purpose of This Event</div>
-          <select className="input" style={{ appearance: 'auto' }} value={basics.purpose} onChange={e => setBasics(b => ({ ...b, purpose: e.target.value }))}>
-            <option value="">Select a purpose…</option>
-            {EVENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={sectionTitle}>Event Basics</div>
+          {!basicsEditing && <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setBasicsEditing(true)}>Edit</button>}
         </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
-          <div style={{ flex: 1 }}>
-            <div className="label">Expected Attendance</div>
-            <input className="input" value={basics.expectedAttendance} onChange={e => setBasics(b => ({ ...b, expectedAttendance: e.target.value }))} placeholder="e.g. 40–60 guests" />
+        {basicsEditing ? (
+          <>
+            <div style={{ marginBottom: 10 }}>
+              <div className="label">Main Purpose of This Event</div>
+              <select className="input" style={{ appearance: 'auto' }} value={basics.purpose} onChange={e => setBasics(b => ({ ...b, purpose: e.target.value }))}>
+                <option value="">Select a purpose…</option>
+                {EVENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Expected Attendance</div>
+                <input className="input" value={basics.expectedAttendance} onChange={e => setBasics(b => ({ ...b, expectedAttendance: e.target.value }))} placeholder="e.g. 40–60 guests" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="label">Ticket Price / Free / Donation-Based</div>
+                <input className="input" value={basics.pricing} onChange={e => setBasics(b => ({ ...b, pricing: e.target.value }))} placeholder="e.g. $25/ticket, Free, Donation-based" />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Event Lead</div>
+                <input className="input" value={basics.eventLead} onChange={e => setBasics(b => ({ ...b, eventLead: e.target.value }))} placeholder="Who's running point on this event" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="label">Volunteers Needed</div>
+                <input className="input" type="number" min="0" value={basics.volunteersNeeded} onChange={e => setBasics(b => ({ ...b, volunteersNeeded: e.target.value }))} placeholder="e.g. 8" />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-gold" style={{ fontSize: 12, padding: '7px 14px' }} onClick={saveBasics}>Save</button>
+              <button className="btn-ghost" style={{ fontSize: 12, padding: '7px 14px' }} onClick={cancelBasics}>Cancel</button>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {ev.purpose && <div><strong>Purpose:</strong> {ev.purpose}</div>}
+            {ev.expectedAttendance && <div><strong>Expected attendance:</strong> {ev.expectedAttendance}</div>}
+            {ev.pricing && <div><strong>Pricing:</strong> {ev.pricing}</div>}
+            {ev.eventLead && <div><strong>Event lead:</strong> {ev.eventLead}</div>}
+            {ev.volunteersNeeded !== '' && ev.volunteersNeeded != null && <div><strong>Volunteers needed:</strong> {ev.volunteersNeeded}</div>}
+            {!ev.purpose && !ev.expectedAttendance && !ev.pricing && !ev.eventLead && (ev.volunteersNeeded === '' || ev.volunteersNeeded == null) && (
+              <div style={{ color: 'var(--muted)' }}>Nothing set yet -- click Edit to fill these in.</div>
+            )}
           </div>
-          <div style={{ flex: 1 }}>
-            <div className="label">Ticket Price / Free / Donation-Based</div>
-            <input className="input" value={basics.pricing} onChange={e => setBasics(b => ({ ...b, pricing: e.target.value }))} placeholder="e.g. $25/ticket, Free, Donation-based" />
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
-          <div style={{ flex: 1 }}>
-            <div className="label">Event Lead</div>
-            <input className="input" value={basics.eventLead} onChange={e => setBasics(b => ({ ...b, eventLead: e.target.value }))} placeholder="Who's running point on this event" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="label">Volunteers Needed</div>
-            <input className="input" type="number" min="0" value={basics.volunteersNeeded} onChange={e => setBasics(b => ({ ...b, volunteersNeeded: e.target.value }))} placeholder="e.g. 8" />
-          </div>
-        </div>
-        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={saveBasics}>Save event basics</button>
+        )}
       </div>
 
       <div style={{ marginBottom: 24 }}>
@@ -788,18 +821,36 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
       </div>
 
       <div>
-        <div style={sectionTitle}>Guest count</div>
-        <div style={{ display: 'flex', gap: 10, maxWidth: 320, marginBottom: 8 }}>
-          <div style={{ flex: 1 }}>
-            <div className="label">Invited</div>
-            <input className="input" type="number" value={guests.invited} onChange={e => setGuests(g => ({ ...g, invited: e.target.value }))} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="label">Confirmed</div>
-            <input className="input" type="number" value={guests.confirmed} onChange={e => setGuests(g => ({ ...g, confirmed: e.target.value }))} />
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={sectionTitle}>Guest count</div>
+          {!guestsEditing && <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setGuestsEditing(true)}>Edit</button>}
         </div>
-        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={saveGuests}>Save guest count</button>
+        {guestsEditing ? (
+          <>
+            <div style={{ display: 'flex', gap: 10, maxWidth: 320, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Invited</div>
+                <input className="input" type="number" value={guests.invited} onChange={e => setGuests(g => ({ ...g, invited: e.target.value }))} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="label">Confirmed</div>
+                <input className="input" type="number" value={guests.confirmed} onChange={e => setGuests(g => ({ ...g, confirmed: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-gold" style={{ fontSize: 12, padding: '7px 14px' }} onClick={saveGuests}>Save</button>
+              <button className="btn-ghost" style={{ fontSize: 12, padding: '7px 14px' }} onClick={cancelGuests}>Cancel</button>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 13 }}>
+            {(ev.guestCount.invited || ev.guestCount.confirmed) ? (
+              <><strong>Invited:</strong> {ev.guestCount.invited || 0} &nbsp;·&nbsp; <strong>Confirmed:</strong> {ev.guestCount.confirmed || 0}</>
+            ) : (
+              <span style={{ color: 'var(--muted)' }}>Nothing set yet -- click Edit to fill these in.</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -867,9 +918,39 @@ function DayOfTab({ ev, onUpdate }) {
 
 function AfterTab({ ev, onUpdate }) {
   const [notes, setNotes] = useState(ev.afterNotes);
+  const [editing, setEditing] = useState(false);
 
   function save() {
     onUpdate(e => ({ ...e, afterNotes: notes }));
+    setEditing(false);
+  }
+  function cancel() {
+    setNotes(ev.afterNotes);
+    setEditing(false);
+  }
+
+  if (!editing) {
+    const n = ev.afterNotes;
+    const hasAny = n.wentWell || n.wentWrong || n.finalAttendance || n.finalBudget || n.followUps;
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>After Notes</div>
+          <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setEditing(true)}>Edit</button>
+        </div>
+        {hasAny ? (
+          <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {n.wentWell && <div><strong>What went well:</strong> {n.wentWell}</div>}
+            {n.wentWrong && <div><strong>What didn't go well:</strong> {n.wentWrong}</div>}
+            {n.finalAttendance && <div><strong>Final attendance:</strong> {n.finalAttendance}</div>}
+            {n.finalBudget && <div><strong>Final budget:</strong> {n.finalBudget}</div>}
+            {n.followUps && <div><strong>Follow-up items:</strong> {n.followUps}</div>}
+          </div>
+        ) : (
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Nothing recorded yet -- click Edit to add after-notes.</div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -898,7 +979,10 @@ function AfterTab({ ev, onUpdate }) {
         <div className="label">Follow-up items for next time</div>
         <textarea className="input" rows={3} style={{ resize: 'vertical' }} value={notes.followUps} onChange={e => setNotes(n => ({ ...n, followUps: e.target.value }))} />
       </div>
-      <button className="btn-gold" onClick={save}>Save after notes</button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button className="btn-gold" onClick={save}>Save</button>
+        <button className="btn-ghost" onClick={cancel}>Cancel</button>
+      </div>
     </div>
   );
 }
