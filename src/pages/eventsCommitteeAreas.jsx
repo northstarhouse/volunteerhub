@@ -6,7 +6,7 @@
 // and saved to a single `events_committee_areas` table row per (event, area)
 // instead of the old app's localStorage + event_forms dual-write.
 import { useEffect, useState } from 'react';
-import { fetchAreaData, saveArea, logActivity } from '../lib/db.js';
+import { fetchAreaData, saveArea, logActivity, fetchAllActiveVolunteers } from '../lib/db.js';
 
 export const AREA_DEFAULTS = [
   { key: 'programs', label: 'Activities & Programs', role: 'Programs', defaultOwner: 'Gerrie Kopec' },
@@ -19,7 +19,6 @@ export const AREA_DEFAULTS = [
   { key: 'marketing', label: 'Marketing', role: 'Marketing', defaultOwner: 'Haley Wright' },
 ];
 
-const VOLUNTEER_ROLES = ['Setup', 'Check-in booth', 'Hospitality / Food Support', 'Cleanup / Breakdown', 'Program Support', 'Float / General Support', 'Bartending', 'Parking', 'Other'];
 const MARKETING_CHANNELS = [
   'Create Press Release', 'Send Email Blast', 'YubaNet (Press Release Only)', 'Go Nevada County Calendar - Community Blast',
   'Arts Council Calendar', 'Grass Valley Chamber Newsletter', 'KVMR Calendar', 'Facebook Event Page', 'NSH Facebook Page',
@@ -58,7 +57,7 @@ const SCHEMAS = {
   },
   volunteers: {
     pre: [
-      { key: 'roles', label: 'Volunteer Roles Needed', type: 'roleCounts' },
+      { key: 'roles', label: 'Staffing Needs', type: 'staffing' },
       { key: 'volunteersAssigned', label: 'Volunteers Assigned', type: 'textarea' },
       { key: 'boardContacted', label: 'Board Contacted', type: 'yesno', options: ['N/A', 'Yes', 'No'], pairedDateKey: 'boardContactedDate' },
       { key: 'eventSupportContacted', label: 'Event Support Contacted', type: 'yesno', options: ['N/A', 'Yes', 'No'], pairedDateKey: 'eventSupportDate' },
@@ -174,15 +173,32 @@ function defaultValueFor(field) {
   if (field.type === 'table') return [];
   if (field.type === 'checkboxGroup') return [];
   if (field.type === 'checkbox') return false;
-  if (field.type === 'roleCounts') { const m = {}; VOLUNTEER_ROLES.forEach(r => { m[r] = { needed: false, count: '' }; }); return m; }
+  if (field.type === 'staffing') return [];
   if (field.type === 'channelChecklist') { const m = {}; MARKETING_CHANNELS.forEach(c => { m[c] = { done: false, date: '' }; }); return m; }
   if (field.type === 'moneyTable') return field.rows.map(r => ({ [field.rowKey]: r, estimated: '', actual: '' }));
   return '';
 }
 
+// One-time upgrade from the old fixed-role checkbox+count shape
+// ({ 'Setup': { needed: true, count: '3' }, ... }) to the new free-form
+// role list with real volunteer assignment ([{ id, name, target,
+// assignedIds }]). Old events keep their role names/counts as the
+// starting target; nobody is pre-assigned since the old data never
+// tracked specific people.
+function migrateStaffing(v) {
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === 'object') {
+    return Object.keys(v).filter(name => v[name] && v[name].needed).map(name => {
+      const target = parseInt(v[name].count, 10);
+      return { id: Math.random().toString(36).slice(2, 8), name, target: Number.isFinite(target) ? target : 0, assignedIds: [] };
+    });
+  }
+  return [];
+}
+
 // ---------- Generic field renderers ----------
 
-function Field({ field, value, onChange }) {
+function Field({ field, value, onChange, volunteers }) {
   const v = value !== undefined ? value : defaultValueFor(field);
 
   if (field.type === 'text') return <input className="input" value={v} onChange={e => onChange(e.target.value)} />;
@@ -252,23 +268,7 @@ function Field({ field, value, onChange }) {
       </div>
     );
   }
-  if (field.type === 'roleCounts') {
-    const m = v || {};
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {VOLUNTEER_ROLES.map(r => {
-          const row = m[r] || { needed: false, count: '' };
-          return (
-            <div key={r} className="card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
-              <input type="checkbox" checked={!!row.needed} onChange={e => onChange({ ...m, [r]: { ...row, needed: e.target.checked } })} style={{ accentColor: 'var(--gold)' }} />
-              <span style={{ flex: 1, fontSize: 12 }}>{r}</span>
-              <input className="input" style={{ width: 54 }} value={row.count} placeholder="#" onChange={e => onChange({ ...m, [r]: { ...row, count: e.target.value } })} />
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
+  if (field.type === 'staffing') return <StaffingField roles={migrateStaffing(v)} onChange={onChange} volunteers={volunteers || []} />;
   if (field.type === 'channelChecklist') {
     const m = v || {};
     return (
@@ -317,13 +317,146 @@ function Field({ field, value, onChange }) {
   return null;
 }
 
-function AreaFormSection({ fields, data, onFieldChange }) {
+// Free-form staffing roles with real volunteer assignment -- a target
+// headcount per role, +/- to adjust it, and an expandable panel per role
+// to assign/remove specific people from the active volunteer directory.
+function volName(vol) { return `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim() || 'Unnamed'; }
+
+function StaffingField({ roles, onChange, volunteers }) {
+  const [expandedId, setExpandedId] = useState(null);
+  const [addingRole, setAddingRole] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [draftTarget, setDraftTarget] = useState('');
+  const [assignPickerId, setAssignPickerId] = useState(null);
+  const [assignPick, setAssignPick] = useState('');
+
+  const positions = roles.length;
+  const totalNeeded = roles.reduce((s, r) => s + (Number(r.target) || 0), 0);
+  const spotsUnfilled = roles.reduce((s, r) => s + Math.max((Number(r.target) || 0) - (r.assignedIds || []).length, 0), 0);
+
+  function updateRole(id, patch) {
+    onChange(roles.map(r => r.id === id ? { ...r, ...patch } : r));
+  }
+  function removeRole(id) {
+    onChange(roles.filter(r => r.id !== id));
+    if (expandedId === id) setExpandedId(null);
+  }
+  function addRole() {
+    if (!draftName.trim()) return;
+    const target = parseInt(draftTarget, 10);
+    onChange([...roles, { id: Math.random().toString(36).slice(2, 8), name: draftName.trim(), target: Number.isFinite(target) ? target : 0, assignedIds: [] }]);
+    setDraftName(''); setDraftTarget(''); setAddingRole(false);
+  }
+  function adjustTarget(role, delta) {
+    updateRole(role.id, { target: Math.max(0, (Number(role.target) || 0) + delta) });
+  }
+  function assignVolunteer(role, volId) {
+    if (!volId || (role.assignedIds || []).includes(volId)) return;
+    updateRole(role.id, { assignedIds: [...(role.assignedIds || []), volId] });
+    setAssignPick('');
+  }
+  function unassignVolunteer(role, volId) {
+    updateRole(role.id, { assignedIds: (role.assignedIds || []).filter(id => id !== volId) });
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Positions</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>{positions}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Volunteers needed</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>{totalNeeded}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Spots unfilled</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: spotsUnfilled > 0 ? '#c2410c' : 'var(--text)' }}>{spotsUnfilled}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>Staffing Needs</div>
+        {!addingRole && <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setAddingRole(true)}>+ Add role</button>}
+      </div>
+
+      {addingRole && (
+        <div className="card" style={{ display: 'flex', gap: 8, padding: '8px 10px', marginBottom: 10, alignItems: 'center' }}>
+          <input className="input" style={{ flex: 2 }} placeholder="Role name (e.g. Setup)" value={draftName} onChange={e => setDraftName(e.target.value)} autoFocus />
+          <input className="input" type="number" min="0" style={{ width: 70 }} placeholder="Needed" value={draftTarget} onChange={e => setDraftTarget(e.target.value)} />
+          <button className="btn-gold" style={{ padding: '7px 12px', fontSize: 12 }} onClick={addRole}>Add</button>
+          <button className="btn-ghost" style={{ padding: '7px 12px', fontSize: 12 }} onClick={() => { setAddingRole(false); setDraftName(''); setDraftTarget(''); }}>Cancel</button>
+        </div>
+      )}
+
+      {roles.length === 0 && !addingRole && (
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>No staffing roles yet -- add one above.</div>
+      )}
+
+      {roles.map(role => {
+        const assignedIds = role.assignedIds || [];
+        const assignedVols = assignedIds.map(id => volunteers.find(v => v.id === id)).filter(Boolean);
+        const target = Number(role.target) || 0;
+        const isOpen = expandedId === role.id;
+        const available = volunteers.filter(v => !assignedIds.includes(v.id));
+        return (
+          <div key={role.id} className="card" style={{ padding: '10px 14px', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{role.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{assignedVols.length} of {target} assigned</div>
+              </div>
+              <button onClick={() => adjustTarget(role, -1)} className="btn-ghost" style={{ width: 26, height: 26, padding: 0, borderRadius: '50%' }}>−</button>
+              <span style={{ fontSize: 13, fontWeight: 600, minWidth: 16, textAlign: 'center' }}>{target}</span>
+              <button onClick={() => adjustTarget(role, 1)} className="btn-ghost" style={{ width: 26, height: 26, padding: 0, borderRadius: '50%' }}>+</button>
+              <button onClick={() => setExpandedId(isOpen ? null : role.id)} className="btn-ghost" style={{ width: 26, height: 26, padding: 0 }} title={isOpen ? 'Collapse' : 'Expand'}>{isOpen ? '▲' : '▼'}</button>
+              <button onClick={() => removeRole(role.id)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: '0 2px' }} title="Remove role">×</button>
+            </div>
+
+            {isOpen && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '0.5px solid var(--border-light)' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>Assigned volunteers</div>
+                {assignedVols.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>Nobody assigned yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                    {assignedVols.map(v => (
+                      <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 12 }}>{volName(v)}</span>
+                        <button className="btn-ghost" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => unassignVolunteer(role, v.id)}>Remove assignment</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {assignPickerId === role.id ? (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <select className="input" style={{ appearance: 'auto', flex: 1 }} value={assignPick} onChange={e => setAssignPick(e.target.value)}>
+                      <option value="">Select a volunteer…</option>
+                      {available.map(v => <option key={v.id} value={v.id}>{volName(v)}</option>)}
+                    </select>
+                    <button className="btn-gold" style={{ fontSize: 12, padding: '7px 12px' }} disabled={!assignPick} onClick={() => { assignVolunteer(role, assignPick); setAssignPickerId(null); }}>Assign</button>
+                    <button className="btn-ghost" style={{ fontSize: 12, padding: '7px 12px' }} onClick={() => { setAssignPickerId(null); setAssignPick(''); }}>Cancel</button>
+                  </div>
+                ) : (
+                  <button className="btn-gold" style={{ fontSize: 12, padding: '7px 14px' }} onClick={() => setAssignPickerId(role.id)}>Assign volunteer</button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AreaFormSection({ fields, data, onFieldChange, volunteers }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {fields.map(f => (
         <div key={f.key}>
           <div className="label">{f.label}</div>
-          <Field field={f} value={data[f.key]} onChange={val => onFieldChange(f.key, val)} />
+          <Field field={f} value={data[f.key]} onChange={val => onFieldChange(f.key, val)} volunteers={volunteers} />
           {f.pairedDateKey && (data[f.key] === 'Yes' || data[f.key] === '') && (
             <div style={{ marginTop: 6, maxWidth: 180 }}>
               <div className="label">Date</div>
@@ -340,6 +473,7 @@ function AreaFormSection({ fields, data, onFieldChange }) {
 
 export default function AreasTab({ event, session, volunteer, initialArea }) {
   const [rows, setRows] = useState(null);
+  const [volunteersDir, setVolunteersDir] = useState([]);
   const [activeArea, setActiveArea] = useState(initialArea || 'programs');
   const [phase, setPhase] = useState('pre');
   const [saving, setSaving] = useState(false);
@@ -347,6 +481,7 @@ export default function AreasTab({ event, session, volunteer, initialArea }) {
 
   useEffect(() => {
     fetchAreaData(event.id).then(setRows);
+    fetchAllActiveVolunteers().then(v => setVolunteersDir(Array.isArray(v) ? v : [])).catch(() => setVolunteersDir([]));
   }, [event.id]);
 
   if (rows === null) return <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>;
@@ -411,16 +546,21 @@ export default function AreasTab({ event, session, volunteer, initialArea }) {
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif" }}>{areaDef.label}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-              Owner: <input value={ownerName} onChange={e => updateOwner(e.target.value)} style={{ border: 'none', borderBottom: '1px dashed var(--border)', background: 'none', fontSize: 12, color: 'var(--gold)', width: 140 }} />
+              Section owner: <input value={ownerName} onChange={e => updateOwner(e.target.value)} style={{ border: 'none', borderBottom: '1px dashed var(--border)', background: 'none', fontSize: 12, color: 'var(--gold)', width: 140 }} />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 0, background: 'var(--light)', borderRadius: 8, padding: 2 }}>
-            <button onClick={() => setPhase('pre')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'pre' ? 600 : 400, cursor: 'pointer', background: phase === 'pre' ? '#fff' : 'transparent' }}>Pre-Event</button>
-            <button onClick={() => setPhase('post')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'post' ? 600 : 400, cursor: 'pointer', background: phase === 'post' ? '#fff' : 'transparent' }}>Post-Event</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {event.status && (
+              <span className="badge" style={{ background: 'var(--light)', color: 'var(--text)', textTransform: 'capitalize' }}>{event.status.replace('_', ' ')}</span>
+            )}
+            <div style={{ display: 'flex', gap: 0, background: 'var(--light)', borderRadius: 8, padding: 2 }}>
+              <button onClick={() => setPhase('pre')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'pre' ? 600 : 400, cursor: 'pointer', background: phase === 'pre' ? '#fff' : 'transparent' }}>Pre-Event</button>
+              <button onClick={() => setPhase('post')} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: phase === 'post' ? 600 : 400, cursor: 'pointer', background: phase === 'post' ? '#fff' : 'transparent' }}>Post-Event</button>
+            </div>
           </div>
         </div>
 
-        <AreaFormSection fields={fields} data={data} onFieldChange={updateField} />
+        <AreaFormSection fields={fields} data={data} onFieldChange={updateField} volunteers={volunteersDir} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20 }}>
           <button className="btn-gold" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save'}</button>

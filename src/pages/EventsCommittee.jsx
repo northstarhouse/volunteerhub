@@ -15,6 +15,14 @@ const nextDate = (offsetDays) => {
 };
 const fmtDate = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set';
 const fmtDateShort = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date';
+const fmtTime12 = (hhmm) => {
+  if (!hhmm) return '';
+  const [h, m] = hhmm.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+};
 const MINUTES = ['00', '15', '30', '45'];
 const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
@@ -561,83 +569,29 @@ function VendorsPanel({ ev, onUpdate }) {
 }
 
 function PreplanningTab({ ev, onUpdate, volunteers }) {
-  const [itemForm, setItemForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
   const [guests, setGuests] = useState(ev.guestCount);
-  const [basics, setBasics] = useState({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing, eventLead: ev.eventLead, volunteersNeeded: ev.volunteersNeeded });
+  const [basics, setBasics] = useState({
+    name: ev.name, date: ev.date, startTime: ev.startTime, endTime: ev.endTime,
+    purpose: ev.purpose, eventLead: ev.eventLead, expectedAttendance: ev.expectedAttendance, description: ev.description,
+  });
   const [basicsEditing, setBasicsEditing] = useState(false);
   const [guestsEditing, setGuestsEditing] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
-  const [expandForm, setExpandForm] = useState({ text: '', due: '', assignee: '', assigneeId: null, priority: '', estimated: '', actual: '', notes: '' });
-  const [subtaskInput, setSubtaskInput] = useState('');
 
   function saveBasics() {
+    if (!basics.name.trim() || !basics.date || !basics.eventLead.trim()) return;
     onUpdate(e => ({
-      ...e, purpose: basics.purpose, expectedAttendance: basics.expectedAttendance.trim(), pricing: basics.pricing.trim(),
-      eventLead: basics.eventLead.trim(), volunteersNeeded: basics.volunteersNeeded === '' ? '' : Number(basics.volunteersNeeded) || 0,
+      ...e, name: basics.name.trim(), date: basics.date, startTime: basics.startTime, endTime: basics.endTime,
+      purpose: basics.purpose, eventLead: basics.eventLead.trim(), expectedAttendance: basics.expectedAttendance.trim(),
+      description: basics.description.trim(),
     }));
     setBasicsEditing(false);
   }
   function cancelBasics() {
-    setBasics({ purpose: ev.purpose, expectedAttendance: ev.expectedAttendance, pricing: ev.pricing, eventLead: ev.eventLead, volunteersNeeded: ev.volunteersNeeded });
-    setBasicsEditing(false);
-  }
-
-  function toggleItem(id) {
-    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id ? { ...t, done: !t.done } : t) }));
-  }
-  function deleteItem(id) {
-    onUpdate(e => ({ ...e, checklist: e.checklist.filter(t => t.id !== id) }));
-    if (expandedId === id) setExpandedId(null);
-  }
-  function cycleItemPriority(id) {
-    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id ? { ...t, priority: nextPriority(t.priority) } : t) }));
-  }
-  function addItem() {
-    if (!itemForm.text.trim()) return;
-    onUpdate(e => ({ ...e, checklist: [...e.checklist, {
-      id: cryptoId(), text: itemForm.text.trim(), done: false, due: itemForm.due,
-      assignee: itemForm.assignee.trim(), assigneeId: itemForm.assigneeId, priority: itemForm.priority || '',
-      estimated: 0, actual: 0, notes: '', subtasks: [],
-    }] }));
-    setItemForm({ text: '', due: '', assignee: '', assigneeId: null, priority: '' });
-  }
-
-  function startExpand(t) {
-    setExpandedId(expandedId === t.id ? null : t.id);
-    setExpandForm({
-      text: t.text, due: t.due || '', assignee: t.assignee || '', assigneeId: t.assigneeId || null, priority: t.priority || '',
-      estimated: t.estimated ? String(t.estimated) : '', actual: t.actual ? String(t.actual) : '', notes: t.notes || '',
+    setBasics({
+      name: ev.name, date: ev.date, startTime: ev.startTime, endTime: ev.endTime,
+      purpose: ev.purpose, eventLead: ev.eventLead, expectedAttendance: ev.expectedAttendance, description: ev.description,
     });
-    setSubtaskInput('');
-  }
-  function saveExpand(id) {
-    if (!expandForm.text.trim()) return;
-    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === id
-      ? {
-          ...t, text: expandForm.text.trim(), due: expandForm.due, assignee: expandForm.assignee.trim(),
-          assigneeId: expandForm.assigneeId, priority: expandForm.priority,
-          estimated: Number(expandForm.estimated) || 0, actual: Number(expandForm.actual) || 0, notes: expandForm.notes.trim(),
-        }
-      : t) }));
-    setExpandedId(null);
-  }
-
-  function addSubtask(itemId) {
-    if (!subtaskInput.trim()) return;
-    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === itemId
-      ? { ...t, subtasks: [...(t.subtasks || []), { id: cryptoId(), text: subtaskInput.trim(), done: false }] }
-      : t) }));
-    setSubtaskInput('');
-  }
-  function toggleSubtask(itemId, subId) {
-    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === itemId
-      ? { ...t, subtasks: (t.subtasks || []).map(s => s.id === subId ? { ...s, done: !s.done } : s) }
-      : t) }));
-  }
-  function deleteSubtask(itemId, subId) {
-    onUpdate(e => ({ ...e, checklist: e.checklist.map(t => t.id === itemId
-      ? { ...t, subtasks: (t.subtasks || []).filter(s => s.id !== subId) }
-      : t) }));
+    setBasicsEditing(false);
   }
 
   function saveGuests() {
@@ -661,158 +615,62 @@ function PreplanningTab({ ev, onUpdate, volunteers }) {
         {basicsEditing ? (
           <>
             <div style={{ marginBottom: 10 }}>
-              <div className="label">Main Purpose of This Event</div>
-              <select className="input" style={{ appearance: 'auto' }} value={basics.purpose} onChange={e => setBasics(b => ({ ...b, purpose: e.target.value }))}>
-                <option value="">Select a purpose…</option>
-                {EVENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <div className="label">Event Name *</div>
+              <input className="input" value={basics.name} onChange={e => setBasics(b => ({ ...b, name: e.target.value }))} placeholder="e.g. Holiday Open House" />
             </div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Event Type</div>
+                <select className="input" style={{ appearance: 'auto' }} value={basics.purpose} onChange={e => setBasics(b => ({ ...b, purpose: e.target.value }))}>
+                  <option value="">Select a type…</option>
+                  {EVENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="label">Event Date *</div>
+                <input className="input" type="date" value={basics.date} onChange={e => setBasics(b => ({ ...b, date: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Start Time</div>
+                <TimeSelect value={basics.startTime} onChange={v => setBasics(b => ({ ...b, startTime: v }))} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="label">End Time</div>
+                <TimeSelect value={basics.endTime} onChange={v => setBasics(b => ({ ...b, endTime: v }))} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Event Lead *</div>
+                <input className="input" value={basics.eventLead} onChange={e => setBasics(b => ({ ...b, eventLead: e.target.value }))} placeholder="Responsible person" />
+              </div>
               <div style={{ flex: 1 }}>
                 <div className="label">Expected Attendance</div>
-                <input className="input" value={basics.expectedAttendance} onChange={e => setBasics(b => ({ ...b, expectedAttendance: e.target.value }))} placeholder="e.g. 40–60 guests" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div className="label">Ticket Price / Free / Donation-Based</div>
-                <input className="input" value={basics.pricing} onChange={e => setBasics(b => ({ ...b, pricing: e.target.value }))} placeholder="e.g. $25/ticket, Free, Donation-based" />
+                <input className="input" value={basics.expectedAttendance} onChange={e => setBasics(b => ({ ...b, expectedAttendance: e.target.value }))} placeholder="e.g. 75" />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 8, maxWidth: 480 }}>
-              <div style={{ flex: 1 }}>
-                <div className="label">Event Lead</div>
-                <input className="input" value={basics.eventLead} onChange={e => setBasics(b => ({ ...b, eventLead: e.target.value }))} placeholder="Who's running point on this event" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div className="label">Volunteers Needed</div>
-                <input className="input" type="number" min="0" value={basics.volunteersNeeded} onChange={e => setBasics(b => ({ ...b, volunteersNeeded: e.target.value }))} placeholder="e.g. 8" />
-              </div>
+            <div style={{ marginBottom: 10 }}>
+              <div className="label">Event Purpose (optional)</div>
+              <textarea className="input" rows={3} style={{ resize: 'vertical' }} value={basics.description} onChange={e => setBasics(b => ({ ...b, description: e.target.value }))} placeholder="Briefly describe the event's goal." />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-gold" style={{ fontSize: 12, padding: '7px 14px' }} onClick={saveBasics}>Save</button>
+              <button className="btn-gold" style={{ fontSize: 12, padding: '7px 14px' }} disabled={!basics.name.trim() || !basics.date || !basics.eventLead.trim()} onClick={saveBasics}>Save</button>
               <button className="btn-ghost" style={{ fontSize: 12, padding: '7px 14px' }} onClick={cancelBasics}>Cancel</button>
             </div>
           </>
         ) : (
           <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {ev.purpose && <div><strong>Purpose:</strong> {ev.purpose}</div>}
-            {ev.expectedAttendance && <div><strong>Expected attendance:</strong> {ev.expectedAttendance}</div>}
-            {ev.pricing && <div><strong>Pricing:</strong> {ev.pricing}</div>}
+            <div><strong>Event name:</strong> {ev.name}</div>
+            {ev.purpose && <div><strong>Event type:</strong> {ev.purpose}</div>}
+            <div><strong>Event date:</strong> {ev.date ? fmtDate(ev.date) : 'Not set'}</div>
+            {(ev.startTime || ev.endTime) && <div><strong>Time:</strong> {ev.startTime ? fmtTime12(ev.startTime) : '?'} – {ev.endTime ? fmtTime12(ev.endTime) : '?'}</div>}
             {ev.eventLead && <div><strong>Event lead:</strong> {ev.eventLead}</div>}
-            {ev.volunteersNeeded !== '' && ev.volunteersNeeded != null && <div><strong>Volunteers needed:</strong> {ev.volunteersNeeded}</div>}
-            {!ev.purpose && !ev.expectedAttendance && !ev.pricing && !ev.eventLead && (ev.volunteersNeeded === '' || ev.volunteersNeeded == null) && (
-              <div style={{ color: 'var(--muted)' }}>Nothing set yet -- click Edit to fill these in.</div>
-            )}
+            {ev.expectedAttendance && <div><strong>Expected attendance:</strong> {ev.expectedAttendance}</div>}
+            {ev.description && <div><strong>Purpose:</strong> {ev.description}</div>}
           </div>
         )}
-      </div>
-
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={sectionTitle}>Checklist</div>
-          <div style={{ display: 'flex', gap: 12, fontSize: 10, color: 'var(--muted)', marginBottom: 12 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: TASK_PRIORITY.high.color, display: 'inline-block' }} />High</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: TASK_PRIORITY.medium.color, display: 'inline-block' }} />Medium</span>
-          </div>
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
-          Click an item to edit it, add subtasks, or attach an estimated/actual $ amount and notes.
-        </div>
-        {ev.checklist.map(t => {
-          const hasMoney = t.estimated > 0 || t.actual > 0;
-          const hasNotes = !!(t.notes && t.notes.trim());
-          const subtasks = t.subtasks || [];
-          const subDone = subtasks.filter(s => s.done).length;
-          const isOpen = expandedId === t.id;
-          return (
-            <div key={t.id}>
-              <ItemRow done={t.done} onDelete={() => deleteItem(t.id)} accent={t.priority ? TASK_PRIORITY[t.priority].color : null}>
-                <PriorityDot priority={t.priority} onClick={() => cycleItemPriority(t.id)} />
-                <input type="checkbox" checked={t.done} onChange={() => toggleItem(t.id)} style={{ accentColor: 'var(--gold)', width: 15, height: 15 }} />
-                <button onClick={() => startExpand(t)} title="Edit item"
-                  style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
-                  <span style={{ fontSize: 13, textDecoration: t.done ? 'line-through' : 'none', color: 'var(--text)' }}>{t.text}</span>
-                  {(hasMoney || hasNotes || subtasks.length > 0) && (
-                    <span style={{ fontSize: 11, color: 'var(--gold)', marginLeft: 8 }}>
-                      {subtasks.length > 0 ? `${subDone}/${subtasks.length} subtasks` : ''}
-                      {subtasks.length > 0 && (hasMoney || hasNotes) ? ' · ' : ''}
-                      {hasMoney ? `Est. ${money(t.estimated)} · Act. ${money(t.actual)}` : ''}{hasMoney && hasNotes ? ' · ' : ''}{hasNotes ? 'notes' : ''}
-                    </span>
-                  )}
-                </button>
-                <span style={{ fontSize: 11, color: t.assigneeId ? 'var(--gold)' : 'var(--muted)', whiteSpace: 'nowrap' }}>{t.assignee ? `${t.assigneeId ? '@' : ''}${t.assignee} · ` : ''}{t.due ? fmtDateShort(t.due) : ''}</span>
-              </ItemRow>
-              {isOpen && (
-                <div style={{ padding: '10px 0 14px 33px' }}>
-                  <div className="label">Item</div>
-                  <input className="input" style={{ marginBottom: 8 }} value={expandForm.text} onChange={e => setExpandForm(f => ({ ...f, text: e.target.value }))} />
-                  <div style={{ display: 'flex', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-                    <div>
-                      <div className="label">Priority</div>
-                      <select className="input" style={{ width: 118, appearance: 'auto' }} value={expandForm.priority} onChange={e => setExpandForm(f => ({ ...f, priority: e.target.value }))}>
-                        <option value="">No priority</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    </div>
-                    <div>
-                      <div className="label">Due</div>
-                      <input className="input" type="date" style={{ width: 130 }} value={expandForm.due} onChange={e => setExpandForm(f => ({ ...f, due: e.target.value }))} />
-                    </div>
-                    <div>
-                      <div className="label">Assignee</div>
-                      <AssigneeMentionInput key={t.id} assignee={expandForm.assignee} assigneeId={expandForm.assigneeId} volunteers={volunteers}
-                        onChange={(assignee, assigneeId) => setExpandForm(f => ({ ...f, assignee, assigneeId }))} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      <div className="label">Estimated $</div>
-                      <input className="input" type="number" value={expandForm.estimated} onChange={e => setExpandForm(f => ({ ...f, estimated: e.target.value }))} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="label">Actual $</div>
-                      <input className="input" type="number" value={expandForm.actual} onChange={e => setExpandForm(f => ({ ...f, actual: e.target.value }))} />
-                    </div>
-                  </div>
-                  <div className="label">Notes</div>
-                  <textarea className="input" rows={3} style={{ resize: 'vertical', marginBottom: 12 }} value={expandForm.notes} onChange={e => setExpandForm(f => ({ ...f, notes: e.target.value }))} placeholder="Details for this item…" />
-
-                  <div className="label" style={{ marginBottom: 6 }}>Subtasks</div>
-                  {subtasks.map(s => (
-                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
-                      <input type="checkbox" checked={s.done} onChange={() => toggleSubtask(t.id, s.id)} style={{ accentColor: 'var(--gold)', width: 14, height: 14 }} />
-                      <span style={{ flex: 1, fontSize: 12, textDecoration: s.done ? 'line-through' : 'none', color: s.done ? 'var(--muted)' : 'var(--text)' }}>{s.text}</span>
-                      <button onClick={() => deleteSubtask(t.id, s.id)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', padding: '0 2px' }}>×</button>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 6, marginBottom: 12 }}>
-                    <input className="input" style={{ flex: 1, fontSize: 12 }} placeholder="Add a subtask…" value={subtaskInput}
-                      onChange={e => setSubtaskInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSubtask(t.id); } }} />
-                    <button className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => addSubtask(t.id)}>Add</button>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn-gold" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => saveExpand(t.id)}>Save</button>
-                    <button className="btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => setExpandedId(null)}>Close</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-          <input className="input" style={{ flex: 1, minWidth: 140 }} placeholder="Add an item…" value={itemForm.text} onChange={e => setItemForm(f => ({ ...f, text: e.target.value }))} />
-          <select className="input" style={{ width: 118, appearance: 'auto' }} value={itemForm.priority} onChange={e => setItemForm(f => ({ ...f, priority: e.target.value }))}>
-            <option value="">No priority</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-          <input className="input" type="date" style={{ width: 130 }} value={itemForm.due} onChange={e => setItemForm(f => ({ ...f, due: e.target.value }))} />
-          <AssigneeMentionInput assignee={itemForm.assignee} assigneeId={itemForm.assigneeId} volunteers={volunteers}
-            onChange={(assignee, assigneeId) => setItemForm(f => ({ ...f, assignee, assigneeId }))} />
-          <button className="btn-gold" style={{ padding: '9px 14px' }} onClick={addItem}>Add</button>
-        </div>
       </div>
 
       <div style={{ marginBottom: 24 }}>
