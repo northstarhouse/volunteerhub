@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
 import QuarterHourSelect from './QuarterHourSelect.jsx';
-import { updateTourRequestStatus, updateTourRequestNotes, addTourToCalendar, setTourRequestCalendarEventId } from '../lib/db.js';
+import { updateTourRequestStatus, updateTourRequestNotes, addTourToCalendar, setTourRequestCalendarEventId, setTourRequestArchived } from '../lib/db.js';
 
 const GOLD = '#886c44';
 
 const TOUR_STATUS_OPTIONS = ['Scheduled Tour', 'Contact Made', 'Dates Not Workable'];
-const STATUS_COLORS = {
+export const STATUS_COLORS = {
   'Scheduled Tour':      { bg: '#e8f5e9', color: '#2e7d32' },
   'Contact Made':        { bg: '#fff8e1', color: '#8a6200' },
   'Dates Not Workable':  { bg: '#ffebee', color: '#b71c1c' },
 };
 
-function fmtWhen(iso) {
+export function fmtWhen(iso) {
   try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
   catch { return iso; }
 }
@@ -50,7 +50,7 @@ function AddToCalendarRow({ request, onScheduled }) {
       if (res.ok) {
         setResult({ ok: true, htmlLink: res.htmlLink });
         setOpen(false);
-        if (res.eventId) setTourRequestCalendarEventId(request.id, res.eventId).catch(() => {});
+        if (res.eventId) setTourRequestCalendarEventId(request.id, res.eventId, date).catch(() => {});
         onScheduled?.(res.eventId);
       } else {
         setResult({ ok: false, error: res.error || 'Failed to add to calendar.' });
@@ -100,8 +100,9 @@ function AddToCalendarRow({ request, onScheduled }) {
 // Tour Form. Reads/writes nsh_form_responses directly (same table Portal's
 // notification trigger inserts into), so it's always current.
 export default function TourRequestsCard({ requests }) {
-  const { volunteer, session } = useVol();
+  const { volunteer, session, setView } = useVol();
   const [items, setItems] = useState(requests);
+  const [archivingId, setArchivingId] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [notesDraft, setNotesDraft] = useState({});
   const [savingNotesId, setSavingNotesId] = useState(null);
@@ -119,6 +120,14 @@ export default function TourRequestsCard({ requests }) {
     const ok = await updateTourRequestStatus(id, value || null, volunteer, session?.user?.id);
     if (ok) setItems(prev => prev.map(r => (r.id === id ? { ...r, tour_status: value || null } : r)));
     setSavingId(null);
+  }
+
+  async function handleArchive(id) {
+    if (archivingId) return;
+    setArchivingId(id);
+    const ok = await setTourRequestArchived(id, true, volunteer, session?.user?.id);
+    if (ok) setItems(prev => prev.filter(r => r.id !== id));
+    setArchivingId(null);
   }
 
   function startEditingNotes(id) {
@@ -184,6 +193,10 @@ export default function TourRequestsCard({ requests }) {
                 {TOUR_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
               {savingId === r.id && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Saving…</span>}
+              <button type="button" onClick={() => handleArchive(r.id)} disabled={archivingId === r.id}
+                title="Move to Past Tours" className="btn-ghost" style={{ marginLeft: 'auto', fontSize: 11, padding: '5px 10px' }}>
+                {archivingId === r.id ? 'Archiving…' : 'Archive'}
+              </button>
             </div>
             <AddToCalendarRow request={r} onScheduled={eventId => {
               setItems(prev => prev.map(x => (x.id === r.id ? { ...x, calendar_event_id: eventId || x.calendar_event_id } : x)));
@@ -234,6 +247,10 @@ export default function TourRequestsCard({ requests }) {
           </div>
         );
       })}
+      <button type="button" onClick={() => setView('past-tours')} className="btn-ghost"
+        style={{ display: 'block', width: '100%', marginTop: 14, fontSize: 12 }}>
+        Past Tours
+      </button>
     </div>
   );
 }

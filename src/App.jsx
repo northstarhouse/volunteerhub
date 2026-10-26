@@ -15,6 +15,7 @@ const EventsCommittee = lazy(() => import('./pages/EventOverviews.jsx'));
 const EventsCommitteePlanning = lazy(() => import('./pages/EventsCommittee.jsx'));
 const ArchiveUpload = lazy(() => import('./pages/ArchiveUpload.jsx'));
 const Resources = lazy(() => import('./pages/Resources.jsx'));
+const PastTours = lazy(() => import('./pages/PastTours.jsx'));
 
 export const VolContext = createContext(null);
 export const useVol = () => useContext(VolContext);
@@ -331,6 +332,7 @@ export default function App() {
     'events-committee-planning': <EventsCommitteePlanning />,
     'archive-upload': <ArchiveUpload />,
     resources: <Resources />,
+    'past-tours': <PastTours />,
   };
 
   return (

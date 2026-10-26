@@ -153,12 +153,51 @@ const DOCENT_TOUR_FORM_ID = '0635cd26-b0c7-4076-b9b1-bd25d1949467';
 // `limit` as they come in.
 const TOUR_REQUESTS_CUTOFF = '2026-09-28T15:18:31.52054+00:00';
 
+const TOUR_REQUEST_FIELDS = 'id,answers,created_at,tour_status,internal_notes,calendar_event_id,tour_date,archived_at';
+
+// Local (Pacific) date as YYYY-MM-DD, for comparing against tour dates.
+function todayYmd() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Open requests only: a request moves to Past Tours once a docent archives
+// it, or once its scheduled tour_date (set when it's added to the calendar)
+// has gone by.
 export async function fetchRecentTourRequests(limit = 4) {
   // The cutoff's "+00:00" offset has to be URL-encoded -- an unencoded "+"
   // in a query string is read as a literal space, which broke the date
   // parse entirely (a silent-looking empty result, actually a 400).
-  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${encodeURIComponent(TOUR_REQUESTS_CUTOFF)}&select=id,answers,created_at,tour_status,internal_notes,calendar_event_id&order=created_at.desc&limit=${limit}`);
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&created_at=gte.${encodeURIComponent(TOUR_REQUESTS_CUTOFF)}&archived_at=is.null&or=(tour_date.is.null,tour_date.gte.${todayYmd()})&select=${TOUR_REQUEST_FIELDS}&order=created_at.desc&limit=${limit}`);
   return Array.isArray(rows) ? rows : [];
+}
+
+// Past Tours page: archived requests, requests whose tour date has passed,
+// and the older backlog from before TOUR_REQUESTS_CUTOFF.
+export async function fetchPastTourRequests() {
+  const cutoff = encodeURIComponent(TOUR_REQUESTS_CUTOFF);
+  const rows = await get(`nsh_form_responses?form_id=eq.${DOCENT_TOUR_FORM_ID}&or=(archived_at.not.is.null,tour_date.lt.${todayYmd()},created_at.lt.${cutoff})&select=${TOUR_REQUEST_FIELDS}&order=created_at.desc&limit=200`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function setTourRequestArchived(id, archived, vol, authUserId) {
+  const archivedAt = archived ? new Date().toISOString() : null;
+  const res = await fetch(`${URL}/rest/v1/nsh_form_responses?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: await hdr({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({ archived_at: archivedAt }),
+  });
+  if (res.ok) {
+    const name = vol ? `${vol['First Name'] || ''} ${vol['Last Name'] || ''}`.trim() : 'A docent';
+    logActivity({
+      vol, authUserId,
+      action: archived ? 'tour_request_archived' : 'tour_request_restored',
+      tag: 'Tour',
+      description: archived ? `${name} moved a tour request to Past Tours` : `${name} restored a tour request from Past Tours`,
+      detail: { response_id: id },
+    }).catch(() => {});
+  }
+  return res.ok ? archivedAt : false;
 }
 
 // RSVPs from the public site's "View upcoming tour dates" pop-up (2nd & 4th
@@ -167,9 +206,13 @@ export async function fetchRecentTourRequests(limit = 4) {
 const PUBLIC_TOUR_RSVP_FORM_ID = '74efea38-e863-4050-921e-234b563be78e';
 
 export async function fetchUpcomingPublicTourRsvps() {
-  const d = new Date();
-  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const rows = await get(`nsh_form_responses?form_id=eq.${PUBLIC_TOUR_RSVP_FORM_ID}&answers->>pt_tour_date=gte.${today}&select=id,answers,created_at&order=created_at.asc`);
+  const rows = await get(`nsh_form_responses?form_id=eq.${PUBLIC_TOUR_RSVP_FORM_ID}&answers->>pt_tour_date=gte.${todayYmd()}&select=id,answers,created_at&order=created_at.asc`);
+  return Array.isArray(rows) ? rows : [];
+}
+
+// The Past Tours page's half of the above: RSVPs for public tours already held.
+export async function fetchPastPublicTourRsvps() {
+  const rows = await get(`nsh_form_responses?form_id=eq.${PUBLIC_TOUR_RSVP_FORM_ID}&answers->>pt_tour_date=lt.${todayYmd()}&select=id,answers,created_at&order=created_at.asc`);
   return Array.isArray(rows) ? rows : [];
 }
 
@@ -204,12 +247,13 @@ export async function updateTourRequestStatus(id, tourStatus, vol, authUserId) {
 
 // Persists the Google Calendar event id straight onto the submission, once
 // created, so "Add to Calendar" can show "Added to Calendar" permanently
-// instead of only remembering it for this one page view.
-export async function setTourRequestCalendarEventId(id, eventId) {
+// instead of only remembering it for this one page view. The tour date goes
+// with it, so the request moves to Past Tours on its own after the tour.
+export async function setTourRequestCalendarEventId(id, eventId, tourDate) {
   const res = await fetch(`${URL}/rest/v1/nsh_form_responses?id=eq.${id}`, {
     method: 'PATCH',
     headers: await hdr({ Prefer: 'return=minimal' }),
-    body: JSON.stringify({ calendar_event_id: eventId }),
+    body: JSON.stringify({ calendar_event_id: eventId, ...(tourDate ? { tour_date: tourDate } : {}) }),
   });
   return res.ok;
 }
