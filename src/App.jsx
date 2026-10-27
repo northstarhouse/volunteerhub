@@ -3,6 +3,7 @@ import { supabase, initialAuthType } from './supabase.js';
 import { fetchVolunteerByEmail, fetchVolunteerById, logActivity } from './lib/db.js';
 import Nav from './components/Nav.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import ViewAsBar from './components/ViewAsBar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 
 // Keep the dashboard ready immediately; download other pages only when opened.
@@ -216,6 +217,13 @@ export default function App() {
   // event, then clears it.
   const [currentCommitteeEvent, setCurrentCommitteeEvent] = useState(null);
   const [isMobile, setIsMobile]           = useState(window.innerWidth < 768);
+  // Staff can preview the Hub as each committee sees it (kept per browser tab).
+  const [viewAs, setViewAsState]           = useState(() => { try { return sessionStorage.getItem('hubViewAs') || ''; } catch { return ''; } });
+  function setViewAs(team) {
+    setViewAsState(team);
+    try { sessionStorage.setItem('hubViewAs', team); } catch { /* private mode */ }
+    setView('dashboard');
+  }
 
   function setView(next) {
     setViewState(next);
@@ -322,6 +330,13 @@ export default function App() {
   if (linkError) return <NoProfileScreen email={session.user.email} onSignOut={signOut} />;
   if (!volunteer) return <Spinner message="Loading…" />;
 
+  const realTags = (volunteer.Team || '').split(/[|,]/).map(t => t.trim().toLowerCase());
+  const isStaff = realTags.includes('staff');
+  const previewing = isStaff && !!viewAs;
+  const shownVolunteer = previewing ? { ...volunteer, Team: viewAs } : volunteer;
+  // A profile save while previewing must never write the preview's team tags back.
+  const saveVolunteer = previewing ? (v) => setVolunteer(typeof v === 'function' ? v : { ...v, Team: volunteer.Team }) : setVolunteer;
+
   const pages = {
     dashboard: <Dashboard />,
     profile:   <Profile />,
@@ -338,9 +353,10 @@ export default function App() {
   };
 
   return (
-    <VolContext.Provider value={{ volunteer, setVolunteer, session, signOut, currentArea, setCurrentArea, openArea, currentCommitteeEvent, setCurrentCommitteeEvent, openCommitteeEvent, setView }}>
+    <VolContext.Provider value={{ volunteer: shownVolunteer, setVolunteer: saveVolunteer, session, signOut, currentArea, setCurrentArea, openArea, currentCommitteeEvent, setCurrentCommitteeEvent, openCommitteeEvent, setView }}>
       {isMobile ? (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
+          {isStaff && <ViewAsBar viewAs={viewAs} setViewAs={setViewAs} />}
           <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>
             {pages[view] ?? pages.dashboard}
           </Suspense>
@@ -350,6 +366,7 @@ export default function App() {
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
           <Sidebar view={view} setView={setView} />
           <div style={{ flex: 1, minWidth: 0 }}>
+            {isStaff && <ViewAsBar viewAs={viewAs} setViewAs={setViewAs} />}
             <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>
               {pages[view] ?? pages.dashboard}
             </Suspense>
