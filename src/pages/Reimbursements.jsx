@@ -379,6 +379,9 @@ export default function Reimbursements() {
           </div>
         )}
 
+        {!loading && items.length > 0 && (
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, margin: '4px 0 10px' }}>Past Requests</div>
+        )}
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
         ) : items.length === 0 && !showForm ? (
