@@ -21,6 +21,7 @@ export default function Resources() {
   const { setView, volunteer } = useVol();
   const myTeams = (volunteer.Team || '').split('|').map(t => t.trim());
   const isLeader = myTeams.includes('Team Lead') || myTeams.includes('Board Member');
+  const links = myTeams.includes('Staff') ? LINKS.filter(l => l.view !== 'hours') : LINKS;
 
   return (
     <div>
@@ -33,7 +34,7 @@ export default function Resources() {
             {f.label}
           </a>
         ))}
-        {LINKS.map(l => (
+        {links.map(l => (
           <button key={l.label} onClick={() => setView(l.view)} className="btn-ghost" style={btnStyle}>
             {l.label}
           </button>

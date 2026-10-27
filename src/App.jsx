@@ -341,7 +341,8 @@ export default function App() {
     dashboard: <Dashboard />,
     profile:   <Profile />,
     directory: <Directory />,
-    hours:     <Hours />,
+    // Staff don't log volunteer hours.
+    hours:     (shownVolunteer.Team || '').split(/[|,]/).some(t => t.trim().toLowerCase() === 'staff') ? <Dashboard /> : <Hours />,
     areas:     <OperationalAreas />,
     reimbursements: <Reimbursements />,
     'events-committee': <EventsCommittee />,

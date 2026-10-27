@@ -39,7 +39,8 @@ export default function Nav({ view, setView }) {
   const { volunteer, signOut } = useVol();
   const initials = `${(volunteer?.['First Name'] || '')[0] || ''}${(volunteer?.['Last Name'] || '')[0] || ''}`.toUpperCase();
   const hasArea = matchVolunteerAreas(volunteer?.Team).length > 0;
-  const tabs = TABS.filter(tab => tab.id !== 'areas' || hasArea);
+  const isStaff = (volunteer?.Team || '').split(/[|,]/).some(t => t.trim().toLowerCase() === 'staff'); // staff don't log volunteer hours
+  const tabs = TABS.filter(tab => (tab.id !== 'areas' || hasArea) && !(isStaff && tab.id === 'hours'));
 
   return (
     <nav style={{

@@ -34,6 +34,8 @@ export default function Sidebar({ view, setView }) {
   const { volunteer, signOut, openArea, currentArea } = useVol();
   const initials = `${(volunteer?.['First Name'] || '')[0] || ''}${(volunteer?.['Last Name'] || '')[0] || ''}`.toUpperCase();
   const myAreas = matchVolunteerAreas(volunteer?.Team);
+  // Staff don't log volunteer hours.
+  const isStaff = (volunteer?.Team || '').split(/[|,]/).some(t => t.trim().toLowerCase() === 'staff');
 
   return (
     <div style={{ display: 'flex', position: 'sticky', top: 0, height: '100vh', flexShrink: 0 }}>
@@ -45,7 +47,7 @@ export default function Sidebar({ view, setView }) {
         <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)', margin: '0 0 8px' }} />
 
         <nav style={{ padding: '0 8px' }}>
-          {TABS.map(tab => {
+          {TABS.filter(tab => !(isStaff && tab.id === 'hours')).map(tab => {
             const active = view === tab.id;
             return (
               <button key={tab.id} onClick={() => setView(tab.id)} style={{

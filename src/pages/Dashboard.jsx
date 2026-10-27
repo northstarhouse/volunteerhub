@@ -489,7 +489,7 @@ export default function Dashboard() {
           <div>
             {isDocent && <PublicTourRsvpsCard />}
             {isDocent && <TourRequestsCard requests={tourRequests} />}
-            <HoursSnapshotCard data={hoursData} />
+            {!myTeams.includes('Staff') && <HoursSnapshotCard data={hoursData} />}
             <AnnouncementBoard />
             <ResourcesCard areas={myAreas} />
             <MyEventTasksCard volunteerId={volunteer.id} setView={setView} />
