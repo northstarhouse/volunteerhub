@@ -508,7 +508,7 @@ export default function Dashboard() {
                 <UpcomingEventsCard setView={setView} openCommitteeEvent={openCommitteeEvent} />
                 <button onClick={() => setView('events-committee-planning')}
                   className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
-                  Events Committee
+                  Event Planning & Overviews
                 </button>
                 <EventsVotingCard />
               </>

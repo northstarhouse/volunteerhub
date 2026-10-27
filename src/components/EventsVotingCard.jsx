@@ -33,13 +33,13 @@ export default function EventsVotingCard() {
       ) : state.open.length === 0 ? (
         <div style={{ fontSize: 13, color: 'var(--muted)' }}>No open votes right now.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid #e6d9bf' }}>
           {state.open.slice(0, 3).map(i => {
             const voted = hasVotedAll(i, state.parts, state.votes, me);
             return (
-              <div key={i.id} onClick={() => setView('events-committee-voting')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: '#faf8f5', borderRadius: 6 }}>
+              <div key={i.id} onClick={() => setView('events-committee-voting')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '11px 4px', borderBottom: '1px solid #e6d9bf' }}>
                 <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{i.title}</span>
-                {voted ? <span style={{ fontSize: 12, color: '#2e7d32', fontWeight: 600 }}>✓ Voted</span> : <span style={{ fontSize: 12, color: '#e65100', fontWeight: 600 }}>Vote</span>}
+                {voted ? <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontStyle: 'italic', fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>Voted</span> : <span style={{ fontSize: 12, color: '#e65100', fontWeight: 600 }}>Vote</span>}
               </div>
             );
           })}

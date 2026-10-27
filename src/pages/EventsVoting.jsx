@@ -150,7 +150,7 @@ export default function EventsVoting() {
   const latestOpen = openItems[0];
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>;
 
-  const card = { background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, padding: '16px 20px', cursor: 'pointer' };
+  const card = { background: '#fff', border: '1px solid #e6d9bf', borderRadius: 10, padding: '16px 20px', cursor: 'pointer' };
   const btnOutline = { background: '#fff', color: '#555', border: '0.5px solid var(--border)', borderRadius: 7, padding: '6px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer' };
   const setPart = (i, patch) => setTopicForm(f => ({ ...f, parts: f.parts.map((p, j) => (j === i ? { ...p, ...patch } : p)) }));
 
@@ -214,7 +214,7 @@ export default function EventsVoting() {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 12, color: '#777' }}>{votedCount(item, parts, votes, members)}/{members.length} voted</span>
                     {isOpen && !iMine(item) && <span style={{ background: '#fff3e0', color: '#e65100', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}>Needs your vote</span>}
-                    {isOpen && iMine(item) && <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}>✓ You voted</span>}
+                    {isOpen && iMine(item) && <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontStyle: 'italic', fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>Voted</span>}
                     {!isOpen && <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}>Closed</span>}
                   </div>
                 </div>
