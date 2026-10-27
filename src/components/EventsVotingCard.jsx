@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useVol } from '../App.jsx';
-import { fetchAllActiveVolunteers, fetchVoteItems, fetchVotes } from '../lib/db.js';
-import { committeeMembers, isRevealed, itemVotes } from '../lib/eventsVoting.js';
+import { fetchAllActiveVolunteers, fetchVoteItems, fetchVotes, fetchVoteParts } from '../lib/db.js';
+import { committeeMembers, isRevealed, hasVotedAll } from '../lib/eventsVoting.js';
 
 // Dashboard card for Events Committee members: votes waiting, and which ones still need your vote.
 export default function EventsVotingCard() {
@@ -9,18 +9,18 @@ export default function EventsVotingCard() {
   const [state, setState] = useState(null);
 
   useEffect(() => {
-    Promise.all([fetchVoteItems(), fetchVotes(), fetchAllActiveVolunteers()])
-      .then(([items, votes, vols]) => {
+    Promise.all([fetchVoteItems(), fetchVotes(), fetchVoteParts(), fetchAllActiveVolunteers()])
+      .then(([items, votes, parts, vols]) => {
         const m = committeeMembers(Array.isArray(vols) ? vols : []);
         const members = m.some(v => String(v.id) === String(volunteer.id)) ? m : [...m, volunteer];
-        const open = items.filter(i => !isRevealed(i, votes, members));
-        setState({ open, votes });
+        const open = items.filter(i => !isRevealed(i, parts, votes, members));
+        setState({ open, votes, parts });
       })
-      .catch(() => setState({ open: [], votes: [] }));
+      .catch(() => setState({ open: [], votes: [], parts: [] }));
   }, []);
 
   const me = String(volunteer.id);
-  const needs = state ? state.open.filter(i => !itemVotes(i, state.votes).some(v => String(v.voter_id) === me)) : [];
+  const needs = state ? state.open.filter(i => !hasVotedAll(i, state.parts, state.votes, me)) : [];
 
   return (
     <div className="card" style={{ marginTop: 14 }}>
@@ -35,7 +35,7 @@ export default function EventsVotingCard() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {state.open.slice(0, 3).map(i => {
-            const voted = itemVotes(i, state.votes).some(v => String(v.voter_id) === me);
+            const voted = hasVotedAll(i, state.parts, state.votes, me);
             return (
               <div key={i.id} onClick={() => setView('events-committee-voting')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: '#faf8f5', borderRadius: 6 }}>
                 <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{i.title}</span>

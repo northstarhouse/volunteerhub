@@ -1076,13 +1076,28 @@ export async function deleteVoteItem(id) {
   return del(`events_vote_items?id=eq.${encodeURIComponent(id)}`);
 }
 
-// One vote per person per item: a second submit changes the first.
-export async function castVote({ itemId, voterId, voter, choice, note, changedInMeeting, existingId }) {
-  const body = { choice, note: note || null, voter, updated_at: new Date().toISOString() };
-  const res = existingId
-    ? await patch(`events_votes?id=eq.${encodeURIComponent(existingId)}`, { ...body, changed_in_meeting: !!changedInMeeting })
-    : await post('events_votes', { ...body, item_id: itemId, voter_id: String(voterId), changed_in_meeting: false });
-  if (res && res.message) throw new Error(res.message);
+export async function fetchVoteParts() {
+  const rows = await get('events_vote_parts?select=*&order=sort_order.asc,created_at.asc');
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function createVoteParts(itemId, parts) {
+  if (!parts.length) return [];
+  const rows = await post('events_vote_parts', parts.map((p, i) => ({ item_id: itemId, title: p.title, description: p.description || null, sort_order: i })));
+  if (rows && rows.message) throw new Error(rows.message);
+  return rows;
+}
+
+// One vote per person per voted-on piece (a whole item, or one part of it): a second submit changes the first.
+// `entries` = [{ partId, choice, note, existingId, changedInMeeting }]
+export async function castVotes({ itemId, voterId, voter, entries }) {
+  for (const e of entries) {
+    const body = { choice: e.choice, note: e.note || null, voter, updated_at: new Date().toISOString() };
+    const res = e.existingId
+      ? await patch(`events_votes?id=eq.${encodeURIComponent(e.existingId)}`, { ...body, changed_in_meeting: !!e.changedInMeeting })
+      : await post('events_votes', { ...body, item_id: itemId, part_id: e.partId || null, voter_id: String(voterId), changed_in_meeting: false });
+    if (res && res.message) throw new Error(res.message);
+  }
 }
 
 export async function sendVoteNotification({ to, title, link }) {
