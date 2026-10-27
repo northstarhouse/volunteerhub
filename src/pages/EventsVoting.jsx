@@ -160,7 +160,7 @@ export default function EventsVoting() {
         <button onClick={() => setView('dashboard')} style={{ background: 'none', border: 'none', color: gold, fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 8 }}>← Dashboard</button>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: gold }}>Committee Voting</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ width: 44, height: SZ, borderRadius: 12, background: '#f0ece5', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#2a2a2a' }}><svg width={22} height={ISZ} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h16v6H4z"/><path d="M8 14l-1-4h10l-1 4"/><path d="M9 4h6l1 6H8z"/><path d="M10.5 7l1 1 2-2"/></svg></span><span style={{ fontSize: 28, fontFamily: "'Cardo','Georgia',serif", fontWeight: 700, color: 'var(--gold)', textShadow: '1px 2px 0px rgba(136,108,68,0.2)' }}>Committee Voting</span></div>
             <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>{items.length} item{items.length !== 1 ? 's' : ''} · Events Committee</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>

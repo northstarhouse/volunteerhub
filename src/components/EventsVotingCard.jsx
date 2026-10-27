@@ -25,7 +25,7 @@ export default function EventsVotingCard() {
   return (
     <div className="card" style={{ marginTop: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--gold)' }}>Committee Voting</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ width: 44, height: SZ, borderRadius: 12, background: '#f0ece5', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#2a2a2a' }}><svg width={22} height={ISZ} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h16v6H4z"/><path d="M8 14l-1-4h10l-1 4"/><path d="M9 4h6l1 6H8z"/><path d="M10.5 7l1 1 2-2"/></svg></span><span style={{ fontSize: 26, fontFamily: "'Cardo','Georgia',serif", fontWeight: 700, color: 'var(--gold)', textShadow: '1px 2px 0px rgba(136,108,68,0.2)' }}>Committee Voting</span></div>
         {state && needs.length > 0 && <span style={{ background: '#fff3e0', color: '#e65100', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}>{needs.length} need{needs.length === 1 ? 's' : ''} your vote</span>}
       </div>
       {!state ? (
