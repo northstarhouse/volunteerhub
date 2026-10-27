@@ -1337,12 +1337,6 @@ export default function EventsCommittee() {
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
         ) : selected ? (
           <EventDetail ev={selected} onUpdate={updateSelected} onBack={() => setSelectedId(null)} onEdit={openEditModal} volunteers={volunteers} session={session} volunteer={volunteer} />
-        ) : events.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '36px 20px' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", marginBottom: 6 }}>Nothing on the docket yet</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Create your first event to start planning.</div>
-            <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
-          </div>
         ) : (
           <EventCardsGrid onOpen={openEventByName} />
         )}
