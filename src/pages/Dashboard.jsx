@@ -9,6 +9,7 @@ import {
 } from '../lib/db.js';
 import TourRequestsCard from '../components/TourRequestsCard.jsx';
 import PublicTourRsvpsCard from '../components/PublicTourRsvpsCard.jsx';
+import EventsVotingCard from '../components/EventsVotingCard.jsx';
 
 const GOLD = '#886c44';
 
@@ -509,6 +510,7 @@ export default function Dashboard() {
                   className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
                   Events Committee
                 </button>
+                <EventsVotingCard />
               </>
             )}
           </div>

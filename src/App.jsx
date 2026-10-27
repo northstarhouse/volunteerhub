@@ -13,6 +13,7 @@ const OperationalAreas = lazy(() => import('./pages/OperationalAreas.jsx'));
 const Reimbursements = lazy(() => import('./pages/Reimbursements.jsx'));
 const EventsCommittee = lazy(() => import('./pages/EventOverviews.jsx'));
 const EventsCommitteePlanning = lazy(() => import('./pages/EventsCommittee.jsx'));
+const EventsVoting = lazy(() => import('./pages/EventsVoting.jsx'));
 const ArchiveUpload = lazy(() => import('./pages/ArchiveUpload.jsx'));
 const Resources = lazy(() => import('./pages/Resources.jsx'));
 const PastTours = lazy(() => import('./pages/PastTours.jsx'));
@@ -330,6 +331,7 @@ export default function App() {
     reimbursements: <Reimbursements />,
     'events-committee': <EventsCommittee />,
     'events-committee-planning': <EventsCommitteePlanning />,
+    'events-committee-voting': <EventsVoting />,
     'archive-upload': <ArchiveUpload />,
     resources: <Resources />,
     'past-tours': <PastTours />,

@@ -1045,3 +1045,56 @@ export async function saveArea(eventId, areaKey, { ownerName, preData, postData,
 }
 
 
+
+// ── Events Committee voting ──────────────────────────────────────────────────
+// Same idea as the Board's voting in the Portal. Tables: events_vote_items, events_votes
+// (see supabase-events-committee-voting.sql).
+
+export async function fetchVoteItems() {
+  const rows = await get('events_vote_items?select=*&order=created_at.desc');
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function fetchVotes() {
+  const rows = await get('events_votes?select=*');
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function createVoteItem(item) {
+  const rows = await post('events_vote_items', item);
+  if (rows && rows.message) throw new Error(rows.message);
+  return Array.isArray(rows) ? rows[0] : rows;
+}
+
+export async function closeVoteItem(id) {
+  const rows = await patch(`events_vote_items?id=eq.${encodeURIComponent(id)}`, { status: 'Closed' });
+  if (rows && rows.message) throw new Error(rows.message);
+}
+
+export async function deleteVoteItem(id) {
+  // events_votes rows go with it (on delete cascade).
+  return del(`events_vote_items?id=eq.${encodeURIComponent(id)}`);
+}
+
+// One vote per person per item: a second submit changes the first.
+export async function castVote({ itemId, voterId, voter, choice, note, changedInMeeting, existingId }) {
+  const body = { choice, note: note || null, voter, updated_at: new Date().toISOString() };
+  const res = existingId
+    ? await patch(`events_votes?id=eq.${encodeURIComponent(existingId)}`, { ...body, changed_in_meeting: !!changedInMeeting })
+    : await post('events_votes', { ...body, item_id: itemId, voter_id: String(voterId), changed_in_meeting: false });
+  if (res && res.message) throw new Error(res.message);
+}
+
+export async function sendVoteNotification({ to, title, link }) {
+  const gold = '#886c44';
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const html = `<div style="background:#e6ded0;padding:32px 16px;font-family:Georgia,serif;"><div style="max-width:560px;margin:0 auto;background:#fdfbf7;"><div style="height:14px;background:${gold};"></div><div style="padding:40px;text-align:center;"><div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:3px;color:${gold};font-weight:bold;margin-bottom:14px;">EVENTS COMMITTEE</div><h1 style="margin:0 0 22px;font-size:26px;font-weight:400;color:#2a2420;">${esc(title)}</h1><div style="border-top:1px solid #e5ddcf;width:60%;margin:0 auto 22px;"></div><p style="margin:0 0 28px;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#555;line-height:1.6;text-align:left;">A new item is up for an Events Committee vote. Please review the details and cast your vote in the Volunteer Hub.</p><a href="${link}" style="display:inline-block;background:${gold};color:#fff;text-decoration:none;font-family:Helvetica,Arial,sans-serif;font-weight:bold;font-size:15px;padding:16px 32px;">Review &amp; Cast Your Vote</a></div></div></div>`;
+  const text = `${title}\n\nA new item is up for an Events Committee vote. Please review the details and cast your vote in the Volunteer Hub.\n\nReview & cast your vote: ${link}`;
+  const headers = await hdr(); delete headers.Prefer;
+  const r = await fetch(`${URL}/functions/v1/send-email`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ to, subject: `Events Committee Vote: ${title}`, body: text, html, sender: 'Events Committee' }),
+  });
+  return r.ok;
+}
