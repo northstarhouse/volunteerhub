@@ -107,3 +107,6 @@ input, textarea, select, button {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Dashboard columns start at the same height (the first card in each column has no top margin). */
+.dashboard-grid > div > :first-child { margin-top: 0 !important; }
