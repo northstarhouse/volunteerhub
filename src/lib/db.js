@@ -662,7 +662,7 @@ async function fetchMergedEventCards() {
     get(`Op%20Budget?area=eq.Events&select=event_name,amount`),
     get(`Op%20Earnings?area=eq.Events&select=event,amount`),
     get('ticket_orders?select=event_title,event_date,kind,amount'),
-    get('events_committee?select=name,status'),
+    get('events_committee?select=name,status,date'),
   ]);
   const byKey = {};
   const keyOf = (n) => (n || '').trim().toLowerCase();
@@ -698,7 +698,11 @@ async function fetchMergedEventCards() {
   // committee row with no budget/earnings/tickets/flyer yet isn't a real card.
   (Array.isArray(committee) ? committee : []).forEach(r => {
     const k = keyOf(r.name);
-    if (byKey[k]) byKey[k].status = r.status || null;
+    if (byKey[k]) {
+      byKey[k].status = r.status || null;
+      // The planning page's date fills in when the flyer/ticket sources have none.
+      if (!byKey[k].date && r.date) byKey[k].date = toIsoDate(r.date);
+    }
   });
   return Object.values(byKey);
 }
