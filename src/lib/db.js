@@ -1099,6 +1099,16 @@ export async function setEventMarketingNA(name, value) {
   if (res && res.message) throw new Error(res.message);
 }
 
+// Admin password for committee voting: checked in the database (hashed), never in the app code.
+// Resolves true only on a confirmed match; any error (including the function not existing yet) is "no".
+export async function verifyVoteAdminPassword(password) {
+  try {
+    const r = await fetch(`${URL}/rest/v1/rpc/verify_vote_admin_password`, { method: 'POST', headers: await hdr(), body: JSON.stringify({ p_password: password }) });
+    if (!r.ok) return false;
+    return (await r.json()) === true;
+  } catch { return false; }
+}
+
 export async function fetchVoteItems() {
   const rows = await get('events_vote_items?select=*&order=created_at.desc');
   return Array.isArray(rows) ? rows : [];

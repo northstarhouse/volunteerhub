@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchAllActiveVolunteers, fetchVoteItems, fetchVotes, fetchVoteParts, createVoteItem, createVoteParts,
-  closeVoteItem, deleteVoteItem, castVotes, sendVoteNotification,
+  closeVoteItem, deleteVoteItem, castVotes, sendVoteNotification, verifyVoteAdminPassword,
 } from '../lib/db.js';
 import {
   VOTE_CHOICES, NOTES_CHOICE, VOTE_COLORS, volName, committeeMembers, partsOf, unitsOf, itemVotes,
@@ -39,6 +39,11 @@ export default function EventsVoting() {
   const [saving, setSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [adminOk, setAdminOk] = useState(false); // unlocked with the admin password (until this page is left)
+  const [showPw, setShowPw] = useState(false);
+  const [pw, setPw] = useState('');
+  const [pwErr, setPwErr] = useState('');
+  const [pwBusy, setPwBusy] = useState(false);
   const [topicForm, setTopicForm] = useState(emptyTopic);
   const [busyId, setBusyId] = useState(null);
   const [notifyItem, setNotifyItem] = useState(null);
@@ -164,7 +169,7 @@ export default function EventsVoting() {
             <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>{items.length} item{items.length !== 1 ? 's' : ''} · Events Committee</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {isLeader && <button onClick={() => setShowAdmin(true)} style={btnOutline}>Admin</button>}
+            {isLeader && <button onClick={() => (adminOk ? setShowAdmin(true) : (setPw(''), setPwErr(''), setShowPw(true)))} style={btnOutline}>Admin</button>}
             {isLeader && (
               <div style={{ position: 'relative' }}>
                 <button disabled={!latestOpen} onClick={() => latestOpen && setNotifyItem(latestOpen)} style={{ ...btnOutline, color: gold, border: '1px solid var(--gold)', fontWeight: 600, opacity: latestOpen ? 1 : 0.5 }}>Send Notification</button>
@@ -361,7 +366,31 @@ export default function EventsVoting() {
         </div>
       )}
 
-      {showAdmin && (
+      {showPw && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1020, padding: 20 }}>
+          <form onSubmit={async e => {
+            e.preventDefault();
+            if (!pw || pwBusy) return;
+            setPwBusy(true); setPwErr('');
+            const ok = await verifyVoteAdminPassword(pw);
+            setPwBusy(false);
+            if (ok) { setAdminOk(true); setShowPw(false); setPw(''); setShowAdmin(true); }
+            else { setPwErr('Incorrect password.'); setPw(''); }
+          }} style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 340, padding: '24px 24px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Vote Admin</div>
+            <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>Enter the admin password to continue.</div>
+            <input type="password" autoFocus value={pw} onChange={e => { setPw(e.target.value); setPwErr(''); }} placeholder="Password" autoComplete="off"
+              style={{ ...inp, marginTop: 0, textAlign: 'center', borderColor: pwErr ? '#c62828' : undefined }} />
+            {pwErr && <div style={{ fontSize: 12, color: '#c62828', marginTop: 8 }}>{pwErr}</div>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button type="button" className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowPw(false)}>Cancel</button>
+              <button className="btn-gold" style={{ flex: 1 }} disabled={!pw || pwBusy}>{pwBusy ? 'Checking…' : 'Continue'}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showAdmin && adminOk && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1020, padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 680, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ padding: '18px 24px', borderBottom: '0.5px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff' }}>
