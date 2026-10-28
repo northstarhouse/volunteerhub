@@ -2,7 +2,6 @@
 // Edit the Portal component and re-run the script to keep both views aligned.
 import React from 'react';
 import { SUPABASE_URL, SUPABASE_KEY, PORTAL_URL, openPortal, openPlanPreview } from '../lib/portalEvents.js';
-import { fetchMergedEventCards, fetchHiddenCommitteeEvents } from '../lib/db.js';
 const gold = '#886c44';
 
 function StatCard({ label, value, sub }) {
@@ -70,8 +69,8 @@ export default function PortalEventOverviews({ navigate, request }) {
   var [uploadingFlyerFor, setUploadingFlyerFor] = useState(null);
   var [newChecklistItem, setNewChecklistItem] = useState('');
   var [ticketOrders, setTicketOrders] = useState(null);
-  var [mirror, setMirror] = useState(null); // Events Committee page: committee-only, hidden and cancelled events
-  useEffect(function() { Promise.all([fetchMergedEventCards(), fetchHiddenCommitteeEvents()]).then(function(r) { setMirror({ cards: r[0], hidden: r[1] }); }).catch(function() { setMirror({ cards: [], hidden: [] }); }); }, []);
+  // Events Committee list (Volunteer Hub planning page): hidden, cancelled and committee-only events. Overviews mirrors it.
+  var [committeeRows, setCommitteeRows] = useState(null);
   var flyerInputRef = React.useRef(null);
 
   useEffect(function() {
@@ -80,6 +79,11 @@ export default function PortalEventOverviews({ navigate, request }) {
     }).then(function(r) { return r.json(); }).then(function(rows) {
       setOverviewCards(Array.isArray(rows) ? rows : []);
     }).catch(function() { setOverviewCards([]); });
+    fetch(SUPABASE_URL + '/rest/v1/events_committee?select=*', {
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
+    }).then(function(r) { return r.json(); }).then(function(rows) {
+      setCommitteeRows(Array.isArray(rows) ? rows : []);
+    }).catch(function() { setCommitteeRows([]); });
     // Real website ticket sales -- may not exist yet on installs that haven't
     // run the ticketing migration, so a failure here just means "no ticket
     // data to show" rather than a broken page (same handling as WebsitePaymentsView).
@@ -356,13 +360,17 @@ export default function PortalEventOverviews({ navigate, request }) {
       b.rsvpOnly = !!c.rsvp_only;
       b.marketingNA = !!c.marketing_na;
     });
-    if (mirror) {
-      // Same event list as the Events Committee page.
-      mirror.cards.forEach(function(m) { var b = ensure(m.name); if (!b.date && m.date) b.date = m.date; b.status = m.status || null; });
-      mirror.hidden.forEach(function(h) { delete byKey[keyOfName(h.name)]; });
-    }
+    // Same event list as the Events Committee page: committee-only events appear, hidden ones don't, cancelled ones are marked.
+    (committeeRows || []).forEach(function(r) {
+      var nm = String(r.name || '').trim();
+      if (!nm || /commemorative brick/i.test(nm) || nm.toLowerCase() === 'general donation') return;
+      if (r.hidden) { delete byKey[keyOfName(nm)]; return; }
+      var b = ensure(nm);
+      if (!b.date && r.date) b.date = r.date;
+      b.status = r.status || null;
+    });
     return Object.keys(byKey).map(function(k) { return byKey[k]; });
-  }, [groups, overviewCards, ticketOrders, mirror]);
+  }, [groups, overviewCards, ticketOrders, committeeRows]);
 
   var todayForBuckets = new Date(); todayForBuckets.setHours(0, 0, 0, 0);
   var upcomingCards = eventCards.filter(function(c) { return c.date && new Date(c.date + 'T00:00:00') >= todayForBuckets; })
