@@ -493,6 +493,15 @@ export default function Dashboard() {
             <AnnouncementBoard />
             <ResourcesCard areas={myAreas} />
             <MyEventTasksCard volunteerId={volunteer.id} setView={setView} />
+            {myAreas.includes('Events') && (
+              <>
+                <UpcomingEventsCard setView={setView} openCommitteeEvent={openCommitteeEvent} />
+                <button onClick={() => setView('events-committee-planning')}
+                  className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
+                  Event Planning & Overviews
+                </button>
+              </>
+            )}
             <button onClick={() => setView('resources')}
               className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
               Volunteer Resources
@@ -502,15 +511,6 @@ export default function Dashboard() {
                 className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14, textAlign: 'center', textDecoration: 'none' }}>
                 Open Portal
               </a>
-            )}
-            {myAreas.includes('Events') && (
-              <>
-                <UpcomingEventsCard setView={setView} openCommitteeEvent={openCommitteeEvent} />
-                <button onClick={() => setView('events-committee-planning')}
-                  className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
-                  Event Planning & Overviews
-                </button>
-              </>
             )}
           </div>
 
