@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, uploadEventFlyer, fetchAllEventCards, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
-  fetchAllActiveVolunteers, syncInHouseEvent, logActivity,
+  fetchAllActiveVolunteers, syncInHouseEvent, logActivity, fetchEventMarketingNA, setEventMarketingNA,
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
 import AreasTab from './eventsCommitteeAreas.jsx';
@@ -424,7 +424,7 @@ function OverviewTab({ ev, onUpdate, onEdit, volunteers, session, volunteer }) {
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer' }}>
                 <span style={{ color: 'var(--gold)', flexShrink: 0 }}>{PLANNING_SECTION_ICONS[s.key]}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{s.title}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{s.title}{s.key === 'marketing' && marketingNA && <span className="badge" style={{ marginLeft: 8, background: 'var(--light)', color: 'var(--muted)' }}>N/A</span>}</div>
                   <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.desc}</div>
                 </div>
                 <span style={{ color: 'var(--muted)', flexShrink: 0, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>&rsaquo;</span>
@@ -437,7 +437,15 @@ function OverviewTab({ ev, onUpdate, onEdit, volunteers, session, volunteer }) {
                   {s.key === 'dayof' && <DayOfTab ev={ev} onUpdate={onUpdate} />}
                   {s.key === 'reviews' && <ReviewsTab ev={ev} />}
                   {s.key === 'after' && <AfterTab ev={ev} onUpdate={onUpdate} />}
-                  {(s.key === 'marketing' || s.key === 'volunteers') && (
+                  {s.key === 'marketing' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '8px 0 12px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={marketingNA} onChange={e => toggleMarketingNA(e.target.checked)} style={{ accentColor: 'var(--gold)', width: 16, height: 16 }} />
+                      Marketing is not applicable for this event
+                    </label>
+                  )}
+                  {s.key === 'marketing' && marketingNA ? (
+                    <div style={{ fontSize: 13, color: 'var(--muted)' }}>Marked not applicable. Untick the box above to plan marketing for this event.</div>
+                  ) : (s.key === 'marketing' || s.key === 'volunteers') && (
                     <AreasTab event={ev} session={session} volunteer={volunteer} initialArea={s.area} />
                   )}
                   {s.key === 'areas-other' && <AreasTab event={ev} session={session} volunteer={volunteer} />}
@@ -1058,6 +1066,12 @@ function ReviewsTab({ ev }) {
 // ── Detail page ───────────────────────────────────────────────────────────
 
 function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
+  const [marketingNA, setMarketingNA] = useState(false);
+  useEffect(() => { fetchEventMarketingNA(ev.name).then(setMarketingNA).catch(() => {}); }, [ev.name]);
+  function toggleMarketingNA(v) {
+    setMarketingNA(v);
+    setEventMarketingNA(ev.name, v).catch(() => { setMarketingNA(!v); alert('Could not save. Please try again.'); });
+  }
   return (
     <div style={{ padding: '14px 14px 24px' }}>
       <button onClick={onBack} className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px', marginBottom: 14 }}>← All Events</button>

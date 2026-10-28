@@ -1054,6 +1054,19 @@ export async function saveArea(eventId, areaKey, { ownerName, preData, postData,
 // Same idea as the Board's voting in the Portal. Tables: events_vote_items, events_votes
 // (see supabase-events-committee-voting.sql).
 
+// "Marketing not applicable" flag for an event, stored on its event_overview_cards row (shared with the Portal).
+export async function fetchEventMarketingNA(name) {
+  const rows = await get(`event_overview_cards?select=marketing_na&event_name=eq.${encodeURIComponent(name)}`);
+  return Array.isArray(rows) && !!rows[0]?.marketing_na;
+}
+
+export async function setEventMarketingNA(name, value) {
+  const res = await post('event_overview_cards?on_conflict=event_name',
+    { event_name: name, marketing_na: !!value, updated_at: new Date().toISOString() },
+    { Prefer: 'resolution=merge-duplicates,return=representation' });
+  if (res && res.message) throw new Error(res.message);
+}
+
 export async function fetchVoteItems() {
   const rows = await get('events_vote_items?select=*&order=created_at.desc');
   return Array.isArray(rows) ? rows : [];
