@@ -656,7 +656,7 @@ export async function uploadEventFlyer(eventName, file) {
 // event_overview_cards/Op Budget/Op Earnings/ticket_orders by event-name
 // into one card per event (image, date, earnings, costs). General Donation
 // is excluded -- it's the general giving bucket, not a planned event.
-async function fetchMergedEventCards() {
+export async function fetchMergedEventCards() {
   const [cardMeta, budget, earnings, tickets, committee] = await Promise.all([
     get('event_overview_cards?select=*'),
     get(`Op%20Budget?area=eq.Events&select=event_name,amount`),

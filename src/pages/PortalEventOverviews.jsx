@@ -2,6 +2,7 @@
 // Edit the Portal component and re-run the script to keep both views aligned.
 import React from 'react';
 import { SUPABASE_URL, SUPABASE_KEY, PORTAL_URL, openPortal, openPlanPreview } from '../lib/portalEvents.js';
+import { fetchMergedEventCards, fetchHiddenCommitteeEvents } from '../lib/db.js';
 const gold = '#886c44';
 
 function StatCard({ label, value, sub }) {
@@ -69,6 +70,8 @@ export default function PortalEventOverviews({ navigate, request }) {
   var [uploadingFlyerFor, setUploadingFlyerFor] = useState(null);
   var [newChecklistItem, setNewChecklistItem] = useState('');
   var [ticketOrders, setTicketOrders] = useState(null);
+  var [mirror, setMirror] = useState(null); // Events Committee page: committee-only, hidden and cancelled events
+  useEffect(function() { Promise.all([fetchMergedEventCards(), fetchHiddenCommitteeEvents()]).then(function(r) { setMirror({ cards: r[0], hidden: r[1] }); }).catch(function() { setMirror({ cards: [], hidden: [] }); }); }, []);
   var flyerInputRef = React.useRef(null);
 
   useEffect(function() {
@@ -315,7 +318,7 @@ export default function PortalEventOverviews({ navigate, request }) {
     var byKey = {};
     function ensure(name) {
       var k = keyOfName(name);
-      if (!byKey[k]) byKey[k] = { name: name, date: null, earnings: 0, costs: 0, net: 0, earningsRows: [], expenseRows: [], image_url: null, checklist: [], ticketQty: 0, ticketRevenue: 0, ticketFees: 0, ticketNet: 0, rsvpQty: 0 };
+      if (!byKey[k]) byKey[k] = { name: name, date: null, earnings: 0, costs: 0, net: 0, earningsRows: [], expenseRows: [], image_url: null, checklist: [], ticketQty: 0, ticketRevenue: 0, ticketFees: 0, ticketNet: 0, rsvpQty: 0, ticketByDate: {} };
       return byKey[k];
     }
     groups.forEach(function(g) {
@@ -329,13 +332,20 @@ export default function PortalEventOverviews({ navigate, request }) {
       if (/commemorative brick/i.test(name)) return; // brick sales are not events
       var b = ensure(name);
       b.date = b.date || o.event_date || null;
+      // Per-date split, for multi-night shows (e.g. Fri + Sat) that share a card.
+      var dk = o.event_date || '';
+      var d = b.ticketByDate[dk] || (b.ticketByDate[dk] = { date: dk, qty: 0, rsvps: 0, revenue: 0, net: 0 });
       if (o.kind === 'rsvp') {
         b.rsvpQty += Number(o.quantity || 0);
+        d.rsvps += Number(o.quantity || 0);
       } else {
         b.ticketQty += Number(o.quantity || 0);
         b.ticketRevenue += Number(o.amount || 0);
         b.ticketFees += Number(o.paypal_fee || 0);
         b.ticketNet += Number(o.net_amount != null ? o.net_amount : (o.amount || 0));
+        d.qty += Number(o.quantity || 0);
+        d.revenue += Number(o.amount || 0);
+        d.net += Number(o.net_amount != null ? o.net_amount : (o.amount || 0));
       }
     });
     (overviewCards || []).forEach(function(c) {
@@ -346,8 +356,13 @@ export default function PortalEventOverviews({ navigate, request }) {
       b.rsvpOnly = !!c.rsvp_only;
       b.marketingNA = !!c.marketing_na;
     });
+    if (mirror) {
+      // Same event list as the Events Committee page.
+      mirror.cards.forEach(function(m) { var b = ensure(m.name); if (!b.date && m.date) b.date = m.date; b.status = m.status || null; });
+      mirror.hidden.forEach(function(h) { delete byKey[keyOfName(h.name)]; });
+    }
     return Object.keys(byKey).map(function(k) { return byKey[k]; });
-  }, [groups, overviewCards, ticketOrders]);
+  }, [groups, overviewCards, ticketOrders, mirror]);
 
   var todayForBuckets = new Date(); todayForBuckets.setHours(0, 0, 0, 0);
   var upcomingCards = eventCards.filter(function(c) { return c.date && new Date(c.date + 'T00:00:00') >= todayForBuckets; })
@@ -360,14 +375,14 @@ export default function PortalEventOverviews({ navigate, request }) {
     var dateStr = c.date ? new Date(c.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
     return (
       <div key={c.name} onClick={function() { setSelectedEvent(c.name); }}
-        style={{ background: '#fff', border: '0.5px solid #e8e0d5', borderRadius: 14, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.15s, transform 0.15s' }}
+        style={{ background: '#fff', border: '0.5px solid ' + (c.status === 'cancelled' ? '#a04545' : '#e8e0d5'), opacity: c.status === 'cancelled' ? 0.65 : 1, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.15s, transform 0.15s' }}
         onMouseEnter={function(e) { e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
         onMouseLeave={function(e) { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'none'; }}
       >
-        <div style={{ width: '100%', aspectRatio: '4/3', backgroundColor: '#f0ebe2', backgroundImage: c.image_url ? 'url(' + c.image_url + ')' : 'linear-gradient(135deg,#f0ebe2,#e4d9c6)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div style={{ width: '100%', aspectRatio: '4/3', filter: c.status === 'cancelled' ? 'grayscale(0.6)' : 'none', backgroundColor: '#f0ebe2', backgroundImage: c.image_url ? 'url(' + c.image_url + ')' : 'linear-gradient(135deg,#f0ebe2,#e4d9c6)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
         <div style={{ padding: '12px 14px' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#2a2a2a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
-          <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{dateStr || 'No date set'}</div>
+          <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{dateStr || 'No date set'}{c.status === 'cancelled' ? ' · Cancelled' : ''}</div>
           <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: 11 }}>
             {c.rsvpOnly
               ? <span style={{ background: '#f0ebe2', color: gold, fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.4 }}>RSVP</span>
@@ -603,8 +618,12 @@ export default function PortalEventOverviews({ navigate, request }) {
         )}
         {tab === 'feedback' && (
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={function() { setShowBulkFeedback(function(s) { return !s; }); setShowAddFeedback(false); }} style={{ fontSize: 12, background: showBulkFeedback ? '#f5f0ea' : '#fff', color: showBulkFeedback ? '#666' : gold, border: '1px solid ' + (showBulkFeedback ? '#e0d8cc' : gold), borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontWeight: 500 }}>{showBulkFeedback ? 'Cancel' : '📋 Paste Multiple'}</button>
-            <button onClick={function() { setShowAddFeedback(function(s) { return !s; }); setShowBulkFeedback(false); }} style={{ fontSize: 12, background: showAddFeedback ? '#f5f0ea' : gold, color: showAddFeedback ? '#666' : '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontWeight: 500 }}>{showAddFeedback ? 'Cancel' : '+ Add Feedback'}</button>
+            <button onClick={function() { setShowBulkFeedback(function(s) { return !s; }); setShowAddFeedback(false); }} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, background: showBulkFeedback ? '#f5f0ea' : '#fff', color: showBulkFeedback ? '#666' : gold, border: '1px solid ' + (showBulkFeedback ? '#e0d8cc' : gold), borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontWeight: 500 }}>
+              {showBulkFeedback ? 'Cancel' : (<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Paste Multiple</>)}
+            </button>
+            <button onClick={function() { setShowAddFeedback(function(s) { return !s; }); setShowBulkFeedback(false); }} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, background: showAddFeedback ? '#f5f0ea' : gold, color: showAddFeedback ? '#666' : '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontWeight: 500 }}>
+              {showAddFeedback ? 'Cancel' : (<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Feedback</>)}
+            </button>
           </div>
         )}
       </div>
@@ -1050,6 +1069,24 @@ export default function PortalEventOverviews({ navigate, request }) {
                     <span>Gross <b style={{ color: '#5a8a5a' }}>{fmt(c.ticketRevenue)}</b></span>
                     <span>Fees <b style={{ color: '#c07040' }}>{fmt(c.ticketFees)}</b></span>
                     <span>Net <b style={{ color: '#2a2a2a' }}>{fmt(c.ticketNet)}</b></span>
+                  </div>
+                )}
+                {Object.keys(c.ticketByDate || {}).length > 1 && (
+                  <div style={{ marginTop: 12, borderTop: '0.5px solid #f0ebe2', paddingTop: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#999', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>By date</div>
+                    {Object.keys(c.ticketByDate).map(function(k) { return c.ticketByDate[k]; })
+                      .sort(function(a, b) { return (Date.parse(a.date) || 0) - (Date.parse(b.date) || 0); })
+                      .map(function(d) {
+                        return (
+                          <div key={d.date || 'none'} style={{ display: 'flex', flexWrap: 'wrap', gap: 18, fontSize: 12, color: '#555', padding: '5px 0', borderBottom: '0.5px solid #f5f1eb' }}>
+                            <span style={{ minWidth: 150, fontWeight: 600, color: '#2a2a2a' }}>{d.date || 'No date'}</span>
+                            <span><b style={{ color: '#2a2a2a' }}>{d.qty}</b> tickets</span>
+                            {d.rsvps > 0 && <span><b style={{ color: '#2a2a2a' }}>{d.rsvps}</b> RSVPs</span>}
+                            <span>Gross <b style={{ color: '#5a8a5a' }}>{fmt(d.revenue)}</b></span>
+                            <span>Net <b style={{ color: '#2a2a2a' }}>{fmt(d.net)}</b></span>
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>
