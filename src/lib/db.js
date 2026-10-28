@@ -693,16 +693,14 @@ async function fetchMergedEventCards() {
   (Array.isArray(tickets) ? tickets : [])
     .filter(o => TICKET_ORDER_MONEY_KINDS.has(o.kind))
     .forEach(o => { const b = ensure(o.event_title, o.event_date); if (b) b.earnings += Number(o.amount || 0); });
-  // events_committee is the source of truth for status (e.g. 'cancelled') --
-  // only set it on events that already exist from the sources above, since a
-  // committee row with no budget/earnings/tickets/flyer yet isn't a real card.
+  // events_committee is the source of truth for status (e.g. 'cancelled') and also holds events someone
+  // just added on the planning page, which have no flyer/budget/tickets yet -- those show as cards too, so a
+  // new event appears right away. (ensure() skips website products like commemorative bricks.)
   (Array.isArray(committee) ? committee : []).forEach(r => {
-    const k = keyOf(r.name);
-    if (byKey[k]) {
-      byKey[k].status = r.status || null;
-      // The planning page's date fills in when the flyer/ticket sources have none.
-      if (!byKey[k].date && r.date) byKey[k].date = toIsoDate(r.date);
-    }
+    const b = ensure(r.name, r.date);
+    if (!b) return;
+    b.status = r.status || null;
+    if (!b.date && r.date) b.date = toIsoDate(r.date);
   });
   return Object.values(byKey);
 }
