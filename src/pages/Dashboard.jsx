@@ -510,13 +510,13 @@ export default function Dashboard() {
                   className="btn-gold" style={{ display: 'block', width: '100%', marginTop: 14 }}>
                   Event Planning & Overviews
                 </button>
-                <EventsVotingCard />
               </>
             )}
           </div>
 
           {/* Right: Calendar, Birthdays, and Out of Town */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {myAreas.includes('Events') && <EventsVotingCard flush />}
             <ThisWeekCard events={calEvents} />
             {loading ? (
               <div style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>Loading…</div>
