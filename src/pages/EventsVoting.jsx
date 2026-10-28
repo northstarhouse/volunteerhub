@@ -213,7 +213,7 @@ export default function EventsVoting() {
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 12, color: '#777' }}>{votedCount(item, parts, votes, members)}/{members.length} voted</span>
-                    {isOpen && !iMine(item) && <span style={{ background: '#fff3e0', color: '#e65100', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}>Needs your vote</span>}
+                    {isOpen && !iMine(item) && <span style={{ background: '#fff3e0', color: '#e65100', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}><span style={{ color: '#c62828', fontWeight: 700, marginRight: 4 }}>←</span>Needs your vote</span>}
                     {isOpen && iMine(item) && <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>✓ Voted</span>}
                     {!isOpen && <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}>Closed</span>}
                   </div>
