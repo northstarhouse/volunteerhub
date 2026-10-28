@@ -326,6 +326,7 @@ export default function PortalEventOverviews({ navigate, request }) {
     (ticketOrders || []).forEach(function(o) {
       var name = o.event_title || o.event_slug;
       if (!name) return;
+      if (/commemorative brick/i.test(name)) return; // brick sales are not events
       var b = ensure(name);
       b.date = b.date || o.event_date || null;
       if (o.kind === 'rsvp') {

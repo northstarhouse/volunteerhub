@@ -574,6 +574,8 @@ export const REIMBURSEMENT_STATUSES = [
 // Earnings because it's logged under area=Events, but it has no date/
 // checklist/etc. and shouldn't appear on the Events Committee board.
 const NON_EVENT_NAMES = new Set(['general donation']);
+// Website products that show up in ticket_orders but are not events (e.g. 'Commemorative Brick — 4" x 8" Brick').
+const isNonEventName = (k) => NON_EVENT_NAMES.has(k) || /commemorative brick/.test(k);
 export async function fetchEventNames() {
   const [budgetRows, earningsRows] = await Promise.all([
     get(`Op%20Budget?area=eq.Events&select=event_name`),
@@ -582,7 +584,7 @@ export async function fetchEventNames() {
   const names = new Set();
   (Array.isArray(budgetRows) ? budgetRows : []).forEach(r => { if (r.event_name) names.add(r.event_name.trim()); });
   (Array.isArray(earningsRows) ? earningsRows : []).forEach(r => { if (r.event) names.add(r.event.trim()); });
-  return Array.from(names).filter(n => n && !NON_EVENT_NAMES.has(n.trim().toLowerCase())).sort();
+  return Array.from(names).filter(n => n && !isNonEventName(n.trim().toLowerCase())).sort();
 }
 
 // Budget/earnings entries for one specific event (Op Budget event_name /
@@ -676,7 +678,7 @@ async function fetchMergedEventCards() {
   }
   function ensure(name, date) {
     const k = keyOf(name);
-    if (!k || NON_EVENT_NAMES.has(k)) return null;
+    if (!k || isNonEventName(k)) return null;
     const iso = toIsoDate(date);
     if (!byKey[k]) byKey[k] = { name: name.trim(), date: iso, earnings: 0, costs: 0, image_url: null, status: null };
     if (iso && !byKey[k].date) byKey[k].date = iso;
