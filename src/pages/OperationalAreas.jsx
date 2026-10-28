@@ -251,7 +251,7 @@ function AreaDetail({ area, showBack, onBack }) {
       {area === 'Events' && (
         <button onClick={() => setView('events-committee')}
           className="btn-gold" style={{ display: 'block', width: '100%', marginBottom: 14 }}>
-          Events Committee
+          Event Overviews
         </button>
       )}
 
