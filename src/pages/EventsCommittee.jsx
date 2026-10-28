@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, uploadEventFlyer, fetchAllEventCards, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
-  fetchAllActiveVolunteers, syncInHouseEvent, logActivity, fetchEventMarketingNA, setEventMarketingNA, fetchHiddenCommitteeEvents,
+  fetchAllActiveVolunteers, syncInHouseEvent, logActivity, fetchEventMarketingNA, setEventMarketingNA, fetchHiddenCommitteeEvents, syncOverviewCardsFromCommittee,
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
 import AreasTab from './eventsCommitteeAreas.jsx';
@@ -1249,6 +1249,8 @@ export default function EventsCommittee() {
 
       setEvents(mapped);
       setLoading(false);
+      // Event Overviews lists what the committee lists.
+      syncOverviewCardsFromCommittee([...rows, ...mapped.filter(m => !rows.some(r => r.id === m.id)).map(m => ({ name: m.name, date: m.date }))]).catch(() => {});
     }).catch(() => setLoading(false));
   }
 
@@ -1355,6 +1357,7 @@ export default function EventsCommittee() {
         return;
       }
       if (res.row) {
+        syncOverviewCardsFromCommittee([res.row]).catch(() => {});
         setEvents(prev => [...prev, fromDb(res.row)]);
         logActivity({
           vol: volunteer,

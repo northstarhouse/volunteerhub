@@ -993,6 +993,31 @@ export async function insertCommitteeEventIfMissing(payload) {
   return { success: true, row: Array.isArray(rows) && rows[0] ? rows[0] : null };
 }
 
+// Keeps Event Overviews in step with the Events Committee: every committee event (that isn't hidden) gets an
+// event_overview_cards row, which is what Event Overviews lists, and an undated card picks up the committee's date.
+// `events` = rows from events_committee (name, date, hidden).
+const OVERVIEW_DEFAULT_CHECKLIST = ['Flyer designed', 'Posted on social media', 'Newsletter mention', 'Tickets / RSVP page live', 'Reminder sent'].map(label => ({ label, done: false }));
+export async function syncOverviewCardsFromCommittee(events) {
+  const cards = await get('event_overview_cards?select=event_name,event_date');
+  if (!Array.isArray(cards)) return;
+  const have = new Map(cards.map(c => [String(c.event_name || '').trim().toLowerCase(), c]));
+  const now = new Date().toISOString();
+  const toCreate = [];
+  for (const e of events || []) {
+    const name = String(e.name || '').trim();
+    const k = name.toLowerCase();
+    if (!name || e.hidden || isNonEventName(k)) continue;
+    const card = have.get(k);
+    if (!card) {
+      toCreate.push({ event_name: name, event_date: e.date || null, checklist: OVERVIEW_DEFAULT_CHECKLIST, updated_at: now });
+      have.set(k, { event_name: name, event_date: e.date || null });
+    } else if (!card.event_date && e.date) {
+      await patch(`event_overview_cards?event_name=eq.${encodeURIComponent(card.event_name)}`, { event_date: e.date, updated_at: now });
+    }
+  }
+  if (toCreate.length) await post('event_overview_cards?on_conflict=event_name', toCreate, { Prefer: 'resolution=ignore-duplicates,return=minimal' });
+}
+
 // Events hidden from the cards (Events Committee page lists them so they can be brought back).
 export async function fetchHiddenCommitteeEvents() {
   const rows = await get('events_committee?select=id,name,date&hidden=eq.true&order=name.asc');
