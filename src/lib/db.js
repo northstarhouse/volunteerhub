@@ -658,7 +658,7 @@ export async function uploadEventFlyer(eventName, file) {
 // is excluded -- it's the general giving bucket, not a planned event.
 async function fetchMergedEventCards() {
   const [cardMeta, budget, earnings, tickets, committee] = await Promise.all([
-    get('event_overview_cards?select=event_name,event_date,image_url'),
+    get('event_overview_cards?select=*'),
     get(`Op%20Budget?area=eq.Events&select=event_name,amount`),
     get(`Op%20Earnings?area=eq.Events&select=event,amount`),
     get('ticket_orders?select=event_title,event_date,kind,amount'),
@@ -686,7 +686,7 @@ async function fetchMergedEventCards() {
   }
   (Array.isArray(cardMeta) ? cardMeta : []).forEach(r => {
     const b = ensure(r.event_name, r.event_date);
-    if (b) b.image_url = r.image_url || null;
+    if (b) { b.image_url = r.image_url || null; b.rsvp_only = !!r.rsvp_only; }
   });
   (Array.isArray(budget) ? budget : []).forEach(r => { const b = ensure(r.event_name); if (b) b.costs += Number(r.amount || 0); });
   (Array.isArray(earnings) ? earnings : []).forEach(r => { const b = ensure(r.event); if (b) b.earnings += Number(r.amount || 0); });
