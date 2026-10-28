@@ -266,6 +266,12 @@ function StatBox({ label, value, sub, color }) {
 }
 
 function OverviewTab({ ev, onUpdate, onEdit, volunteers, session, volunteer }) {
+  const [marketingNA, setMarketingNA] = useState(false);
+  useEffect(() => { fetchEventMarketingNA(ev.name).then(setMarketingNA).catch(() => {}); }, [ev.name]);
+  function toggleMarketingNA(v) {
+    setMarketingNA(v);
+    setEventMarketingNA(ev.name, v).catch(() => { setMarketingNA(!v); alert('Could not save. Please try again.'); });
+  }
   const [ticketStats, setTicketStats] = useState(null);
   const [financials, setFinancials] = useState(null);
   const [flyerUrl, setFlyerUrl] = useState(null);
@@ -1066,12 +1072,6 @@ function ReviewsTab({ ev }) {
 // ── Detail page ───────────────────────────────────────────────────────────
 
 function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
-  const [marketingNA, setMarketingNA] = useState(false);
-  useEffect(() => { fetchEventMarketingNA(ev.name).then(setMarketingNA).catch(() => {}); }, [ev.name]);
-  function toggleMarketingNA(v) {
-    setMarketingNA(v);
-    setEventMarketingNA(ev.name, v).catch(() => { setMarketingNA(!v); alert('Could not save. Please try again.'); });
-  }
   return (
     <div style={{ padding: '14px 14px 24px' }}>
       <button onClick={onBack} className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px', marginBottom: 14 }}>← All Events</button>
