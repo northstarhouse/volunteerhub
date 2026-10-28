@@ -355,7 +355,13 @@ export default function App() {
 
   return (
     <VolContext.Provider value={{ volunteer: shownVolunteer, setVolunteer: saveVolunteer, session, signOut, currentArea, setCurrentArea, openArea, currentCommitteeEvent, setCurrentCommitteeEvent, openCommitteeEvent, setView }}>
-      {isMobile ? (
+      {new URLSearchParams(window.location.search).has('embed') ? (
+        <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+          <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>
+            {pages[view] ?? pages.dashboard}
+          </Suspense>
+        </div>
+      ) : isMobile ? (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 72 }}>
           {isStaff && <ViewAsBar viewAs={viewAs} setViewAs={setViewAs} />}
           <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>
