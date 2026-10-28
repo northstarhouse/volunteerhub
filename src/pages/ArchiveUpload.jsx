@@ -181,31 +181,32 @@ export default function ArchiveUpload() {
 
   return (
     <div>
-      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
-        <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Archives</div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>Upload Photos &amp; Documents</h1>
+      <div style={{ padding: '22px 18px 14px', borderBottom: '0.5px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: '#fff' }}>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 2 }}>Archives</div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>Upload Photos &amp; Documents</h1>
+        </div>
       </div>
 
-      <div style={{ padding: '14px 14px 28px', maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ padding: '14px 14px 24px' }}>
         {screen === 'home' && (
           <>
-            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
+            <div className="card" style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 14 }}>
               Everything you share here becomes part of the permanent North Star Archives, our record of the house's restoration,
               events, and the people who make it happen. Photos and documents may also be shared on our social media and in
               newsletters to help tell the NSH story.
-            </p>
-            <button className="btn-gold" style={{ width: '100%', minHeight: 52, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            </div>
+            <button className="btn-gold" style={{ width: '100%', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               onClick={() => { resetAll(); setScreen('choose'); }}>
-              <UploadIcon /> Upload Photos or Documents
+              <UploadIcon size={18} /> Upload Photos or Documents
             </button>
 
-            <hr style={{ border: 'none', borderTop: '0.5px solid var(--border-light)', margin: '20px 0' }} />
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <a href={PHOTOS_FOLDER_URL} target="_blank" rel="noreferrer" className="btn-ghost"
-                style={{ flex: 1, textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}>View Photos</a>
-              <a href={DOCUMENTS_FOLDER_URL} target="_blank" rel="noreferrer" className="btn-ghost"
-                style={{ flex: 1, textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}>View Documents</a>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, margin: '4px 0 10px' }}>Browse the Archive</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <a href={PHOTOS_FOLDER_URL} target="_blank" rel="noreferrer" className="card"
+                style={{ textAlign: 'center', textDecoration: 'none', color: 'var(--gold)', fontWeight: 600, fontSize: 14, marginBottom: 0 }}>View Photos</a>
+              <a href={DOCUMENTS_FOLDER_URL} target="_blank" rel="noreferrer" className="card"
+                style={{ textAlign: 'center', textDecoration: 'none', color: 'var(--gold)', fontWeight: 600, fontSize: 14, marginBottom: 0 }}>View Documents</a>
             </div>
           </>
         )}
