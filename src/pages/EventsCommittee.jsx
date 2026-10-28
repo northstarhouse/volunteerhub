@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useVol } from '../App.jsx';
 import {
   fetchEventNames, fetchEventFinancials, fetchEventTicketStats, fetchEventCardImage, uploadEventFlyer, fetchAllEventCards, fetchCommitteeEvents, insertCommitteeEvent, insertCommitteeEventIfMissing, updateCommitteeEvent, deleteCommitteeEvent,
-  fetchAllActiveVolunteers, syncInHouseEvent, logActivity, fetchEventMarketingNA, setEventMarketingNA,
+  fetchAllActiveVolunteers, syncInHouseEvent, logActivity, fetchEventMarketingNA, setEventMarketingNA, fetchHiddenCommitteeEvents,
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
 import AreasTab from './eventsCommitteeAreas.jsx';
@@ -200,7 +200,8 @@ function EventFlyerCard({ c, onOpen }) {
 function EventCardsGrid({ onOpen }) {
   const [cards, setCards] = useState(null);
 
-  useEffect(() => { fetchAllEventCards().then(setCards).catch(() => setCards({ upcoming: [], past: [] })); }, []);
+  const load = () => fetchAllEventCards().then(setCards).catch(() => setCards({ upcoming: [], past: [] }));
+  useEffect(() => { load(); }, []);
 
   if (cards === null) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>Loading…</div>;
   if (cards.upcoming.length === 0 && cards.past.length === 0) {
@@ -225,6 +226,34 @@ function EventCardsGrid({ onOpen }) {
           </div>
         </div>
       )}
+      <HiddenEvents onChanged={load} />
+    </div>
+  );
+}
+
+// Events someone hid from the cards, with a way to bring them back.
+function HiddenEvents({ onChanged }) {
+  const [rows, setRows] = useState([]);
+  const [open, setOpen] = useState(false);
+  const refresh = () => fetchHiddenCommitteeEvents().then(setRows).catch(() => setRows([]));
+  useEffect(() => { refresh(); }, []);
+  if (!rows.length) return null;
+  async function unhide(r) {
+    await updateCommitteeEvent(r.id, { hidden: false });
+    await refresh();
+    onChanged();
+  }
+  return (
+    <div style={{ marginTop: 24, borderTop: '0.5px solid var(--border-light)', paddingTop: 12 }}>
+      <button onClick={() => setOpen(o => !o)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
+        {open ? 'Hide' : 'Show'} hidden events ({rows.length})
+      </button>
+      {open && rows.map(r => (
+        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', fontSize: 13 }}>
+          <span style={{ flex: 1 }}>{r.name}{r.date ? <span style={{ color: 'var(--muted)' }}> · {r.date}</span> : null}</span>
+          <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => unhide(r)}>Show on cards again</button>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1072,9 +1101,22 @@ function ReviewsTab({ ev }) {
 // ── Detail page ───────────────────────────────────────────────────────────
 
 function EventDetail({ ev, onUpdate, onBack, onEdit, volunteers, session, volunteer }) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => { fetchHiddenCommitteeEvents().then(rows => setHidden(rows.some(r => r.id === ev.id))).catch(() => {}); }, [ev.id]);
+  async function toggleHidden(v) {
+    setHidden(v);
+    const res = await updateCommitteeEvent(ev.id, { hidden: v });
+    if (res.error) { setHidden(!v); alert('Could not save. Please try again.'); }
+  }
   return (
     <div style={{ padding: '14px 14px 24px' }}>
-      <button onClick={onBack} className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px', marginBottom: 14 }}>← All Events</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+        <button onClick={onBack} className="btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }}>← All Events</button>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={hidden} onChange={e => toggleHidden(e.target.checked)} style={{ accentColor: 'var(--gold)' }} />
+          Hide this event from the event cards
+        </label>
+      </div>
 
       <div className="card" style={{ padding: '20px 22px 24px' }}>
         <OverviewTab ev={ev} onUpdate={onUpdate} onEdit={onEdit} volunteers={volunteers} session={session} volunteer={volunteer} />

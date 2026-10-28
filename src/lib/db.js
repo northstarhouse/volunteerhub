@@ -662,7 +662,7 @@ async function fetchMergedEventCards() {
     get(`Op%20Budget?area=eq.Events&select=event_name,amount`),
     get(`Op%20Earnings?area=eq.Events&select=event,amount`),
     get('ticket_orders?select=event_title,event_date,kind,amount'),
-    get('events_committee?select=name,status,date'),
+    get('events_committee?select=*'),
   ]);
   const byKey = {};
   const keyOf = (n) => (n || '').trim().toLowerCase();
@@ -701,8 +701,9 @@ async function fetchMergedEventCards() {
     if (!b) return;
     b.status = r.status || null;
     if (!b.date && r.date) b.date = toIsoDate(r.date);
+    if (r.hidden) b.hidden = true; // staff chose to hide this event from the cards
   });
-  return Object.values(byKey);
+  return Object.values(byKey).filter(c => !c.hidden);
 }
 
 // Dashboard teaser -- just the next few upcoming events.
@@ -990,6 +991,12 @@ export async function insertCommitteeEventIfMissing(payload) {
   const rows = await post('events_committee?on_conflict=name_key', payload, { Prefer: 'return=representation,resolution=ignore-duplicates' });
   if (rows && rows.code) return { error: rows.message || rows.code };
   return { success: true, row: Array.isArray(rows) && rows[0] ? rows[0] : null };
+}
+
+// Events hidden from the cards (Events Committee page lists them so they can be brought back).
+export async function fetchHiddenCommitteeEvents() {
+  const rows = await get('events_committee?select=id,name,date&hidden=eq.true&order=name.asc');
+  return Array.isArray(rows) ? rows : [];
 }
 
 export async function updateCommitteeEvent(id, payload) {
