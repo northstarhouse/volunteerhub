@@ -1199,7 +1199,7 @@ function EventModal({ editing, onSave, onCancel }) {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function EventsCommittee() {
-  const { session, volunteer, currentCommitteeEvent, setCurrentCommitteeEvent } = useVol();
+  const { session, volunteer, currentCommitteeEvent, setCurrentCommitteeEvent, setView } = useVol();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
@@ -1387,7 +1387,10 @@ export default function EventsCommittee() {
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>Events Committee Planning Notes</div>
         </div>
         {!selected && (
-          <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn-ghost" onClick={() => setView('event-reports')}>P&amp;L, Feedback &amp; Plans →</button>
+            <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
+          </div>
         )}
       </div>
 
