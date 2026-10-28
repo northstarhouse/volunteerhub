@@ -16,13 +16,13 @@ function StatCard({ label, value, sub }) {
 
 var DEFAULT_EVENT_CHECKLIST = ['Flyer designed', 'Posted on social media', 'Newsletter mention', 'Tickets / RSVP page live', 'Reminder sent'].map(function(l) { return { label: l, done: false }; });
 
-export default function PortalEventOverviews({ navigate, request }) {
+export default function PortalEventOverviews({ navigate, request, initialTab }) {
   const fetch = request;
   var { useState, useEffect, useMemo } = React;
   // Event Overviews opens on the card-based Events tab, except when arriving
   // via the "Save to Event Overviews" flow (event-overviews/plans), which
   // should land straight on the plan the user just saved.
-  var [tab, setTab] = useState(function() { return window.location.hash.replace(/^#/, '').indexOf('event-overviews/plans') === 0 ? 'plans' : 'overview'; });
+  var [tab, setTab] = useState(function() { return initialTab || (window.location.hash.replace(/^#/, '').indexOf('event-overviews/plans') === 0 ? 'plans' : 'overview'); });
   var [loading, setLoading] = useState(true);
   var [budgetRows, setBudgetRows] = useState([]);
   var [earningsRows, setEarningsRows] = useState([]);
@@ -636,7 +636,7 @@ export default function PortalEventOverviews({ navigate, request }) {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '0.5px solid #e8dece' }}>
+      <div style={{ display: initialTab ? 'none' : 'flex', gap: 6, marginBottom: 20, borderBottom: '0.5px solid #e8dece' }}>
         <button onClick={function() { setTab('overview'); }} style={{ background: 'none', border: 'none', borderBottom: tab === 'overview' ? '2px solid ' + gold : '2px solid transparent', padding: '8px 4px', marginBottom: -1, fontSize: 13, fontWeight: tab === 'overview' ? 600 : 400, color: tab === 'overview' ? '#2a2a2a' : '#999', cursor: 'pointer' }}>Events</button>
         <button onClick={function() { setTab('pnl'); }} style={{ background: 'none', border: 'none', borderBottom: tab === 'pnl' ? '2px solid ' + gold : '2px solid transparent', padding: '8px 4px', marginBottom: -1, marginLeft: 16, fontSize: 13, fontWeight: tab === 'pnl' ? 600 : 400, color: tab === 'pnl' ? '#2a2a2a' : '#999', cursor: 'pointer' }}>Profit & Loss</button>
         <button onClick={function() { setTab('feedback'); }} style={{ background: 'none', border: 'none', borderBottom: tab === 'feedback' ? '2px solid ' + gold : '2px solid transparent', padding: '8px 4px', marginBottom: -1, marginLeft: 16, fontSize: 13, fontWeight: tab === 'feedback' ? 600 : 400, color: tab === 'feedback' ? '#2a2a2a' : '#999', cursor: 'pointer' }}>Reviews & Feedback{feedback.length > 0 ? ' (' + feedback.length + ')' : ''}</button>

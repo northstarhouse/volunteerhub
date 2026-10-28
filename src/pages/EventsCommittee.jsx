@@ -6,6 +6,7 @@ import {
   fetchEventFeedback, insertEventFeedback, updateEventFeedback, deleteEventFeedback,
 } from '../lib/db.js';
 import AreasTab from './eventsCommitteeAreas.jsx';
+import EventOverviews from './EventOverviews.jsx';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
 const nextDate = (offsetDays) => {
@@ -228,6 +229,49 @@ function EventCardsGrid({ onOpen }) {
       )}
       <HiddenEvents onChanged={load} />
     </div>
+  );
+}
+
+// "Reports" dropdown: P&L, Feedback and Plans open in a popout over this page.
+const REPORT_TABS = [
+  { key: 'pnl', label: 'Profit & Loss' },
+  { key: 'feedback', label: 'Feedback' },
+  { key: 'plans', label: 'Plans' },
+];
+function ReportsMenu() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [report, setReport] = useState(null);
+  return (
+    <>
+      <div style={{ position: 'relative' }}>
+        <button className="btn-ghost" onClick={() => setMenuOpen(o => !o)} aria-haspopup="menu" aria-expanded={menuOpen}>Reports ▾</button>
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 30 }} />
+            <div role="menu" style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 31, background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.14)', minWidth: 170, overflow: 'hidden' }}>
+              {REPORT_TABS.map(t => (
+                <button key={t.key} role="menuitem" onClick={() => { setMenuOpen(false); setReport(t); }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', borderBottom: '0.5px solid var(--border-light)', padding: '10px 14px', fontSize: 13, cursor: 'pointer' }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {report && (
+        <div onClick={e => { if (e.target === e.currentTarget) setReport(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(35,38,43,0.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '30px 16px', overflowY: 'auto', zIndex: 1000 }}>
+          <div style={{ background: 'var(--bg)', width: '100%', maxWidth: 1100, borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: '#fff', borderBottom: '0.5px solid var(--border-light)' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>{report.label}</div>
+              <button onClick={() => setReport(null)} aria-label="Close" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#999', lineHeight: 1 }}>×</button>
+            </div>
+            <EventOverviews initialTab={report.key} embedded />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1199,7 +1243,7 @@ function EventModal({ editing, onSave, onCancel }) {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function EventsCommittee() {
-  const { session, volunteer, currentCommitteeEvent, setCurrentCommitteeEvent, setView } = useVol();
+  const { session, volunteer, currentCommitteeEvent, setCurrentCommitteeEvent } = useVol();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
@@ -1388,7 +1432,7 @@ export default function EventsCommittee() {
         </div>
         {!selected && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn-ghost" onClick={() => setView('event-reports')}>P&amp;L, Feedback &amp; Plans →</button>
+            <ReportsMenu />
             <button className="btn-gold" onClick={openNewModal}>+ New Event</button>
           </div>
         )}

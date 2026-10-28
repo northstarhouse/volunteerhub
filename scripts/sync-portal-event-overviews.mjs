@@ -13,7 +13,14 @@ function section(from, to) {
 }
 let component = section('var DEFAULT_EVENT_CHECKLIST =', '\nfunction driveImg(');
 // Adapt only the host app's authentication, navigation, and absent cache.
-component = component.replace('function EventsView({ navigate }) {', 'export default function PortalEventOverviews({ navigate, request }) {\n  const fetch = request;');
+component = component.replace('function EventsView({ navigate }) {', 'export default function PortalEventOverviews({ navigate, request, initialTab }) {\n  const fetch = request;');
+// Popout support: open on a given tab and hide the tab bar.
+const tabInit = "return window.location.hash.replace(/^#/, '').indexOf('event-overviews/plans') === 0 ? 'plans' : 'overview'; });";
+if (!component.includes(tabInit)) throw new Error('Hub adapter anchor missing: initial tab');
+component = component.replace(tabInit, () => "return initialTab || (window.location.hash.replace(/^#/, '').indexOf('event-overviews/plans') === 0 ? 'plans' : 'overview'); });");
+const tabBar = "<div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '0.5px solid #e8dece' }}>";
+if (component.split(tabBar).length !== 2) throw new Error('Hub adapter anchor missing: tab bar');
+component = component.replace(tabBar, () => "<div style={{ display: initialTab ? 'none' : 'flex', gap: 6, marginBottom: 20, borderBottom: '0.5px solid #e8dece' }}>");
 component = component.replace(/^[ \t]*clearCache\('[^']+'\);\n/gm, '');
 component = component.replace("window.location.hash = 'planning/edit/' + p.id;", "openPortal('planning/edit/' + p.id);");
 component = component.replace("window.location.origin + window.location.pathname + '#event-plan/' + p.id", "PORTAL_URL + '#event-plan/' + p.id");

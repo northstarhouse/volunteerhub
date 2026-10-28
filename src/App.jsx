@@ -346,7 +346,6 @@ export default function App() {
     areas:     <OperationalAreas />,
     reimbursements: <Reimbursements />,
     'events-committee': <EventsCommitteePlanning />,
-    'event-reports': <EventsCommittee />,
     'events-committee-planning': <EventsCommitteePlanning />,
     'events-committee-voting': <EventsVoting />,
     'archive-upload': <ArchiveUpload />,
