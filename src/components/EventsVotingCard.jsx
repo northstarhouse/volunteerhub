@@ -24,8 +24,8 @@ export default function EventsVotingCard({ flush = false }) {
 
   return (
     <div className="card" style={{ marginTop: flush ? 0 : 14, padding: 0, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--gold)', padding: '12px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#fff' }}><svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8.5l1.5 1.5 3-3"/><path d="M8.5 15h7"/><path d="M8.5 18h4"/></svg></span><span style={{ fontSize: 22, fontFamily: "'Cardo','Georgia',serif", fontWeight: 700, color: '#fff' }}>Committee Voting</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--gold)', padding: '9px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 17, fontFamily: "'Cardo','Georgia',serif", fontWeight: 700, color: '#fff' }}>Committee Voting</span></div>
         {state && needs.length > 0 && <span style={{ background: '#fff3e0', color: '#e65100', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 4 }}>{needs.length} need{needs.length === 1 ? 's' : ''} your vote</span>}
       </div>
       <div style={{ padding: '14px 18px 18px' }}>
