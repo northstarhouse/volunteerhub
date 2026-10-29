@@ -21,6 +21,7 @@ const output = `// Generated from north-star-portal/src/app.jsx by scripts/sync-
 // Edit the Portal component and re-run the script to keep both views aligned.
 import React from 'react';
 import { SUPABASE_URL, SUPABASE_KEY, PORTAL_URL, openPortal, openPlanPreview } from '../lib/portalEvents.js';
+import RsvpPanel from './RsvpPanel.jsx';
 const gold = '#886c44';
 
 ${section('function StatCard(', '\nfunction ProgressBar(')}

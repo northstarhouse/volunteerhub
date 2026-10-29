@@ -1018,6 +1018,24 @@ export async function syncOverviewCardsFromCommittee(events) {
   if (toCreate.length) await post('event_overview_cards?on_conflict=event_name', toCreate, { Prefer: 'resolution=ignore-duplicates,return=minimal' });
 }
 
+// RSVP events: tie an event to one RSVP form (vol_events, event_type 'rsvp') and read that form's responses.
+export async function fetchRsvpForms() {
+  const rows = await get('vol_events?select=id,title,date,slug&event_type=eq.rsvp&order=date.desc.nullslast,created_at.desc');
+  return Array.isArray(rows) ? rows : [];
+}
+export async function fetchRsvpResponses(eventId) {
+  const rows = await get(`vol_event_responses?select=id,name,response,created_at&event_id=eq.${encodeURIComponent(eventId)}&order=created_at.desc`);
+  return Array.isArray(rows) ? rows : [];
+}
+export async function fetchEventCardMeta(name) {
+  const rows = await get(`event_overview_cards?select=*&event_name=eq.${encodeURIComponent(name)}`);
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+export async function saveEventCardMeta(name, patch) {
+  const res = await post('event_overview_cards?on_conflict=event_name', { event_name: name, ...patch, updated_at: new Date().toISOString() }, { Prefer: 'resolution=merge-duplicates,return=representation' });
+  if (res && res.message) throw new Error(res.message);
+}
+
 // Events hidden from the cards (Events Committee page lists them so they can be brought back).
 export async function fetchHiddenCommitteeEvents() {
   const rows = await get('events_committee?select=id,name,date&hidden=eq.true&order=name.asc');
