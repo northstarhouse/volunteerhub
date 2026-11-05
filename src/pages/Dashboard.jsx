@@ -10,6 +10,7 @@ import {
 import TourRequestsCard from '../components/TourRequestsCard.jsx';
 import PublicTourRsvpsCard from '../components/PublicTourRsvpsCard.jsx';
 import EventsVotingCard from '../components/EventsVotingCard.jsx';
+import MediaChecklistCard from '../components/MediaChecklistCard.jsx';
 
 const GOLD = '#886c44';
 
@@ -431,7 +432,9 @@ function MyEventTasksCard({ volunteerId, setView }) {
 }
 
 export default function Dashboard() {
-  const { volunteer, setView, openCommitteeEvent } = useVol();
+  const { volunteer, setView, openCommitteeEvent, session } = useVol();
+  // The private checklist is only for the media@ account (also enforced in the database).
+  const isMediaAccount = (session?.user?.email || '').toLowerCase() === 'media@thenorthstarhouse.org';
   const [volunteers, setVolunteers] = useState([]);
   const [oot, setOot]               = useState([]);
   const [calEvents, setCalEvents]   = useState(null);
@@ -487,6 +490,7 @@ export default function Dashboard() {
         >
           {/* Left: Hours snapshot + My Area cards */}
           <div>
+            {isMediaAccount && <MediaChecklistCard />}
             {isDocent && <PublicTourRsvpsCard />}
             {isDocent && <TourRequestsCard requests={tourRequests} />}
             {!myTeams.includes('Staff') && <HoursSnapshotCard data={hoursData} />}
