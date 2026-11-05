@@ -16,3 +16,6 @@ create policy "media checklist owner" on public.media_checklist
   for all to authenticated
   using (lower(coalesce(auth.jwt() ->> 'email', '')) = 'media@thenorthstarhouse.org')
   with check (lower(coalesce(auth.jwt() ->> 'email', '')) = 'media@thenorthstarhouse.org');
+
+-- optional due date
+alter table public.media_checklist add column if not exists due_date date;

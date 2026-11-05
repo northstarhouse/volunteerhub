@@ -7,6 +7,9 @@ export default function MediaChecklistCard() {
   const [items, setItems] = useState(null);
   const [text, setText] = useState('');
   const [err, setErr] = useState('');
+  const [due, setDue] = useState('');
+  const fmt = (d) => d ? new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const todayYmd = new Date().toLocaleDateString('en-CA');
   const [showDone, setShowDone] = useState(false);
 
   async function load() {
@@ -21,10 +24,10 @@ export default function MediaChecklistCard() {
     const t = text.trim();
     if (!t) return;
     setErr('');
-    const { data, error } = await supabase.from('media_checklist').insert({ text: t }).select().single();
+    const { data, error } = await supabase.from('media_checklist').insert({ text: t, due_date: due || null }).select().single();
     if (error) { setErr('Could not add that. Try again.'); return; }
     setItems(prev => [...(prev || []), data]);
-    setText('');
+    setText(''); setDue('');
   }
 
   async function toggle(it) {
@@ -41,7 +44,7 @@ export default function MediaChecklistCard() {
     if (error) { setErr('Could not delete that.'); load(); }
   }
 
-  const open = (items || []).filter(i => !i.done);
+  const open = (items || []).filter(i => !i.done).sort((a, b) => (a.due_date || '9999').localeCompare(b.due_date || '9999'));
   const done = (items || []).filter(i => i.done).sort((a, b) => String(b.done_at).localeCompare(String(a.done_at)));
 
   return (
@@ -50,8 +53,9 @@ export default function MediaChecklistCard() {
         <span>My Checklist</span>
         {items && <span style={{ color: 'var(--muted)', textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>{open.length} to do</span>}
       </div>
-      <form onSubmit={add} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <input className="input" value={text} onChange={e => setText(e.target.value)} placeholder="Add something to do…" style={{ flex: 1 }} />
+      <form onSubmit={add} style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <input className="input" value={text} onChange={e => setText(e.target.value)} placeholder="Add something to do…" style={{ flex: '1 1 180px' }} />
+        <input className="input" type="date" value={due} onChange={e => setDue(e.target.value)} title="Due date (optional)" style={{ flex: '0 0 auto', width: 'auto' }} />
         <button type="submit" className="btn-gold" style={{ flexShrink: 0 }}>Add</button>
       </form>
       {err && <div style={{ color: '#c0392b', fontSize: 12, marginBottom: 8 }}>{err}</div>}
@@ -60,7 +64,10 @@ export default function MediaChecklistCard() {
       {open.map(it => (
         <div key={it.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderTop: '0.5px solid var(--border-light)' }}>
           <input type="checkbox" checked={false} onChange={() => toggle(it)} style={{ marginTop: 3, accentColor: '#886c44', cursor: 'pointer' }} />
-          <div style={{ flex: 1, fontSize: 14, color: 'var(--text)', lineHeight: 1.4, wordBreak: 'break-word' }}>{it.text}</div>
+          <div style={{ flex: 1, fontSize: 14, color: 'var(--text)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+            {it.text}
+            {it.due_date && <div style={{ fontSize: 11.5, marginTop: 2, color: it.due_date < todayYmd ? '#c0392b' : 'var(--muted)', fontWeight: it.due_date < todayYmd ? 600 : 400 }}>{it.due_date < todayYmd ? 'Overdue · ' : 'Due '}{fmt(it.due_date)}</div>}
+          </div>
           <button onClick={() => remove(it)} title="Delete" style={{ background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 2px' }}>×</button>
         </div>
       ))}
@@ -72,7 +79,10 @@ export default function MediaChecklistCard() {
           {showDone && done.map(it => (
             <div key={it.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 0', borderTop: '0.5px solid var(--border-light)' }}>
               <input type="checkbox" checked onChange={() => toggle(it)} style={{ marginTop: 3, accentColor: '#886c44', cursor: 'pointer' }} />
-              <div style={{ flex: 1, fontSize: 13, color: 'var(--muted)', textDecoration: 'line-through', wordBreak: 'break-word' }}>{it.text}</div>
+              <div style={{ flex: 1, fontSize: 13, color: 'var(--muted)', wordBreak: 'break-word' }}>
+                <span style={{ textDecoration: 'line-through' }}>{it.text}</span>
+                <div style={{ fontSize: 11.5, marginTop: 2 }}>Finished {fmt(it.done_at)}{it.due_date ? ' · was due ' + fmt(it.due_date) : ''}</div>
+              </div>
               <button onClick={() => remove(it)} title="Delete" style={{ background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 2px' }}>×</button>
             </div>
           ))}
