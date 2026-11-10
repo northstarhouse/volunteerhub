@@ -5,11 +5,14 @@ import { updateTourRequestStatus, updateTourRequestNotes, addTourToCalendar, set
 
 const GOLD = '#886c44';
 
-const TOUR_STATUS_OPTIONS = ['Scheduled Tour', 'Contact Made', 'Dates Not Workable'];
+// 'Handled by Venue Team' is set from the Portal when a request turns out to be a wedding or event inquiry and the venue
+// team has replied (no docent tour needed).
+const TOUR_STATUS_OPTIONS = ['Scheduled Tour', 'Contact Made', 'Dates Not Workable', 'Handled by Venue Team'];
 export const STATUS_COLORS = {
   'Scheduled Tour':      { bg: '#e8f5e9', color: '#2e7d32' },
   'Contact Made':        { bg: '#fff8e1', color: '#8a6200' },
   'Dates Not Workable':  { bg: '#ffebee', color: '#b71c1c' },
+  'Handled by Venue Team': { bg: '#ede7f6', color: '#5e35b1' },
 };
 
 export function fmtWhen(iso) {
