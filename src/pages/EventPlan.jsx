@@ -30,10 +30,11 @@ function voteResult(t) {
 // The committee's final call on each event.
 const DECISIONS = ['Moving Forward', 'Not Moving Forward', 'Merging with Another Event', 'Needs Further Discussion'];
 const DECISION_TONE = { 'Moving Forward': { bg: '#e8f5e9', color: '#2e7d32' }, 'Not Moving Forward': { bg: '#ffebee', color: '#c62828' }, 'Merging with Another Event': { bg: '#ede7f6', color: '#5e35b1' }, 'Needs Further Discussion': { bg: '#fff8e1', color: '#8a6200' } };
-// List order: everything else first, Needs Further Discussion in the middle, Not Moving Forward at the bottom
+// List order: Moving Forward, then Merging, then no decision yet, then Needs Further Discussion, Not Moving Forward last
 // (each group keeps the committee's order).
-const DECISION_RANK = { 'Needs Further Discussion': 1, 'Not Moving Forward': 2 };
-const sortPlan = (rows) => rows.slice().sort((a, b) => (DECISION_RANK[a.final_decision] || 0) - (DECISION_RANK[b.final_decision] || 0) || a.sort_order - b.sort_order);
+const DECISION_RANK = { 'Moving Forward': 0, 'Merging with Another Event': 1, 'Needs Further Discussion': 3, 'Not Moving Forward': 4 };
+const rankOf = (d) => (d in DECISION_RANK ? DECISION_RANK[d] : 2);
+const sortPlan = (rows) => rows.slice().sort((a, b) => rankOf(a.final_decision) - rankOf(b.final_decision) || a.sort_order - b.sort_order);
 const volName = (v) => v ? `${v['First Name'] || ''} ${v['Last Name'] || ''}`.trim() : '';
 
 export default function EventPlan({ session, volunteer, onFinalized }) {
