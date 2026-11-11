@@ -14,14 +14,23 @@ import MediaChecklistCard from '../components/MediaChecklistCard.jsx';
 
 const GOLD = '#886c44';
 
-function PageHeader({ name }) {
+// Staff and board members also use the Portal; they get a shortcut to it in the top right.
+const PORTAL_URL = 'https://northstarhouse.github.io/Portal/';
+const hasPortal = (team) => String(team || '').split(/[|,]/).some(t => ['staff', 'board member'].includes(t.trim().toLowerCase()));
+
+function PageHeader({ name, team }) {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   return (
-    <div style={{ padding: '22px 20px 16px', borderBottom: '0.5px solid var(--border-light)', background: '#fff' }}>
-      <div style={{ fontSize: 12, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 4 }}>{today}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>
-        Hey, {name}
+    <div style={{ padding: '22px 20px 16px', borderBottom: '0.5px solid var(--border-light)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div>
+        <div style={{ fontSize: 12, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 500, marginBottom: 4 }}>{today}</div>
+        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Cardo','Georgia',serif", color: 'var(--gold)' }}>
+          Hey, {name}
+        </div>
       </div>
+      {hasPortal(team) && (
+        <a href={PORTAL_URL} target="_blank" rel="noopener noreferrer" className="btn-gold" style={{ textDecoration: 'none', fontSize: 13, padding: '9px 18px', flexShrink: 0 }}>Portal ↗</a>
+      )}
     </div>
   );
 }
@@ -477,7 +486,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader name={volunteer['First Name']} />
+      <PageHeader name={volunteer['First Name']} team={volunteer.Team} />
       <div style={{ padding: '16px 20px 24px' }}>
         {/* Two-column on desktop, stacked on mobile */}
         <div style={{
