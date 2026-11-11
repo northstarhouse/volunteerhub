@@ -24,7 +24,7 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
   const [draft, setDraft] = useState({});
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); // a dropdown: closed until clicked
 
   useEffect(() => { fetchEventPlan(PLAN_YEAR).then(setRows).catch(() => setRows([])); }, []);
 
