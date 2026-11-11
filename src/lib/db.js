@@ -970,6 +970,16 @@ export async function logActivity({ vol, authUserId, action, description, tag, d
 
 // ── Events Committee Planning Notes ────────────────────────────────────────
 
+// The committee's confirmed event list for a year (Events Committee > Event Plan), see EventPlan.jsx.
+export async function fetchEventPlan(year) {
+  const rows = await get(`events_plan?year=eq.${year}&select=*&order=sort_order.asc`);
+  return Array.isArray(rows) ? rows : [];
+}
+export async function updateEventPlanRow(id, body) {
+  const rows = await patch(`events_plan?id=eq.${id}`, body);
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
+
 export async function fetchCommitteeEvents() {
   const rows = await get('events_committee?select=*&order=date.asc.nullslast');
   return Array.isArray(rows) ? rows : [];

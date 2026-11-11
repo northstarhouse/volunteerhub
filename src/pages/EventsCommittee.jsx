@@ -8,6 +8,7 @@ import {
 import AreasTab from './eventsCommitteeAreas.jsx';
 import EventOverviews from './EventOverviews.jsx';
 import RsvpPanel from './RsvpPanel.jsx';
+import EventPlan from './EventPlan.jsx';
 
 const cryptoId = () => Math.random().toString(36).slice(2, 10);
 const nextDate = (offsetDays) => {
@@ -1452,7 +1453,10 @@ export default function EventsCommittee() {
         ) : selected ? (
           <EventDetail ev={selected} onUpdate={updateSelected} onBack={() => setSelectedId(null)} onEdit={openEditModal} volunteers={volunteers} session={session} volunteer={volunteer} />
         ) : (
-          <EventCardsGrid onOpen={openEventByName} />
+          <>
+            <EventPlan session={session} volunteer={volunteer} onFinalized={() => load()} />
+            <EventCardsGrid onOpen={openEventByName} />
+          </>
         )}
       </div>
 
