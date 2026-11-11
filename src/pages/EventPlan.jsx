@@ -9,6 +9,7 @@ const REQUIRED = [
   ['date', 'Date'], ['start_time', 'Start time'], ['end_time', 'End time'], ['pricing', 'Pricing'], ['budget', 'Budget'],
 ];
 const fmtDay = (iso) => iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const fmtShort = (iso) => iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const fmtStamp = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const fmtTime = (hhmm) => {
   if (!hhmm) return '';
@@ -48,18 +49,42 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
     if (!res) { setErr('Could not save the decision. Please try again.'); setRows(prev => prev.map(x => x.id === r.id ? r : x)); }
   }
 
-  // a multi-day event also needs its end date
-  const missing = (r) => REQUIRED.filter(([k]) => !String(r[k] || '').trim()).map(([, label]) => label).concat(r.multi_day && !r.end_date ? ['End date'] : []);
+  // What has to be filled in before finalizing. A multi-day event (days can be months apart) needs a date, start and
+  // end time for every one of its days.
+  const daysOf = (r) => (Array.isArray(r.days) ? r.days : []);
+  const reqs = (r) => {
+    const has = (v) => !!String(v || '').trim();
+    const base = [['pricing', 'Pricing', has(r.pricing)], ['budget', 'Budget', has(r.budget)]];
+    if (r.multi_day) {
+      const days = daysOf(r);
+      if (days.length < 2) return [['days', 'Number of days', false]].concat(base);
+      return days.map((d, i) => ['day' + i, 'Day ' + (i + 1) + (d.date ? ' · ' + fmtShort(d.date) : ''), has(d.date) && has(d.start_time) && has(d.end_time)]).concat(base);
+    }
+    return [['date', 'Date', has(r.date)], ['start_time', 'Start time', has(r.start_time)], ['end_time', 'End time', has(r.end_time)]].concat(base);
+  };
+  const missing = (r) => reqs(r).filter((q) => !q[2]).map((q) => q[1]);
 
   function edit(r) {
     if (open === r.id) { setOpen(null); return; }
     setOpen(r.id); setErr('');
-    setDraft({ multi_day: !!r.multi_day, end_date: r.end_date || '', date: r.date || '', start_time: r.start_time || '', end_time: r.end_time || '', pricing: r.pricing || '', budget: r.budget || '', decisions: r.decisions || '' });
+    const days = daysOf(r).length ? daysOf(r).map((d) => ({ date: d.date || '', start_time: d.start_time || '', end_time: d.end_time || '' }))
+      : [{ date: r.date || '', start_time: r.start_time || '', end_time: r.end_time || '' }, { date: '', start_time: '', end_time: '' }];
+    setDraft({ multi_day: !!r.multi_day, days, date: r.date || '', start_time: r.start_time || '', end_time: r.end_time || '', pricing: r.pricing || '', budget: r.budget || '', decisions: r.decisions || '' });
+  }
+  function setDayCount(n) {
+    const count = Math.max(2, Math.min(30, parseInt(n, 10) || 2));
+    setDraft((d) => { const days = d.days.slice(0, count); while (days.length < count) days.push({ date: '', start_time: '', end_time: '' }); return { ...d, days }; });
+  }
+  function setDay(i, key, value) {
+    setDraft((d) => ({ ...d, days: d.days.map((x, j) => j === i ? { ...x, [key]: value } : x) }));
   }
 
   async function save(r) {
     setBusy(r.id); setErr('');
-    const body = { multi_day: !!draft.multi_day, end_date: draft.multi_day ? (draft.end_date || null) : null, date: draft.date || null, start_time: draft.start_time || null, end_time: draft.end_time || null, pricing: draft.pricing.trim() || null, budget: draft.budget.trim() || null, updated_at: new Date().toISOString() };
+    // a multi-day event keeps every day; its first (earliest) day also fills the plain date/time fields
+    const days = draft.multi_day ? draft.days.slice().sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')) : null;
+    const first = days ? days[0] : draft;
+    const body = { multi_day: !!draft.multi_day, days, end_date: null, date: first.date || null, start_time: first.start_time || null, end_time: first.end_time || null, pricing: draft.pricing.trim() || null, budget: draft.budget.trim() || null, updated_at: new Date().toISOString() };
     if ((draft.decisions || '').trim() !== (r.decisions || '').trim()) {
       body.decisions = draft.decisions.trim() || null;
       body.decisions_updated_at = new Date().toISOString();
@@ -74,26 +99,36 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
 
   async function finalize(r) {
     if (missing(r).length) return;
-    if (!window.confirm(`Finalize "${r.name}" as a ${PLAN_YEAR} event? It will be added to the Events Committee events.`)) return;
+    const days = r.multi_day ? daysOf(r) : [{ date: r.date, start_time: r.start_time, end_time: r.end_time }];
+    if (!window.confirm(`Finalize "${r.name}" as a ${PLAN_YEAR} event?` + (days.length > 1 ? ` Each of its ${days.length} days is added as its own event.` : ' It will be added to the Events Committee events.'))) return;
     setBusy(r.id); setErr('');
-    const name = /\b20\d\d\b/.test(r.name) ? r.name : `${r.name} ${PLAN_YEAR}`;
-    const ins = await insertCommitteeEvent({
-      name, date: r.date, start_time: r.start_time, end_time: r.end_time, pricing: r.pricing, status: 'planning',
-      description: [r.multi_day && r.end_date ? `Multi-day event: ${fmtDay(r.date)} to ${fmtDay(r.end_date)}` : '', r.budget ? `Budget: ${r.budget}` : '', r.decisions ? `Committee decisions: ${r.decisions}` : ''].filter(Boolean).join('\n\n'),
-      checklist: [], vendors: [], timeline: [], after_notes: {}, created_by: session?.user?.id || null,
-    });
-    if (ins.error || !ins.row) {
-      setBusy('');
-      setErr(/duplicate|unique/i.test(ins.error || '') ? `An event named "${name}" already exists.` : `Could not finalize: ${ins.error || 'unknown error'}`);
-      return;
+    const base = /\b20\d\d\b/.test(r.name) ? r.name : `${r.name} ${PLAN_YEAR}`;
+    const notes = [r.budget ? `Budget: ${r.budget}` : '', r.decisions ? `Committee decisions: ${r.decisions}` : ''].filter(Boolean);
+    const created = [];
+    for (let i = 0; i < days.length; i++) {
+      const d = days[i];
+      // one event per day; for multi-day events each name carries its date (days can be months apart)
+      const name = days.length > 1 ? `${r.name} – ${fmtShort(d.date)}` : base;
+      const ins = await insertCommitteeEvent({
+        name, date: d.date, start_time: d.start_time, end_time: d.end_time, pricing: r.pricing, status: 'planning',
+        description: [days.length > 1 ? `Day ${i + 1} of ${days.length} of ${base}: ${days.map((x) => fmtShort(x.date)).join(', ')}` : '', ...notes].filter(Boolean).join('\n\n'),
+        checklist: [], vendors: [], timeline: [], after_notes: {}, created_by: session?.user?.id || null,
+      });
+      if (ins.error || !ins.row) {
+        setBusy('');
+        setErr((created.length ? `${created.length} of ${days.length} days were added, then: ` : '') + (/duplicate|unique/i.test(ins.error || '') ? `an event named "${name}" already exists.` : `could not finalize: ${ins.error || 'unknown error'}`));
+        if (created.length && onFinalized) onFinalized(created[0]);
+        return;
+      }
+      created.push(ins.row);
     }
-    const upd = await updateEventPlanRow(r.id, { finalized_event_id: ins.row.id, finalized_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+    const upd = await updateEventPlanRow(r.id, { finalized_event_id: created[0].id, finalized_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     setBusy('');
     if (upd) setRows(prev => prev.map(x => x.id === r.id ? upd : x));
-    syncOverviewCardsFromCommittee([ins.row]).catch(() => {});
-    syncInHouseEvent({ name: ins.row.name, date: ins.row.date }).then(ih => { if (ih?.id) updateCommitteeEvent(ins.row.id, { in_house_event_id: ih.id }); }).catch(() => {});
-    logActivity({ vol: volunteer, authUserId: session?.user?.id, action: 'committee_event_added', description: `${PLAN_YEAR} Event Plan: finalized ${ins.row.name}` }).catch(() => {});
-    if (onFinalized) onFinalized(ins.row);
+    syncOverviewCardsFromCommittee(created).catch(() => {});
+    created.forEach((row) => syncInHouseEvent({ name: row.name, date: row.date }).then(ih => { if (ih?.id) updateCommitteeEvent(row.id, { in_house_event_id: ih.id }); }).catch(() => {}));
+    logActivity({ vol: volunteer, authUserId: session?.user?.id, action: 'committee_event_added', description: `${PLAN_YEAR} Event Plan: finalized ${created.map((x) => x.name).join(', ')}` }).catch(() => {});
+    if (onFinalized) onFinalized(created[0]);
   }
 
   const done = (rows || []).filter(r => r.finalized_event_id).length;
@@ -122,7 +157,7 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{r.name}{vr && <span title={'Committee vote · ' + vr.title} style={{ fontSize: 11, fontWeight: 700, background: vr.tone.bg, color: vr.tone.color, borderRadius: 10, padding: '2px 9px' }}>{vr.label} {vr.count}/{vr.total}</span>}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                      {[r.date ? fmtDay(r.date) + (r.multi_day && r.end_date ? ' – ' + fmtDay(r.end_date) : '') : '', r.multi_day ? 'Multi-day' : '', r.start_time ? `${fmtTime(r.start_time)}${r.end_time ? '–' + fmtTime(r.end_time) : ''}` : '', r.pricing ? `Pricing: ${r.pricing}` : '', r.budget ? `Budget: ${r.budget}` : ''].filter(Boolean).join(' · ') || 'No details yet'}
+                      {[r.multi_day ? `${daysOf(r).length || 'Multi'}-day: ` + (daysOf(r).filter((d) => d.date).map((d) => fmtShort(d.date)).join(', ') || 'dates to set') : '', !r.multi_day && r.date ? fmtDay(r.date) : '', !r.multi_day && r.start_time ? `${fmtTime(r.start_time)}${r.end_time ? '–' + fmtTime(r.end_time) : ''}` : '', r.pricing ? `Pricing: ${r.pricing}` : '', r.budget ? `Budget: ${r.budget}` : ''].filter(Boolean).join(' · ') || 'No details yet'}
                     </div>
                   </div>
                   <select value={r.final_decision || ''} onChange={e => setDecision(r, e.target.value)} aria-label={'Final decision for ' + r.name}
@@ -141,8 +176,7 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                 {/* What's needed to finalize: each item checks off once it's filled in */}
                 {!finalized && !dropped && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                    {REQUIRED.concat(r.multi_day ? [['end_date', 'End date']] : []).map(([k, label]) => {
-                      const ok = !!String(r[k] || '').trim();
+                    {reqs(r).map(([k, label, ok]) => {
                       return <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, borderRadius: 6, padding: '3px 9px', background: ok ? '#e8f5e9' : '#ffebee', color: ok ? '#2e7d32' : '#c62828', border: '1px solid ' + (ok ? '#bfe0bf' : '#f2b8b5') }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: 3, background: ok ? '#2e7d32' : '#fff', border: ok ? 'none' : '1.5px solid #e57373', color: '#fff', fontSize: 10, lineHeight: 1 }}>{ok ? '✓' : ''}</span>
                         {label}
@@ -170,11 +204,25 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                       <input type="checkbox" checked={!!draft.multi_day} onChange={e => setDraft({ ...draft, multi_day: e.target.checked })} style={{ width: 16, height: 16, accentColor: '#886c44' }} />
                       Multi-day event
                     </label>
+                    {draft.multi_day && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <label style={{ ...lab, flexDirection: 'row', alignItems: 'center', gap: 8 }}>How many days?
+                          <input className="input" type="number" min={2} max={30} value={draft.days.length} onChange={e => setDayCount(e.target.value)} style={{ width: 70 }} />
+                        </label>
+                        {draft.days.map((d, i) => (
+                          <div key={i} style={{ display: 'grid', gridTemplateColumns: '60px repeat(auto-fit, minmax(130px, 1fr))', gap: 8, alignItems: 'end' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold)', paddingBottom: 8 }}>Day {i + 1}</div>
+                            <label style={lab}>Date<input className="input" type="date" value={d.date} onChange={e => setDay(i, 'date', e.target.value)} /></label>
+                            <label style={lab}>Start time<input className="input" type="time" step="900" value={d.start_time} onChange={e => setDay(i, 'start_time', e.target.value)} /></label>
+                            <label style={lab}>End time<input className="input" type="time" step="900" value={d.end_time} onChange={e => setDay(i, 'end_time', e.target.value)} /></label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
-                      <label style={lab}>{draft.multi_day ? 'Start date' : 'Date'}<input className="input" type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></label>
-                      {draft.multi_day && <label style={lab}>End date<input className="input" type="date" min={draft.date || undefined} value={draft.end_date} onChange={e => setDraft({ ...draft, end_date: e.target.value })} /></label>}
-                      <label style={lab}>Start time<input className="input" type="time" step="900" value={draft.start_time} onChange={e => setDraft({ ...draft, start_time: e.target.value })} /></label>
-                      <label style={lab}>End time<input className="input" type="time" step="900" value={draft.end_time} onChange={e => setDraft({ ...draft, end_time: e.target.value })} /></label>
+                      {!draft.multi_day && <label style={lab}>Date<input className="input" type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></label>}
+                      {!draft.multi_day && <label style={lab}>Start time<input className="input" type="time" step="900" value={draft.start_time} onChange={e => setDraft({ ...draft, start_time: e.target.value })} /></label>}
+                      {!draft.multi_day && <label style={lab}>End time<input className="input" type="time" step="900" value={draft.end_time} onChange={e => setDraft({ ...draft, end_time: e.target.value })} /></label>}
                       <label style={lab}>Pricing<input className="input" value={draft.pricing} onChange={e => setDraft({ ...draft, pricing: e.target.value })} placeholder="e.g. $25 / $15 members" /></label>
                       <label style={lab}>Budget<input className="input" value={draft.budget} onChange={e => setDraft({ ...draft, budget: e.target.value })} placeholder="e.g. $1,500" /></label>
                     </div>
