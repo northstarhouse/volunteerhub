@@ -140,8 +140,8 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                     {REQUIRED.concat(r.multi_day ? [['end_date', 'End date']] : []).map(([k, label]) => {
                       const ok = !!String(r[k] || '').trim();
-                      return <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, borderRadius: 6, padding: '3px 9px', background: ok ? '#e8f5e9' : '#f5f2ec', color: ok ? '#2e7d32' : '#9a8f7e', border: '1px solid ' + (ok ? '#bfe0bf' : '#e6dfd3') }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: 3, background: ok ? '#2e7d32' : '#fff', border: ok ? 'none' : '1.5px solid #c9bfae', color: '#fff', fontSize: 10, lineHeight: 1 }}>{ok ? '✓' : ''}</span>
+                      return <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, borderRadius: 6, padding: '3px 9px', background: ok ? '#e8f5e9' : '#ffebee', color: ok ? '#2e7d32' : '#c62828', border: '1px solid ' + (ok ? '#bfe0bf' : '#f2b8b5') }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: 3, background: ok ? '#2e7d32' : '#fff', border: ok ? 'none' : '1.5px solid #e57373', color: '#fff', fontSize: 10, lineHeight: 1 }}>{ok ? '✓' : ''}</span>
                         {label}
                       </span>;
                     })}
