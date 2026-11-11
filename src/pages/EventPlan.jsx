@@ -113,6 +113,9 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
             const finalized = !!r.finalized_event_id;
             const vr = voteResult(votes[planKey(r.name)]);
             const dt = DECISION_TONE[r.final_decision];
+            const dropped = r.final_decision === 'Not Moving Forward'; // no finalize checklist for these
+            // the decisions box takes the dropdown's color (yellow until a decision is picked)
+            const box = dt ? { bg: dt.bg, edge: dt.color, head: dt.color } : { bg: '#fff8e1', edge: '#e0a800', head: '#8a6200' };
             return (
               <div key={r.id} style={{ padding: '12px 16px', borderTop: i ? '0.5px solid var(--border-light)' : 'none', opacity: finalized ? 0.75 : 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -129,14 +132,14 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                   </select>
                   {finalized
                     ? <span style={{ fontSize: 11, fontWeight: 700, background: '#e8f5e9', color: '#2e7d32', borderRadius: 10, padding: '3px 10px' }}>✓ Finalized {fmtStamp(r.finalized_at)}</span>
-                    : need.length
+                    : need.length || dropped
                       ? null
                       : <button type="button" className="btn-gold" disabled={busy === r.id} onClick={() => finalize(r)} style={{ fontSize: 12, padding: '6px 14px' }}>{busy === r.id ? 'Finalizing…' : 'Finalize event'}</button>}
                   {!finalized && <button type="button" className="btn-ghost" onClick={() => edit(r)} style={{ fontSize: 12, padding: '5px 12px' }}>{open === r.id ? 'Close' : 'Edit'}</button>}
                 </div>
 
                 {/* What's needed to finalize: each item checks off once it's filled in */}
-                {!finalized && (
+                {!finalized && !dropped && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                     {REQUIRED.concat(r.multi_day ? [['end_date', 'End date']] : []).map(([k, label]) => {
                       const ok = !!String(r[k] || '').trim();
@@ -150,11 +153,11 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
 
                 {/* Committee decisions: the highlighted note */}
                 {open !== r.id && (
-                  <div style={{ marginTop: 8, background: '#fff8e1', borderLeft: '3px solid #e0a800', borderRadius: 6, padding: '8px 12px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: '#8a6200', marginBottom: 3 }}>
+                  <div style={{ marginTop: 8, background: box.bg, borderLeft: '3px solid ' + box.edge, borderRadius: 6, padding: '8px 12px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: box.head, marginBottom: 3 }}>
                       Committee decisions{r.decisions_updated_at ? ` · as of ${fmtStamp(r.decisions_updated_at)}${r.decisions_updated_by ? ' (' + r.decisions_updated_by + ')' : ''}` : ''}
                     </div>
-                    <div style={{ fontSize: 13, color: r.decisions ? '#3a332a' : '#b49a5a', whiteSpace: 'pre-wrap', fontStyle: r.decisions ? 'normal' : 'italic' }}>{r.decisions || 'No decisions recorded yet.'}</div>
+                    <div style={{ fontSize: 13, color: r.decisions ? '#3a332a' : box.head, whiteSpace: 'pre-wrap', fontStyle: r.decisions ? 'normal' : 'italic' }}>{r.decisions || 'No decisions recorded yet.'}</div>
                   </div>
                 )}
 
