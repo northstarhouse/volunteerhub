@@ -130,10 +130,23 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                   {finalized
                     ? <span style={{ fontSize: 11, fontWeight: 700, background: '#e8f5e9', color: '#2e7d32', borderRadius: 10, padding: '3px 10px' }}>✓ Finalized {fmtStamp(r.finalized_at)}</span>
                     : need.length
-                      ? <span title={'Still needed: ' + need.join(', ')} style={{ fontSize: 11, fontWeight: 600, background: '#fff8e1', color: '#8a6200', borderRadius: 10, padding: '3px 10px' }}>Needs {need.join(', ').toLowerCase()}</span>
+                      ? null
                       : <button type="button" className="btn-gold" disabled={busy === r.id} onClick={() => finalize(r)} style={{ fontSize: 12, padding: '6px 14px' }}>{busy === r.id ? 'Finalizing…' : 'Finalize event'}</button>}
                   {!finalized && <button type="button" className="btn-ghost" onClick={() => edit(r)} style={{ fontSize: 12, padding: '5px 12px' }}>{open === r.id ? 'Close' : 'Edit'}</button>}
                 </div>
+
+                {/* What's needed to finalize: each item checks off once it's filled in */}
+                {!finalized && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                    {REQUIRED.concat(r.multi_day ? [['end_date', 'End date']] : []).map(([k, label]) => {
+                      const ok = !!String(r[k] || '').trim();
+                      return <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, borderRadius: 6, padding: '3px 9px', background: ok ? '#e8f5e9' : '#f5f2ec', color: ok ? '#2e7d32' : '#9a8f7e', border: '1px solid ' + (ok ? '#bfe0bf' : '#e6dfd3') }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: 3, background: ok ? '#2e7d32' : '#fff', border: ok ? 'none' : '1.5px solid #c9bfae', color: '#fff', fontSize: 10, lineHeight: 1 }}>{ok ? '✓' : ''}</span>
+                        {label}
+                      </span>;
+                    })}
+                  </div>
+                )}
 
                 {/* Committee decisions: the highlighted note */}
                 {open !== r.id && (
