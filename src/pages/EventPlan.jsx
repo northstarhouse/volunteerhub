@@ -30,6 +30,10 @@ function voteResult(t) {
 // The committee's final call on each event.
 const DECISIONS = ['Moving Forward', 'Not Moving Forward', 'Merging with Another Event', 'Needs Further Discussion'];
 const DECISION_TONE = { 'Moving Forward': { bg: '#e8f5e9', color: '#2e7d32' }, 'Not Moving Forward': { bg: '#ffebee', color: '#c62828' }, 'Merging with Another Event': { bg: '#ede7f6', color: '#5e35b1' }, 'Needs Further Discussion': { bg: '#fff8e1', color: '#8a6200' } };
+// List order: everything else first, Needs Further Discussion in the middle, Not Moving Forward at the bottom
+// (each group keeps the committee's order).
+const DECISION_RANK = { 'Needs Further Discussion': 1, 'Not Moving Forward': 2 };
+const sortPlan = (rows) => rows.slice().sort((a, b) => (DECISION_RANK[a.final_decision] || 0) - (DECISION_RANK[b.final_decision] || 0) || a.sort_order - b.sort_order);
 const volName = (v) => v ? `${v['First Name'] || ''} ${v['Last Name'] || ''}`.trim() : '';
 
 export default function EventPlan({ session, volunteer, onFinalized }) {
@@ -143,7 +147,7 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
         <div style={{ borderTop: '0.5px solid var(--border-light)' }}>
           <div style={{ fontSize: 12, color: 'var(--muted)', padding: '10px 16px 4px' }}>The committee's confirmed events for {PLAN_YEAR}. Once an event has a date, start and end times, pricing and a budget, finalize it to add it to the events below.</div>
           {err && <div style={{ color: '#b3261e', fontSize: 12, padding: '4px 16px' }}>{err}</div>}
-          {rows === null ? <div style={{ padding: 16, fontSize: 13, color: 'var(--muted)' }}>Loading…</div> : rows.map((r, i) => {
+          {rows === null ? <div style={{ padding: 16, fontSize: 13, color: 'var(--muted)' }}>Loading…</div> : sortPlan(rows).map((r, i) => {
             const need = missing(r);
             const finalized = !!r.finalized_event_id;
             const vr = voteResult(votes[planKey(r.name)]);
