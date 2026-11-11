@@ -2,7 +2,7 @@
 // vote). Each event has a highlighted "Committee decisions" note, kept current after each meeting, and is finalized into a
 // real Events Committee event once its date, start and end times, pricing and budget are filled in.
 import { useState, useEffect } from 'react';
-import { fetchEventPlan, updateEventPlanRow, insertCommitteeEvent, syncOverviewCardsFromCommittee, syncInHouseEvent, updateCommitteeEvent, logActivity } from '../lib/db.js';
+import { fetchEventPlan, fetchPlanVotes, planKey, updateEventPlanRow, insertCommitteeEvent, syncOverviewCardsFromCommittee, syncInHouseEvent, updateCommitteeEvent, logActivity } from '../lib/db.js';
 
 const PLAN_YEAR = 2027;
 const REQUIRED = [
@@ -16,6 +16,19 @@ const fmtTime = (hhmm) => {
   if (Number.isNaN(h)) return hhmm;
   return `${h % 12 || 12}:${String(m || 0).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 };
+// Vote result pill: colored by what won.
+const VOTE_TONE = { Yes: { bg: '#e8f5e9', color: '#2e7d32' }, No: { bg: '#ffebee', color: '#c62828' } };
+function voteResult(t) {
+  if (!t || !t.total) return null;
+  const choices = Object.keys(t).filter(k => k !== 'total');
+  const top = choices.sort((a, b) => t[b] - t[a])[0];
+  const tie = choices.filter(c => t[c] === t[top]).length > 1;
+  const label = tie ? 'Tie' : top === 'Yes' || top === 'No' || top === 'Abstain' ? top : 'Notes';
+  return { label, count: t[top], total: t.total, tone: tie ? { bg: '#fff3e0', color: '#e65100' } : VOTE_TONE[top] || { bg: '#fff3e0', color: '#e65100' }, title: choices.map(c => c + ': ' + t[c]).join(', ') };
+}
+// The committee's final call on each event.
+const DECISIONS = ['Confirmed', 'Tentative', 'On hold', 'Canceled'];
+const DECISION_TONE = { Confirmed: { bg: '#e8f5e9', color: '#2e7d32' }, Tentative: { bg: '#e3f2fd', color: '#1565c0' }, 'On hold': { bg: '#fff8e1', color: '#8a6200' }, Canceled: { bg: '#ffebee', color: '#c62828' } };
 const volName = (v) => v ? `${v['First Name'] || ''} ${v['Last Name'] || ''}`.trim() : '';
 
 export default function EventPlan({ session, volunteer, onFinalized }) {
@@ -26,7 +39,14 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
   const [err, setErr] = useState('');
   const [collapsed, setCollapsed] = useState(true); // a dropdown: closed until clicked
 
-  useEffect(() => { fetchEventPlan(PLAN_YEAR).then(setRows).catch(() => setRows([])); }, []);
+  const [votes, setVotes] = useState({});
+  useEffect(() => { fetchEventPlan(PLAN_YEAR).then(setRows).catch(() => setRows([])); fetchPlanVotes(PLAN_YEAR).then(setVotes).catch(() => {}); }, []);
+
+  async function setDecision(r, value) {
+    setRows(prev => prev.map(x => x.id === r.id ? { ...x, final_decision: value || null } : x));
+    const res = await updateEventPlanRow(r.id, { final_decision: value || null, updated_at: new Date().toISOString() });
+    if (!res) { setErr('Could not save the decision. Please try again.'); setRows(prev => prev.map(x => x.id === r.id ? r : x)); }
+  }
 
   const missing = (r) => REQUIRED.filter(([k]) => !String(r[k] || '').trim()).map(([, label]) => label);
 
@@ -90,15 +110,22 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
           {rows === null ? <div style={{ padding: 16, fontSize: 13, color: 'var(--muted)' }}>Loading…</div> : rows.map((r, i) => {
             const need = missing(r);
             const finalized = !!r.finalized_event_id;
+            const vr = voteResult(votes[planKey(r.name)]);
+            const dt = DECISION_TONE[r.final_decision];
             return (
               <div key={r.id} style={{ padding: '12px 16px', borderTop: i ? '0.5px solid var(--border-light)' : 'none', opacity: finalized ? 0.75 : 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{r.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{r.name}{vr && <span title={'Committee vote · ' + vr.title} style={{ fontSize: 11, fontWeight: 700, background: vr.tone.bg, color: vr.tone.color, borderRadius: 10, padding: '2px 9px' }}>{vr.label} {vr.count}/{vr.total}</span>}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                       {[r.date ? fmtDay(r.date) : '', r.start_time ? `${fmtTime(r.start_time)}${r.end_time ? '–' + fmtTime(r.end_time) : ''}` : '', r.pricing ? `Pricing: ${r.pricing}` : '', r.budget ? `Budget: ${r.budget}` : ''].filter(Boolean).join(' · ') || 'No details yet'}
                     </div>
                   </div>
+                  <select value={r.final_decision || ''} onChange={e => setDecision(r, e.target.value)} aria-label={'Final decision for ' + r.name}
+                    style={{ fontSize: 12, fontWeight: 600, padding: '5px 8px', borderRadius: 6, cursor: 'pointer', border: dt ? '1px solid transparent' : '0.5px solid var(--border)', background: dt ? dt.bg : '#fff', color: dt ? dt.color : 'var(--text)' }}>
+                    <option value="">Final decision…</option>
+                    {DECISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
                   {finalized
                     ? <span style={{ fontSize: 11, fontWeight: 700, background: '#e8f5e9', color: '#2e7d32', borderRadius: 10, padding: '3px 10px' }}>✓ Finalized {fmtStamp(r.finalized_at)}</span>
                     : need.length
