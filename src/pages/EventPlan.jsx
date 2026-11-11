@@ -27,8 +27,8 @@ function voteResult(t) {
   return { label, count: t[top], total: t.total, tone: tie ? { bg: '#fff3e0', color: '#e65100' } : VOTE_TONE[top] || { bg: '#fff3e0', color: '#e65100' }, title: choices.map(c => c + ': ' + t[c]).join(', ') };
 }
 // The committee's final call on each event.
-const DECISIONS = ['Confirmed', 'Tentative', 'On hold', 'Canceled'];
-const DECISION_TONE = { Confirmed: { bg: '#e8f5e9', color: '#2e7d32' }, Tentative: { bg: '#e3f2fd', color: '#1565c0' }, 'On hold': { bg: '#fff8e1', color: '#8a6200' }, Canceled: { bg: '#ffebee', color: '#c62828' } };
+const DECISIONS = ['Moving Forward', 'Not Moving Forward', 'Merging with Another Event', 'Needs Further Discussion'];
+const DECISION_TONE = { 'Moving Forward': { bg: '#e8f5e9', color: '#2e7d32' }, 'Not Moving Forward': { bg: '#ffebee', color: '#c62828' }, 'Merging with Another Event': { bg: '#ede7f6', color: '#5e35b1' }, 'Needs Further Discussion': { bg: '#fff8e1', color: '#8a6200' } };
 const volName = (v) => v ? `${v['First Name'] || ''} ${v['Last Name'] || ''}`.trim() : '';
 
 export default function EventPlan({ session, volunteer, onFinalized }) {
