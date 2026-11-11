@@ -48,17 +48,18 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
     if (!res) { setErr('Could not save the decision. Please try again.'); setRows(prev => prev.map(x => x.id === r.id ? r : x)); }
   }
 
-  const missing = (r) => REQUIRED.filter(([k]) => !String(r[k] || '').trim()).map(([, label]) => label);
+  // a multi-day event also needs its end date
+  const missing = (r) => REQUIRED.filter(([k]) => !String(r[k] || '').trim()).map(([, label]) => label).concat(r.multi_day && !r.end_date ? ['End date'] : []);
 
   function edit(r) {
     if (open === r.id) { setOpen(null); return; }
     setOpen(r.id); setErr('');
-    setDraft({ date: r.date || '', start_time: r.start_time || '', end_time: r.end_time || '', pricing: r.pricing || '', budget: r.budget || '', decisions: r.decisions || '' });
+    setDraft({ multi_day: !!r.multi_day, end_date: r.end_date || '', date: r.date || '', start_time: r.start_time || '', end_time: r.end_time || '', pricing: r.pricing || '', budget: r.budget || '', decisions: r.decisions || '' });
   }
 
   async function save(r) {
     setBusy(r.id); setErr('');
-    const body = { date: draft.date || null, start_time: draft.start_time || null, end_time: draft.end_time || null, pricing: draft.pricing.trim() || null, budget: draft.budget.trim() || null, updated_at: new Date().toISOString() };
+    const body = { multi_day: !!draft.multi_day, end_date: draft.multi_day ? (draft.end_date || null) : null, date: draft.date || null, start_time: draft.start_time || null, end_time: draft.end_time || null, pricing: draft.pricing.trim() || null, budget: draft.budget.trim() || null, updated_at: new Date().toISOString() };
     if ((draft.decisions || '').trim() !== (r.decisions || '').trim()) {
       body.decisions = draft.decisions.trim() || null;
       body.decisions_updated_at = new Date().toISOString();
@@ -78,7 +79,7 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
     const name = /\b20\d\d\b/.test(r.name) ? r.name : `${r.name} ${PLAN_YEAR}`;
     const ins = await insertCommitteeEvent({
       name, date: r.date, start_time: r.start_time, end_time: r.end_time, pricing: r.pricing, status: 'planning',
-      description: [r.budget ? `Budget: ${r.budget}` : '', r.decisions ? `Committee decisions: ${r.decisions}` : ''].filter(Boolean).join('\n\n'),
+      description: [r.multi_day && r.end_date ? `Multi-day event: ${fmtDay(r.date)} to ${fmtDay(r.end_date)}` : '', r.budget ? `Budget: ${r.budget}` : '', r.decisions ? `Committee decisions: ${r.decisions}` : ''].filter(Boolean).join('\n\n'),
       checklist: [], vendors: [], timeline: [], after_notes: {}, created_by: session?.user?.id || null,
     });
     if (ins.error || !ins.row) {
@@ -118,7 +119,7 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{r.name}{vr && <span title={'Committee vote · ' + vr.title} style={{ fontSize: 11, fontWeight: 700, background: vr.tone.bg, color: vr.tone.color, borderRadius: 10, padding: '2px 9px' }}>{vr.label} {vr.count}/{vr.total}</span>}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                      {[r.date ? fmtDay(r.date) : '', r.start_time ? `${fmtTime(r.start_time)}${r.end_time ? '–' + fmtTime(r.end_time) : ''}` : '', r.pricing ? `Pricing: ${r.pricing}` : '', r.budget ? `Budget: ${r.budget}` : ''].filter(Boolean).join(' · ') || 'No details yet'}
+                      {[r.date ? fmtDay(r.date) + (r.multi_day && r.end_date ? ' – ' + fmtDay(r.end_date) : '') : '', r.multi_day ? 'Multi-day' : '', r.start_time ? `${fmtTime(r.start_time)}${r.end_time ? '–' + fmtTime(r.end_time) : ''}` : '', r.pricing ? `Pricing: ${r.pricing}` : '', r.budget ? `Budget: ${r.budget}` : ''].filter(Boolean).join(' · ') || 'No details yet'}
                     </div>
                   </div>
                   <select value={r.final_decision || ''} onChange={e => setDecision(r, e.target.value)} aria-label={'Final decision for ' + r.name}
@@ -149,8 +150,13 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
                     <label style={{ ...lab, color: '#8a6200' }}>Committee decisions
                       <textarea className="input" rows={4} value={draft.decisions} onChange={e => setDraft({ ...draft, decisions: e.target.value })} placeholder="What the committee decided (format, lead, budget direction, open questions…)" style={{ background: '#fffbea', border: '1px solid #e8d48a', resize: 'vertical', fontFamily: 'inherit' }} />
                     </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={!!draft.multi_day} onChange={e => setDraft({ ...draft, multi_day: e.target.checked })} style={{ width: 16, height: 16, accentColor: '#886c44' }} />
+                      Multi-day event
+                    </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
-                      <label style={lab}>Date<input className="input" type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></label>
+                      <label style={lab}>{draft.multi_day ? 'Start date' : 'Date'}<input className="input" type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></label>
+                      {draft.multi_day && <label style={lab}>End date<input className="input" type="date" min={draft.date || undefined} value={draft.end_date} onChange={e => setDraft({ ...draft, end_date: e.target.value })} /></label>}
                       <label style={lab}>Start time<input className="input" type="time" step="900" value={draft.start_time} onChange={e => setDraft({ ...draft, start_time: e.target.value })} /></label>
                       <label style={lab}>End time<input className="input" type="time" step="900" value={draft.end_time} onChange={e => setDraft({ ...draft, end_time: e.target.value })} /></label>
                       <label style={lab}>Pricing<input className="input" value={draft.pricing} onChange={e => setDraft({ ...draft, pricing: e.target.value })} placeholder="e.g. $25 / $15 members" /></label>
