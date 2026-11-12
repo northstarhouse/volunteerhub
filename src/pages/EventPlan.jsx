@@ -2,7 +2,7 @@
 // vote). Each event has a highlighted "Committee decisions" note, kept current after each meeting, and is finalized into a
 // real Events Committee event once its date, start and end times, pricing and budget are filled in.
 import { useState, useEffect } from 'react';
-import { fetchEventPlan, fetchPlanVotes, planKey, updateEventPlanRow, insertCommitteeEvent, syncOverviewCardsFromCommittee, syncInHouseEvent, updateCommitteeEvent, logActivity } from '../lib/db.js';
+import { fetchEventPlan, fetchPlanVotes, planKey, updateEventPlanRow, insertEventPlanRow,insertCommitteeEvent, syncOverviewCardsFromCommittee, syncInHouseEvent, updateCommitteeEvent, logActivity } from '../lib/db.js';
 
 const PLAN_YEAR = 2027;
 const REQUIRED = [
@@ -47,6 +47,24 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
 
   const [votes, setVotes] = useState({});
   useEffect(() => { fetchEventPlan(PLAN_YEAR).then(setRows).catch(() => setRows([])); fetchPlanVotes(PLAN_YEAR).then(setVotes).catch(() => {}); }, []);
+
+  // Add an event to the plan (e.g. the combined event when two are merged). It starts as Moving Forward and opens for editing.
+  const [newName, setNewName] = useState('');
+  const [adding, setAdding] = useState(false);
+  async function addEvent() {
+    const name = newName.trim();
+    if (!name) return;
+    if ((rows || []).some((x) => x.name.trim().toLowerCase() === name.toLowerCase())) { setErr(`"${name}" is already on the list.`); return; }
+    setAdding(true); setErr('');
+    const sort = Math.max(-1, ...(rows || []).map((x) => x.sort_order || 0)) + 1;
+    const row = await insertEventPlanRow({ year: PLAN_YEAR, name, sort_order: sort, final_decision: 'Moving Forward' });
+    setAdding(false);
+    if (!row) { setErr('Could not add the event. Please try again.'); return; }
+    setRows((prev) => (prev || []).concat([row]));
+    setNewName('');
+    logActivity({ vol: volunteer, authUserId: session?.user?.id, action: 'event_plan_added', description: `${PLAN_YEAR} Event Plan: added ${name}` }).catch(() => {});
+    edit(row);
+  }
 
   async function setDecision(r, value) {
     setRows(prev => prev.map(x => x.id === r.id ? { ...x, final_decision: value || null } : x));
@@ -240,6 +258,12 @@ export default function EventPlan({ session, volunteer, onFinalized }) {
               </div>
             );
           })}
+          {rows !== null && (
+            <form onSubmit={(e) => { e.preventDefault(); addEvent(); }} style={{ display: 'flex', gap: 8, padding: '12px 16px', borderTop: '0.5px solid var(--border-light)', flexWrap: 'wrap' }}>
+              <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="New event name (e.g. a merged event)" style={{ flex: '1 1 220px', fontSize: 13 }} />
+              <button type="submit" className="btn-gold" disabled={adding || !newName.trim()} style={{ fontSize: 12, padding: '7px 16px' }}>{adding ? 'Adding…' : '+ Add event'}</button>
+            </form>
+          )}
         </div>
       )}
     </div>

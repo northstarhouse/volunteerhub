@@ -993,6 +993,10 @@ export async function fetchPlanVotes(year) {
   });
   return out;
 }
+export async function insertEventPlanRow(body) {
+  const rows = await post('events_plan', body, { Prefer: 'return=representation' });
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
 export async function updateEventPlanRow(id, body) {
   const rows = await patch(`events_plan?id=eq.${id}`, body);
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
