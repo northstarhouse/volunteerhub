@@ -126,3 +126,7 @@ input, textarea, select, button {
 .sheet-readonly .sheet-field { padding: 14px 0; border-bottom: 0.5px solid var(--border-light); }
 .sheet-answer { font-size: 15px; line-height: 1.55; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
 .sheet-empty { color: #b8863b; font-style: italic; }
+
+/* Delete x buttons stay hidden until you click into that line */
+.row-x { visibility: hidden; }
+.row-x-host:focus-within .row-x { visibility: visible; }
