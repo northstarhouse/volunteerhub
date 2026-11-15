@@ -118,6 +118,11 @@ input, textarea, select, button {
 .sheet-readonly .edit-only { display: none !important; }
 
 /* Ready sheets: the question is a small gold caption, the answer is larger and dark, one block per question. */
-.sheet-readonly label, .sheet-readonly .label { font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.7px; text-transform: uppercase; color: #886c44 !important; gap: 3px !important; margin-bottom: 14px !important; }
+.sheet-readonly label, .sheet-readonly .label { font-size: 11px !important; font-weight: 600 !important; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted) !important; gap: 3px !important; margin-bottom: 6px !important; }
 .sheet-readonly input:not([type=checkbox]):not([type=radio]), .sheet-readonly textarea, .sheet-readonly select { font-size: 15px !important; font-weight: 500; line-height: 1.5; padding-top: 2px !important; padding-bottom: 2px !important; -webkit-text-fill-color: #2a2a2a; color: #2a2a2a; field-sizing: content; height: auto; }
 .sheet-readonly textarea { white-space: pre-wrap; }
+
+/* Ready sheet rows (planning areas): a caption, the answer, and a line under each question. */
+.sheet-readonly .sheet-field { padding: 14px 0; border-bottom: 0.5px solid var(--border-light); }
+.sheet-answer { font-size: 15px; line-height: 1.55; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sheet-empty { color: #b8863b; font-style: italic; }
