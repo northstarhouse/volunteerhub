@@ -110,3 +110,9 @@ input, textarea, select, button {
 
 /* Dashboard columns start at the same height (the first card in each column has no top margin). */
 .dashboard-grid > div > :first-child { margin-top: 0 !important; }
+
+/* Ready sheets: a form shown as plain read-only text. Edit turns the fields back on. */
+.sheet-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.sheet-readonly input:not([type=checkbox]):not([type=radio]), .sheet-readonly textarea, .sheet-readonly select { border-color: transparent !important; background: transparent !important; padding-left: 0 !important; resize: none; appearance: none; -webkit-appearance: none; -webkit-text-fill-color: var(--text); color: var(--text); opacity: 1; cursor: default; }
+.sheet-readonly input::placeholder, .sheet-readonly textarea::placeholder { color: transparent; -webkit-text-fill-color: transparent; }
+.sheet-readonly .edit-only { display: none !important; }
