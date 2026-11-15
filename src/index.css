@@ -116,3 +116,8 @@ input, textarea, select, button {
 .sheet-readonly input:not([type=checkbox]):not([type=radio]), .sheet-readonly textarea, .sheet-readonly select { border-color: transparent !important; background: transparent !important; padding-left: 0 !important; resize: none; appearance: none; -webkit-appearance: none; -webkit-text-fill-color: var(--text); color: var(--text); opacity: 1; cursor: default; }
 .sheet-readonly input::placeholder, .sheet-readonly textarea::placeholder { color: transparent; -webkit-text-fill-color: transparent; }
 .sheet-readonly .edit-only { display: none !important; }
+
+/* Ready sheets: the question is a small gold caption, the answer is larger and dark, one block per question. */
+.sheet-readonly label, .sheet-readonly .label { font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.7px; text-transform: uppercase; color: #886c44 !important; gap: 3px !important; margin-bottom: 14px !important; }
+.sheet-readonly input:not([type=checkbox]):not([type=radio]), .sheet-readonly textarea, .sheet-readonly select { font-size: 15px !important; font-weight: 500; line-height: 1.5; padding-top: 2px !important; padding-bottom: 2px !important; -webkit-text-fill-color: #2a2a2a; color: #2a2a2a; field-sizing: content; height: auto; }
+.sheet-readonly textarea { white-space: pre-wrap; }
