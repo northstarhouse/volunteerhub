@@ -10,6 +10,7 @@ export const VIEW_AS_OPTIONS = [
   { label: 'Fundraising', team: 'Fundraising' },
   { label: 'Marketing', team: 'Marketing' },
   { label: 'Venue', team: 'Venue' },
+  { label: 'Treasurer (Financial)', team: 'Treasurer' },
   { label: 'Board Member', team: 'Board Member' },
   { label: 'Team Lead', team: 'Team Lead' },
   { label: 'General volunteer (no team)', team: 'General' },

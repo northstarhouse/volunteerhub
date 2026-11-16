@@ -25,6 +25,10 @@ function ReceiptIcon({ active }) {
   const c = active ? '#f0ebe3' : 'rgba(255,255,255,0.5)';
   return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-1 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>;
 }
+function MoneyIcon({ active }) {
+  const c = active ? '#f0ebe3' : 'rgba(255,255,255,0.5)';
+  return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+}
 function PhotoIcon({ active }) {
   const c = active ? '#f0ebe3' : 'rgba(255,255,255,0.5)';
   return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>;
@@ -36,6 +40,8 @@ export default function Sidebar({ view, setView }) {
   const myAreas = matchVolunteerAreas(volunteer?.Team);
   // Staff don't log volunteer hours.
   const isStaff = (volunteer?.Team || '').split(/[|,]/).some(t => t.trim().toLowerCase() === 'staff');
+  const isTreasurer = (volunteer?.Team || '').split(/[|,]/).some(t => t.trim().toLowerCase() === 'treasurer');
+  const tabs = isTreasurer ? [...TABS, { id: 'financial', label: 'Financial', icon: MoneyIcon }] : TABS;
 
   return (
     <div style={{ display: 'flex', position: 'sticky', top: 0, height: '100vh', flexShrink: 0 }}>
@@ -47,7 +53,7 @@ export default function Sidebar({ view, setView }) {
         <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)', margin: '0 0 8px' }} />
 
         <nav style={{ padding: '0 8px' }}>
-          {TABS.filter(tab => !(isStaff && tab.id === 'hours')).map(tab => {
+          {tabs.filter(tab => !(isStaff && tab.id === 'hours')).map(tab => {
             const active = view === tab.id;
             return (
               <button key={tab.id} onClick={() => setView(tab.id)} style={{

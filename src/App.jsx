@@ -12,6 +12,7 @@ const Directory = lazy(() => import('./pages/Directory.jsx'));
 const Hours = lazy(() => import('./pages/Hours.jsx'));
 const OperationalAreas = lazy(() => import('./pages/OperationalAreas.jsx'));
 const Reimbursements = lazy(() => import('./pages/Reimbursements.jsx'));
+const Financial = lazy(() => import('./pages/Financial.jsx'));
 const EventsCommittee = lazy(() => import('./pages/EventOverviews.jsx'));
 const EventsCommitteePlanning = lazy(() => import('./pages/EventsCommittee.jsx'));
 const EventsVoting = lazy(() => import('./pages/EventsVoting.jsx'));
@@ -345,6 +346,8 @@ export default function App() {
     hours:     (shownVolunteer.Team || '').split(/[|,]/).some(t => t.trim().toLowerCase() === 'staff') ? <Dashboard /> : <Hours />,
     areas:     <OperationalAreas />,
     reimbursements: <Reimbursements />,
+    // Treasurer's own view (a Treasurer team tag, or staff previewing as Treasurer).
+    financial: (shownVolunteer.Team || '').split(/[|,]/).some(t => t.trim().toLowerCase() === 'treasurer') ? <Financial /> : <Dashboard />,
     'events-committee': <EventsCommitteePlanning />,
     'events-committee-planning': <EventsCommitteePlanning />,
     'events-committee-voting': <EventsVoting />,
