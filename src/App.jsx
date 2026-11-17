@@ -357,7 +357,7 @@ export default function App() {
   };
 
   return (
-    <VolContext.Provider value={{ volunteer: shownVolunteer, setVolunteer: saveVolunteer, session, signOut, currentArea, setCurrentArea, openArea, currentCommitteeEvent, setCurrentCommitteeEvent, openCommitteeEvent, setView }}>
+    <VolContext.Provider value={{ volunteer: shownVolunteer, previewing, setVolunteer: saveVolunteer, session, signOut, currentArea, setCurrentArea, openArea, currentCommitteeEvent, setCurrentCommitteeEvent, openCommitteeEvent, setView }}>
       {new URLSearchParams(window.location.search).has('embed') ? (
         <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
           <Suspense fallback={<div role="status" style={{ padding: 24, color: 'var(--muted)' }}>Loading page…</div>}>

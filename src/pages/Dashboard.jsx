@@ -441,9 +441,10 @@ function MyEventTasksCard({ volunteerId, setView }) {
 }
 
 export default function Dashboard() {
-  const { volunteer, setView, openCommitteeEvent, session } = useVol();
-  // The private checklist is only for the media@ account (also enforced in the database).
-  const isMediaAccount = (session?.user?.email || '').toLowerCase() === 'media@thenorthstarhouse.org';
+  const { volunteer, setView, openCommitteeEvent, session, previewing } = useVol();
+  // The private checklist is only for the media@ account (also enforced in the database), and it stays hidden
+  // while using "View the Hub as" so the preview shows what that kind of volunteer sees.
+  const isMediaAccount = (session?.user?.email || '').toLowerCase() === 'media@thenorthstarhouse.org' && !previewing;
   const [volunteers, setVolunteers] = useState([]);
   const [oot, setOot]               = useState([]);
   const [calEvents, setCalEvents]   = useState(null);
