@@ -429,10 +429,13 @@ function MyEventTasksCard({ volunteerId, setView }) {
       {tasks === null ? (
         <div style={{ fontSize: 13, color: 'var(--muted)' }}>Loading…</div>
       ) : tasks.map((t, i) => (
-        <div key={t.id ?? i} style={{ marginBottom: i < tasks.length - 1 ? 10 : 0 }}>
-          <div style={{ fontSize: 14, color: 'var(--text)' }}>{t.text}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
-            {t.eventName}{t.due && ` · Due ${new Date(`${t.due}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+        <div key={t.id ?? i} style={{ marginBottom: i < tasks.length - 1 ? 10 : 0, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill={GOLD} stroke={GOLD} strokeWidth={1.5} strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }} aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, color: 'var(--text)' }}>{t.text}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+              {t.eventName}{t.due && ` · Due ${new Date(`${t.due}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+            </div>
           </div>
         </div>
       ))}
