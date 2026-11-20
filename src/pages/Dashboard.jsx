@@ -5,7 +5,7 @@ import {
   fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, fetchAnnouncements,
   fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
-  fetchRecentTourRequests, fetchUpcomingEventCards,
+  fetchRecentTourRequests, fetchUpcomingEventCards, updateCommitteeEvent,
 } from '../lib/db.js';
 import TourRequestsCard from '../components/TourRequestsCard.jsx';
 import PublicTourRsvpsCard from '../components/PublicTourRsvpsCard.jsx';
@@ -403,6 +403,40 @@ function UpcomingEventsCard({ setView, openCommitteeEvent }) {
 
 function MyEventTasksCard({ volunteerId, setView }) {
   const [tasks, setTasks] = useState(null);
+  const [adding, setAdding] = useState(null);   // id of the task whose update box is open
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(null);
+  const openUpdate = (t) => { setDraft(''); setAdding(t.id); };
+
+  // Change one task on the event it belongs to. The event is read again first, so nobody else's edits are overwritten.
+  async function changeTask(t, change) {
+    setBusy(t.id);
+    try {
+      const rows = await fetchCommitteeEvents();
+      const row = rows.find(r => r.id === t.eventId);
+      if (!row) throw new Error('Event not found');
+      const checklist = (row.checklist || []).map(x => (x.id === t.id ? change(x) : x));
+      const res = await updateCommitteeEvent(t.eventId, { checklist });
+      if (res && res.error) throw new Error(res.error);
+      return true;
+    } catch (e) {
+      alert('Could not save. Please try again.');
+      return false;
+    } finally { setBusy(null); }
+  }
+  async function markDone(t) {
+    if (await changeTask(t, x => ({ ...x, done: true }))) setTasks(prev => prev.filter(x => x.id !== t.id));
+  }
+  // An update is some text and when it was added, the same as the updates in the Events Committee checklist. It does not say who wrote it, since people often add them for someone else.
+  async function saveUpdate(t) {
+    const text = draft.trim();
+    if (!text) return;
+    const entry = { text, at: new Date().toISOString() };
+    if (await changeTask(t, x => ({ ...x, updates: [...(x.updates || []), entry] }))) {
+      setTasks(prev => prev.map(x => (x.id === t.id ? { ...x, updates: [...(x.updates || []), entry] } : x)));
+      setAdding(null); setDraft('');
+    }
+  }
 
   useEffect(() => {
     if (!volunteerId) { setTasks([]); return; }
@@ -410,7 +444,7 @@ function MyEventTasksCard({ volunteerId, setView }) {
       const mine = [];
       rows.forEach(row => {
         (row.checklist || []).forEach(t => {
-          if (t.assigneeId === volunteerId && !t.done) mine.push({ ...t, eventName: row.name });
+          if (t.assigneeId === volunteerId && !t.done) mine.push({ ...t, eventName: row.name, eventId: row.id });
         });
       });
       mine.sort((a, b) => (a.due || '9999') < (b.due || '9999') ? -1 : 1);
@@ -435,6 +469,25 @@ function MyEventTasksCard({ volunteerId, setView }) {
             <div style={{ fontSize: 14, color: 'var(--text)' }}>{t.text}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{t.eventName}</div>
             {t.due && <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>Due {new Date(`${t.due}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>}
+            {(t.updates || []).map(u => (
+              <div key={u.at} style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                <span style={{ fontWeight: 600 }}>{new Date(u.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span> · {u.text}
+              </div>
+            ))}
+            {t.id != null && (adding === t.id ? (
+              <div onClick={e => e.stopPropagation()} style={{ marginTop: 8 }}>
+                <textarea autoFocus className="input" rows={3} value={draft} onChange={e => setDraft(e.target.value)} placeholder="What's new…" style={{ width: '100%', fontSize: 13, resize: 'vertical', marginBottom: 6 }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" className="btn-gold" disabled={busy === t.id || !draft.trim()} onClick={() => saveUpdate(t)} style={{ fontSize: 12, padding: '5px 14px' }}>{busy === t.id ? 'Saving…' : 'Save'}</button>
+                  <button type="button" className="btn-ghost" onClick={() => { setAdding(null); setDraft(''); }} style={{ fontSize: 12, padding: '5px 14px' }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 6 }}>
+                <button type="button" onClick={e => { e.stopPropagation(); openUpdate(t); }} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--gold)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Update</button>
+                <button type="button" className="btn-ghost" disabled={busy === t.id} onClick={e => { e.stopPropagation(); markDone(t); }} style={{ fontSize: 11, padding: '3px 10px' }}>{busy === t.id ? 'Saving…' : '✓ Mark done'}</button>
+              </div>
+            ))}
           </div>
         </div>
       ))}
