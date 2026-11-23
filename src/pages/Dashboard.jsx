@@ -442,8 +442,12 @@ function MyEventTasksCard({ volunteerId, setView }) {
     if (!volunteerId) { setTasks([]); return; }
     fetchCommitteeEvents().then(rows => {
       const mine = [];
+      // The automatic Chamber newsletter send-in only joins the list a week before it is due (or once it is overdue), so it is not sitting there for months.
+      const soon = new Date(); soon.setDate(soon.getDate() + 7);
+      const soonKey = soon.getFullYear() + '-' + String(soon.getMonth() + 1).padStart(2, '0') + '-' + String(soon.getDate()).padStart(2, '0');
       rows.forEach(row => {
         (row.checklist || []).forEach(t => {
+          if (t.id === 'chamber-news' && t.due && t.due > soonKey) return;
           if (t.assigneeId === volunteerId && !t.done) mine.push({ ...t, eventName: row.name, eventId: row.id });
         });
       });
