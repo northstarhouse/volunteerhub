@@ -4,12 +4,14 @@ import { fetchMyOnboardingPacket, saveOnboardingPacket } from '../lib/db.js';
 import { PACKET_SECTIONS, missingRequired } from '../lib/onboarding-spec.js';
 const PdfFillDrawer = lazy(() => import('../components/PdfFillDrawer.jsx'));
 
-const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border, #e0d8cc)', borderRadius: 8, fontSize: 15, background: '#fff' };
+const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '6px 2px', border: 'none', borderBottom: '1.5px solid #8a7e6b', borderRadius: 0, fontSize: 16, background: 'transparent', outline: 'none', color: '#2c2418' };
+const LABEL = { fontSize: 11, fontWeight: 700, color: '#886c44', textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 2 };
+const FULL = { gridColumn: '1 / -1' };
 
 function Field({ f, value, onChange, onOpen, done }) {
   if (f.type === 'form') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '12px 0', flexWrap: 'wrap' }}>
+      <div style={{ ...FULL, display: 'flex', alignItems: 'center', gap: 12, margin: '10px 0', padding: '10px 12px', border: '1px solid #e3dccd', borderRadius: 6, background: '#fbf9f4', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 240px', fontSize: 14, color: 'var(--text)' }}>
           {f.label}
           <div style={{ fontSize: 12, marginTop: 2, color: done ? '#15803d' : 'var(--muted)' }}>{done ? 'Saved. You can open it again to change it.' : 'Not filled out yet'}</div>
@@ -18,10 +20,10 @@ function Field({ f, value, onChange, onOpen, done }) {
       </div>
     );
   }
-  const lbl = <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{f.label}{f.req ? ' *' : ''}</div>;
+  const lbl = <div style={LABEL}>{f.label}{f.req ? ' *' : ''}</div>;
   if (f.type === 'check') {
     return (
-      <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: 'var(--text)', margin: '10px 0', cursor: 'pointer' }}>
+      <label style={{ ...FULL, display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: 'var(--text)', margin: '10px 0', cursor: 'pointer' }}>
         <input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} style={{ marginTop: 3, width: 18, height: 18 }} />
         <span>{f.label}</span>
       </label>
@@ -29,7 +31,7 @@ function Field({ f, value, onChange, onOpen, done }) {
   }
   if (f.type === 'initials') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '10px 0', flexWrap: 'wrap' }}>
+      <div style={{ ...FULL, display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 240px', fontSize: 14, color: 'var(--text)' }}>
           {f.label}
           {f.link && <> {'·'} <a href={f.link} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }} onClick={e => { if (f.link.includes('/onboarding/')) { e.preventDefault(); onOpen({ url: f.link, title: f.label }); } }}>Read document</a></>}
@@ -39,7 +41,7 @@ function Field({ f, value, onChange, onOpen, done }) {
     );
   }
   return (
-    <div style={{ margin: '10px 0' }}>
+    <div style={{ margin: '12px 0 6px', ...(f.type === 'sig' || f.k === 'ec_medical' ? FULL : {}) }}>
       {lbl}
       {f.type === 'select' ? (
         <select value={value || ''} onChange={e => onChange(e.target.value)} style={inputStyle}>
@@ -94,7 +96,7 @@ export default function Onboarding() {
   };
 
   const shell = (children) => (
-    <div style={{ padding: '16px 20px 40px', maxWidth: 720, margin: '0 auto' }}>
+    <div style={{ padding: '16px 20px 40px', maxWidth: 820, margin: '0 auto' }}>
       <button onClick={() => setView('dashboard')} className="btn-ghost" style={{ marginBottom: 12 }}>{'←'} Dashboard</button>
       {children}
       {doc && (
@@ -125,23 +127,38 @@ export default function Onboarding() {
     </div>
   );
 
+  const sent = packet.sent_at ? new Date(packet.sent_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
   return shell(<>
-    <div style={{ fontSize: 24, fontFamily: "'Cardo', Georgia, serif", fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Onboarding Packet</div>
-    <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 16 }}>Your progress saves as you go. Fields marked * are required.</div>
-    {PACKET_SECTIONS.map(s => (
-      <div key={s.id} className="card" style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{s.title}</div>
-        <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>{s.intro}</div>
-        {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} />)}
+    <div style={{ background: '#fff', border: '1px solid #d9d0bf', boxShadow: '0 2px 14px rgba(60,45,20,0.10)', padding: 'clamp(16px, 4vw, 40px)' }}>
+      <img src="/onboarding/letterhead.jpg" alt="North Star Historic Conservancy" style={{ display: 'block', width: '100%', height: 'auto', marginBottom: 18 }} />
+      <div style={{ textAlign: 'center', borderTop: '2px solid #886c44', borderBottom: '1px solid #886c44', padding: '12px 0', marginBottom: 14 }}>
+        <div style={{ fontSize: 22, fontFamily: "'Cardo', Georgia, serif", fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#2c2418' }}>Staff Onboarding Packet</div>
       </div>
-    ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 13, color: '#6b5f4c', marginBottom: 6 }}>
+        <div><span style={LABEL}>Employee </span><b style={{ color: '#2c2418', fontSize: 15 }}>{packet.person_name}</b></div>
+        <div><span style={LABEL}>Issued </span>{sent}</div>
+      </div>
+      <div style={{ fontSize: 12, color: '#8a7e6b', marginBottom: 10 }}>Your progress saves as you go. Fields marked * are required.</div>
+      {PACKET_SECTIONS.map((s, n) => (
+        <div key={s.id} style={{ marginTop: 26 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, borderBottom: '1.5px solid #886c44', paddingBottom: 5 }}>
+            <span style={{ fontFamily: "'Cardo', Georgia, serif", fontSize: 18, fontWeight: 700, color: '#886c44' }}>{n + 1}.</span>
+            <span style={{ fontFamily: "'Cardo', Georgia, serif", fontSize: 17, fontWeight: 700, color: '#2c2418', textTransform: 'uppercase', letterSpacing: 0.6 }}>{s.title}</span>
+          </div>
+          <div style={{ fontSize: 13, color: '#6b5f4c', fontStyle: 'italic', margin: '8px 0 4px' }}>{s.intro}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', columnGap: 26 }}>
+            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} />)}
+          </div>
+        </div>
+      ))}
+    </div>
     {missing.length > 0 && (
-      <div className="card" style={{ borderLeft: '4px solid #c0392b', marginBottom: 14 }}>
+      <div className="card" style={{ marginTop: 14, borderLeft: '4px solid #c0392b', marginBottom: 14 }}>
         <div style={{ fontWeight: 600, marginBottom: 6 }}>Still needed:</div>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--muted)' }}>{missing.map(m => <li key={m}>{m}</li>)}</ul>
       </div>
     )}
     {msg && <div style={{ color: '#c0392b', fontSize: 13, marginBottom: 10 }}>{msg}</div>}
-    <button className="btn-gold" disabled={saving} onClick={submit} style={{ width: '100%', padding: '12px 0', fontSize: 15 }}>{saving ? 'Submitting…' : 'Submit Packet'}</button>
+    <button className="btn-gold" disabled={saving} onClick={submit} style={{ width: '100%', padding: '12px 0', fontSize: 15, marginTop: 14 }}>{saving ? 'Submitting…' : 'Submit Packet'}</button>
   </>);
 }
