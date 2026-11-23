@@ -20,7 +20,7 @@ function Field({ f, value, onChange }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '10px 0', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 240px', fontSize: 14, color: 'var(--text)' }}>
           {f.label}
-          {f.link && <> {'·'} <a href={f.link} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }}>Open form</a></>}
+          {f.link && <> {'·'} <a href={f.link} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }}>Read document</a></>}
         </div>
         <input value={value || ''} maxLength={4} placeholder="Initials" onChange={e => onChange(e.target.value.toUpperCase())} style={{ ...inputStyle, width: 90, textAlign: 'center', fontWeight: 600 }} />
       </div>
