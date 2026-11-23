@@ -19,6 +19,7 @@ const EventsVoting = lazy(() => import('./pages/EventsVoting.jsx'));
 const ArchiveUpload = lazy(() => import('./pages/ArchiveUpload.jsx'));
 const Resources = lazy(() => import('./pages/Resources.jsx'));
 const PastTours = lazy(() => import('./pages/PastTours.jsx'));
+const Onboarding = lazy(() => import('./pages/Onboarding.jsx'));
 
 export const VolContext = createContext(null);
 export const useVol = () => useContext(VolContext);
@@ -354,6 +355,7 @@ export default function App() {
     'archive-upload': <ArchiveUpload />,
     resources: <Resources />,
     'past-tours': <PastTours />,
+    onboarding: <Onboarding />,
   };
 
   return (

@@ -1538,3 +1538,15 @@ export async function sendVoteNotification({ to, title, link }) {
   });
   return r.ok;
 }
+
+// ── Staff onboarding packet (sent from Portal > Human Resources) ─────────────
+export async function fetchMyOnboardingPacket(email) {
+  if (!email) return null;
+  const rows = await get(`onboarding_packets?select=*&person_email=eq.${encodeURIComponent(String(email).trim().toLowerCase())}&order=sent_at.desc&limit=1`);
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
+export async function saveOnboardingPacket(id, data, submit) {
+  const body = submit ? { data, status: 'submitted', submitted_at: new Date().toISOString() } : { data };
+  const rows = await patch(`onboarding_packets?id=eq.${id}&status=eq.sent`, body);
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}

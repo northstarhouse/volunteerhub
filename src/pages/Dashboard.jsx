@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Cake, Megaphone } from 'lucide-react';
 import { useVol } from '../App.jsx';
 import {
-  fetchAllActiveVolunteers, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
+  fetchAllActiveVolunteers, fetchMyOnboardingPacket, fetchOotNotices, fetchCalendarEvents, parseIcalDate, photoUrl,
   matchVolunteerAreas, fetchAnnouncements,
   fetchHours, getVolunteerHours, MONTHS, getZodiacSign, fetchOpResources, fetchCommitteeEvents,
   fetchRecentTourRequests, fetchUpcomingEventCards, updateCommitteeEvent,
@@ -500,6 +500,20 @@ function MyEventTasksCard({ volunteerId, setView }) {
   );
 }
 
+function OnboardingCard({ email, setView }) {
+  const [packet, setPacket] = useState(null);
+  useEffect(() => { fetchMyOnboardingPacket(email).then(p => setPacket(p)).catch(() => setPacket(null)); }, [email]);
+  if (!packet || packet.status !== 'sent') return null;
+  return (
+    <div className="card" style={{ marginBottom: 16, cursor: 'pointer', borderLeft: '4px solid var(--gold)' }} onClick={() => setView('onboarding')}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>Action needed</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Complete your onboarding packet</div>
+      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Emergency contact, direct deposit, and your policy acknowledgments. About ten minutes.</div>
+      <button className="btn-ghost" style={{ marginTop: 12 }}>Start the packet</button>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { volunteer, setView, openCommitteeEvent, session, previewing } = useVol();
   // The private checklist is only for the media@ account (also enforced in the database), and it stays hidden
@@ -549,6 +563,7 @@ export default function Dashboard() {
     <div>
       <PageHeader name={volunteer['First Name']} team={volunteer.Team} />
       <div style={{ padding: '16px 20px 24px' }}>
+        {!previewing && <OnboardingCard email={session?.user?.email} setView={setView} />}
         {/* Two-column on desktop, stacked on mobile */}
         <div style={{
           display: 'grid',
