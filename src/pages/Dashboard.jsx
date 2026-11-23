@@ -456,7 +456,8 @@ function MyEventTasksCard({ volunteerId, setView }) {
     }).catch(() => setTasks([]));
   }, [volunteerId]);
 
-  if (tasks !== null && tasks.length === 0) return null;
+  // Only volunteers who have event tasks assigned see this box; nothing shows while it is still checking.
+  if (tasks === null || tasks.length === 0) return null;
 
   return (
     <div className="card" style={{ marginTop: 14, cursor: 'pointer' }} onClick={() => setView('events-committee-planning')}>
