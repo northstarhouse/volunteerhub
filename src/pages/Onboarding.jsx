@@ -5,7 +5,7 @@ import { PACKET_SECTIONS, missingRequired } from '../lib/onboarding-spec.js';
 
 const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border, #e0d8cc)', borderRadius: 8, fontSize: 15, background: '#fff' };
 
-function Field({ f, value, onChange }) {
+function Field({ f, value, onChange, onOpen }) {
   const lbl = <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{f.label}{f.req ? ' *' : ''}</div>;
   if (f.type === 'check') {
     return (
@@ -20,7 +20,7 @@ function Field({ f, value, onChange }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '10px 0', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 240px', fontSize: 14, color: 'var(--text)' }}>
           {f.label}
-          {f.link && <> {'·'} <a href={f.link} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }}>Read document</a></>}
+          {f.link && <> {'·'} <a href={f.link} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }} onClick={e => { if (f.link.includes('/onboarding/')) { e.preventDefault(); onOpen({ url: f.link, title: f.label }); } }}>Read document</a></>}
         </div>
         <input value={value || ''} maxLength={4} placeholder="Initials" onChange={e => onChange(e.target.value.toUpperCase())} style={{ ...inputStyle, width: 90, textAlign: 'center', fontWeight: 600 }} />
       </div>
@@ -51,7 +51,11 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [missing, setMissing] = useState([]);
+  const [doc, setDoc] = useState(null);
+  const [wide, setWide] = useState(window.innerWidth >= 1000);
   const timer = useRef(null);
+  useEffect(() => { const k = e => { if (e.key === 'Escape') setDoc(null); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
+  useEffect(() => { const fn = () => setWide(window.innerWidth >= 1000); window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn); }, []);
 
   useEffect(() => {
     fetchMyOnboardingPacket(email).then(p => { setPacket(p); setData((p && p.data) || {}); setLoading(false); }).catch(() => setLoading(false));
@@ -81,6 +85,16 @@ export default function Onboarding() {
     <div style={{ padding: '16px 20px 40px', maxWidth: 720, margin: '0 auto' }}>
       <button onClick={() => setView('dashboard')} className="btn-ghost" style={{ marginBottom: 12 }}>{'←'} Dashboard</button>
       {children}
+      {doc && (
+        <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: wide ? 'min(620px, 55vw)' : '100%', background: '#fff', borderLeft: '1px solid var(--border, #e0d8cc)', zIndex: 200, display: 'flex', flexDirection: 'column', boxShadow: '-10px 0 30px rgba(60,45,20,0.22)', animation: 'nshSlideIn .22s ease-out' }}>
+          <style>{'@keyframes nshSlideIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}'}</style>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--border, #e0d8cc)' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</div>
+            <button className="btn-ghost" onClick={() => setDoc(null)}>Close</button>
+          </div>
+          <iframe key={doc.url} src={doc.url} title={doc.title} style={{ flex: 1, border: 'none', width: '100%' }} />
+        </div>
+      )}
     </div>
   );
 
@@ -100,7 +114,7 @@ export default function Onboarding() {
       <div key={s.id} className="card" style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{s.title}</div>
         <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>{s.intro}</div>
-        {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} />)}
+        {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} />)}
       </div>
     ))}
     {missing.length > 0 && (
