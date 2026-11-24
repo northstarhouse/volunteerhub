@@ -39,7 +39,7 @@ function initialsOf(name) {
   return (w[0][0] + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase();
 }
 
-function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, onFormSaved, personName }) {
+function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packet, packetId, onFormSaved, personName }) {
   if (f.type === 'pending') {
     return (
       <div style={{ ...FULL, margin: '14px 0 6px', padding: '12px 14px', background: '#ecebe7', border: '1px dashed #bdb7a9', borderRadius: 4, color: '#8a8578' }}>
@@ -203,7 +203,7 @@ export default function Onboarding() {
           </div>
           <div style={{ fontSize: 13, color: '#6b5f4c', fontStyle: 'italic', margin: '8px 0 4px' }}>{s.intro}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', columnGap: 26 }}>
-            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} skipped={!!data['skip_' + f.k]} onSkip={(k, v) => change('skip_' + k, v)} packetId={packet.id} personName={packet.person_name} onFormSaved={k => change('doc_' + k, new Date().toISOString())} />)}
+            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} skipped={!!data['skip_' + f.k]} onSkip={(k, v) => change('skip_' + k, v)} packet={packet} packetId={packet.id} personName={packet.person_name} onFormSaved={k => change('doc_' + k, new Date().toISOString())} />)}
           </div>
         </div>
       ))}
