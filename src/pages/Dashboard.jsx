@@ -171,7 +171,7 @@ function AnnouncementBoard() {
   if (items !== null && items.length === 0) return null;
 
   return (
-    <div className="card" style={{ marginTop: 14 }}>
+    <div className="card" style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: GOLD, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <Megaphone size={13} color={GOLD} strokeWidth={2} />
         Announcements
@@ -579,7 +579,6 @@ export default function Dashboard() {
             {isDocent && <PublicTourRsvpsCard />}
             {isDocent && <TourRequestsCard requests={tourRequests} />}
             {!myTeams.includes('Staff') && <HoursSnapshotCard data={hoursData} />}
-            <AnnouncementBoard />
             <ResourcesCard areas={myAreas} />
             <MyEventTasksCard volunteerId={volunteer.id} setView={setView} />
             {myAreas.includes('Events') && (
@@ -612,6 +611,7 @@ export default function Dashboard() {
             ) : (
               <>
                 <BirthdayCard volunteers={volunteers} />
+                <AnnouncementBoard />
                 <OotCard notices={oot} setView={setView} volunteers={volunteers} />
               </>
             )}
