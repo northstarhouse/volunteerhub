@@ -24,6 +24,14 @@ function LazyMount({ height, children }) {
 }
 
 function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, onFormSaved }) {
+  if (f.type === 'pending') {
+    return (
+      <div style={{ ...FULL, margin: '14px 0 6px', padding: '12px 14px', background: '#ecebe7', border: '1px dashed #bdb7a9', borderRadius: 4, color: '#8a8578' }}>
+        <div style={{ fontSize: 13 }}>{f.label}</div>
+        <div style={{ fontSize: 12, marginTop: 2 }}>Signed by your supervisor after you submit.</div>
+      </div>
+    );
+  }
   if (f.type === 'form') {
     return (
       <div style={{ ...FULL, margin: '14px 0 6px' }}>

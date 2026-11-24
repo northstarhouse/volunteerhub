@@ -76,6 +76,7 @@ export default function PdfFillDrawer({ url, packetId, docKey, readOnly, prefill
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      {prefill && prefill.gray && prefill.gray.length > 0 && <style>{prefill.gray.map(n => '.annotationLayer input[name="' + n + '"]{background:#d6d2ca !important;cursor:not-allowed}').join('')}</style>}
       <div style={{ position: 'relative', flex: 1, minHeight: 0, background: '#e9e4da' }}>
         <div ref={box} style={{ position: 'absolute', inset: 0, overflow: 'auto' }}>
           <div ref={viewerEl} className="pdfViewer" />
