@@ -37,7 +37,7 @@ function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, on
         </label>
         {!skipped && (
           <LazyMount height="78vh">
-            <PdfFillDrawer url={f.link} packetId={packetId} docKey={f.k} onSaved={() => onFormSaved(f.k)} />
+            <PdfFillDrawer url={f.link} packetId={packetId} docKey={f.k} prefill={f.prefill} onSaved={() => onFormSaved(f.k)} />
           </LazyMount>
         )}
       </div>
@@ -73,7 +73,7 @@ function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, on
         </select>
       ) : (
         <input type={f.type === 'date' ? 'date' : f.type === 'tel' ? 'tel' : 'text'} value={value || ''} onChange={e => onChange(e.target.value)}
-          style={{ ...inputStyle, ...(f.type === 'sig' ? { fontFamily: "'Cardo', Georgia, serif", fontStyle: 'italic', fontSize: 18 } : {}) }} />
+          style={{ ...inputStyle, ...(f.type === 'sig' ? { fontFamily: "'Great Vibes', 'Brush Script MT', cursive", fontSize: 34, lineHeight: 1.2, padding: '2px 4px' } : {}) }} />
       )}
     </div>
   );

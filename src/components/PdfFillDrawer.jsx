@@ -18,8 +18,21 @@ function fromBase64(b64) {
   return out;
 }
 
+// Fills in and locks the fields North Star completes itself (e.g. the employer section of the wage notice).
+async function preparedSource(url, prefill) {
+  const buf = await (await fetch(url)).arrayBuffer();
+  if (!prefill) return { data: new Uint8Array(buf) };
+  const { PDFDocument } = await import('pdf-lib');
+  const pdf = await PDFDocument.load(buf);
+  const form = pdf.getForm();
+  Object.entries(prefill.text || {}).forEach(([n, v]) => { try { form.getTextField(n).setText(v); } catch (e) { /* field missing */ } });
+  Object.entries(prefill.radio || {}).forEach(([n, v]) => { try { form.getRadioGroup(n).select(v); } catch (e) { /* field missing */ } });
+  (prefill.lock || []).forEach(n => { try { form.getField(n).enableReadOnly(); } catch (e) { /* field missing */ } });
+  return { data: await pdf.save() };
+}
+
 // The official PDF with its form fields live: type straight onto it, then Save puts the filled copy in the packet.
-export default function PdfFillDrawer({ url, packetId, docKey, readOnly, onSaved }) {
+export default function PdfFillDrawer({ url, packetId, docKey, readOnly, prefill, onSaved }) {
   const box = useRef(null);
   const viewerEl = useRef(null);
   const docRef = useRef(null);
@@ -31,7 +44,7 @@ export default function PdfFillDrawer({ url, packetId, docKey, readOnly, onSaved
     (async () => {
       try {
         const saved = await fetchOnboardingDoc(packetId, docKey).catch(() => null);
-        const src = saved ? { data: fromBase64(saved) } : { url };
+        const src = saved ? { data: fromBase64(saved) } : await preparedSource(url, prefill);
         task = pdfjsLib.getDocument({ ...src, isEvalSupported: false });
         const doc = await task.promise;
         if (dead) return;
