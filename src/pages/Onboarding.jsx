@@ -8,15 +8,32 @@ const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '6px 2px',
 const LABEL = { fontSize: 11, fontWeight: 700, color: '#886c44', textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 2 };
 const FULL = { gridColumn: '1 / -1' };
 
-function Field({ f, value, onChange, onOpen, done }) {
+// Mounts its child only once it scrolls close to the screen, so six PDFs do not all load at once.
+function LazyMount({ height, children }) {
+  const ref = useRef(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (!ref.current || typeof IntersectionObserver === 'undefined') { setOn(true); return; }
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { setOn(true); io.disconnect(); } }, { rootMargin: '400px' });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, []);
+  return <div ref={ref} style={{ height, display: 'flex', flexDirection: 'column', border: '1px solid #cfc6b4', background: '#fff' }}>
+    {on ? <Suspense fallback={<div style={{ padding: 16, fontSize: 13, color: 'var(--muted)' }}>Opening form…</div>}>{children}</Suspense> : <div style={{ padding: 16, fontSize: 13, color: 'var(--muted)' }}>Scroll down to load this form…</div>}
+  </div>;
+}
+
+function Field({ f, value, onChange, onOpen, done, packetId, onFormSaved }) {
   if (f.type === 'form') {
     return (
-      <div style={{ ...FULL, display: 'flex', alignItems: 'center', gap: 12, margin: '10px 0', padding: '10px 12px', border: '1px solid #e3dccd', borderRadius: 6, background: '#fbf9f4', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 240px', fontSize: 14, color: 'var(--text)' }}>
-          {f.label}
-          <div style={{ fontSize: 12, marginTop: 2, color: done ? '#15803d' : 'var(--muted)' }}>{done ? 'Saved. You can open it again to change it.' : 'Not filled out yet'}</div>
+      <div style={{ ...FULL, margin: '14px 0 6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{f.label}</div>
+          <div style={{ fontSize: 12, color: done ? '#15803d' : 'var(--muted)' }}>{done ? '\u2713 Saved. You can keep editing and save again.' : 'Fill in the form below, then click Save my answers.'}</div>
         </div>
-        <button type="button" className={done ? 'btn-ghost' : 'btn-gold'} onClick={() => onOpen({ url: f.link, title: f.label, fill: true, key: f.k })}>{done ? 'Review form' : 'Fill out form'}</button>
+        <LazyMount height="78vh">
+          <PdfFillDrawer url={f.link} packetId={packetId} docKey={f.k} onSaved={() => onFormSaved(f.k)} />
+        </LazyMount>
       </div>
     );
   }
@@ -141,13 +158,19 @@ export default function Onboarding() {
       <div style={{ fontSize: 12, color: '#8a7e6b', marginBottom: 10 }}>Your progress saves as you go. Fields marked * are required.</div>
       {PACKET_SECTIONS.map((s, n) => (
         <div key={s.id} style={{ marginTop: 26 }}>
+          {s.group && (n === 0 || PACKET_SECTIONS[n - 1].group !== s.group) && (
+            <div style={{ margin: '34px 0 20px', padding: '14px 16px', background: '#f7f2e8', borderTop: '2px solid #886c44', borderBottom: '1px solid #886c44', textAlign: 'center' }}>
+              <div style={{ fontFamily: "'Cardo', Georgia, serif", fontSize: 20, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#2c2418' }}>{s.group}</div>
+              <div style={{ fontSize: 13, color: '#6b5f4c', marginTop: 4 }}>Other materials. Open each one to read it, then initial to confirm.</div>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, borderBottom: '1.5px solid #886c44', paddingBottom: 5 }}>
             <span style={{ fontFamily: "'Cardo', Georgia, serif", fontSize: 18, fontWeight: 700, color: '#886c44' }}>{n + 1}.</span>
             <span style={{ fontFamily: "'Cardo', Georgia, serif", fontSize: 17, fontWeight: 700, color: '#2c2418', textTransform: 'uppercase', letterSpacing: 0.6 }}>{s.title}</span>
           </div>
           <div style={{ fontSize: 13, color: '#6b5f4c', fontStyle: 'italic', margin: '8px 0 4px' }}>{s.intro}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', columnGap: 26 }}>
-            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} />)}
+            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} packetId={packet.id} onFormSaved={k => change('doc_' + k, new Date().toISOString())} />)}
           </div>
         </div>
       ))}

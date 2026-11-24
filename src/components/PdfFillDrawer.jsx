@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-import { PDFViewer, EventBus, PDFLinkService } from 'pdfjs-dist/web/pdf_viewer.mjs';
-import 'pdfjs-dist/web/pdf_viewer.css';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { PDFViewer, EventBus, PDFLinkService } from 'pdfjs-dist/legacy/web/pdf_viewer.mjs';
+import 'pdfjs-dist/legacy/web/pdf_viewer.css';
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { fetchOnboardingDoc, saveOnboardingDoc } from '../lib/db.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -44,7 +44,7 @@ export default function PdfFillDrawer({ url, packetId, docKey, readOnly, onSaved
         viewer.setDocument(doc);
         linkService.setDocument(doc, null);
         setStatus('ready');
-      } catch (e) { if (!dead) { setStatus('error'); setMsg('This form could not be opened.'); } }
+      } catch (e) { console.error('PDFERR', e && (e.stack || e.message || e)); if (!dead) { setStatus('error'); setMsg('This form could not be opened.'); } }
     })();
     return () => { dead = true; try { task && task.destroy(); } catch (e) { /* closing */ } };
   }, [url, packetId, docKey, readOnly]);
@@ -63,8 +63,10 @@ export default function PdfFillDrawer({ url, packetId, docKey, readOnly, onSaved
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div ref={box} style={{ position: 'relative', flex: 1, overflow: 'auto', background: '#e9e4da' }}>
-        <div ref={viewerEl} className="pdfViewer" />
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, background: '#e9e4da' }}>
+        <div ref={box} style={{ position: 'absolute', inset: 0, overflow: 'auto' }}>
+          <div ref={viewerEl} className="pdfViewer" />
+        </div>
         {status === 'loading' && <div style={{ position: 'absolute', top: 16, left: 16, fontSize: 13, color: '#6b5f4c' }}>Opening form…</div>}
       </div>
       {!readOnly && (
