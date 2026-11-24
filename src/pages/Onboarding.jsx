@@ -23,6 +23,15 @@ function LazyMount({ height, children }) {
   </div>;
 }
 
+// The wage notice also carries this person's name and pay, which HR entered when sending the packet.
+export function wagePrefill(f, packet) {
+  if (f.k !== 'ret_wage' || !f.prefill) return f.prefill;
+  const p = f.prefill, text = { ...p.text, 'Employee Name': packet.person_name }, lock = [...p.lock, 'Employee Name'], check = [];
+  if (packet.wage) { text['Rates of Pay'] = packet.wage; lock.push('Rates of Pay'); }
+  if (packet.wage && packet.wage_basis) { check.push(packet.wage_basis); lock.push(packet.wage_basis); }
+  return { ...p, text, lock, check };
+}
+
 function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, onFormSaved }) {
   if (f.type === 'pending') {
     return (
@@ -45,7 +54,7 @@ function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, on
         </label>
         {!skipped && (
           <LazyMount height="78vh">
-            <PdfFillDrawer url={f.link} packetId={packetId} docKey={f.k} prefill={f.prefill} onSaved={() => onFormSaved(f.k)} />
+            <PdfFillDrawer url={f.link} packetId={packetId} docKey={f.k} prefill={wagePrefill(f, packet)} onSaved={() => onFormSaved(f.k)} />
           </LazyMount>
         )}
       </div>
@@ -166,7 +175,7 @@ export default function Onboarding() {
         <div style={{ fontSize: 22, fontFamily: "'Cardo', Georgia, serif", fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#2c2418' }}>Staff Onboarding Packet</div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 13, color: '#6b5f4c', marginBottom: 6 }}>
-        <div><span style={LABEL}>Employee </span><b style={{ color: '#2c2418', fontSize: 15 }}>{packet.person_name}</b></div>
+        <div><div><span style={LABEL}>Employee </span><b style={{ color: '#2c2418', fontSize: 15 }}>{packet.person_name}</b></div>{packet.position && <div style={{ marginTop: 2 }}><span style={LABEL}>Position </span><span style={{ color: '#2c2418', fontSize: 14 }}>{packet.position}</span></div>}</div>
         <div><span style={LABEL}>Issued </span>{sent}</div>
       </div>
       <div style={{ fontSize: 12, color: '#8a7e6b', marginBottom: 10 }}>Your progress saves as you go. Fields marked * are required.</div>

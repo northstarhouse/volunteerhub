@@ -27,6 +27,7 @@ async function preparedSource(url, prefill) {
   const form = pdf.getForm();
   Object.entries(prefill.text || {}).forEach(([n, v]) => { try { form.getTextField(n).setText(v); } catch (e) { /* field missing */ } });
   Object.entries(prefill.radio || {}).forEach(([n, v]) => { try { form.getRadioGroup(n).select(v); } catch (e) { /* field missing */ } });
+  (prefill.check || []).forEach(n => { try { form.getCheckBox(n).check(); } catch (e) { /* field missing */ } });
   (prefill.lock || []).forEach(n => { try { form.getField(n).enableReadOnly(); } catch (e) { /* field missing */ } });
   return { data: await pdf.save() };
 }
