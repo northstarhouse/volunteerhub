@@ -53,7 +53,7 @@ function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packet, pack
       <div style={{ ...FULL, margin: '14px 0 6px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{f.label}</div>
-          <div style={{ fontSize: 12, color: done || skipped ? '#15803d' : 'var(--muted)' }}>{skipped ? 'Marked as already turned in.' : done ? '\u2713 Saved. You can keep editing and save again.' : 'Fill in the form below, then click Save my answers.'}</div>
+          <div style={{ fontSize: 12, color: done || skipped ? '#15803d' : 'var(--muted)' }}>{skipped ? 'Marked as already turned in.' : done ? '\u2713 Saved. You can keep editing and save again.' : 'Fill in the form below. Your answers save automatically.'}</div>
         </div>
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--text)', margin: '0 0 8px', cursor: 'pointer' }}>
           <input type="checkbox" checked={!!skipped} onChange={e => onSkip(f.k, e.target.checked)} style={{ width: 17, height: 17 }} />

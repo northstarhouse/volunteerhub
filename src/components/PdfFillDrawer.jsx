@@ -39,6 +39,9 @@ export default function PdfFillDrawer({ url, packetId, docKey, readOnly, prefill
   const docRef = useRef(null);
   const [status, setStatus] = useState('loading');
   const [msg, setMsg] = useState('');
+  const timer = useRef(null);
+  const busy = useRef(false);
+  const saveRef = useRef(null);
 
   useEffect(() => {
     let dead = false, task = null;
@@ -63,17 +66,34 @@ export default function PdfFillDrawer({ url, packetId, docKey, readOnly, prefill
     return () => { dead = true; try { task && task.destroy(); } catch (e) { /* closing */ } };
   }, [url, packetId, docKey, readOnly]);
 
-  const save = async () => {
-    if (!docRef.current) return;
+  // Saves the filled form to the packet. It runs by itself a moment after any field changes, and the button does the same.
+  const save = async (auto) => {
+    if (!docRef.current || busy.current) return;
+    busy.current = true;
     setStatus('saving'); setMsg('');
     try {
       const bytes = await docRef.current.saveDocument();
       const ok = await saveOnboardingDoc(packetId, docKey, toBase64(bytes));
       if (!ok) throw new Error('save failed');
-      setStatus('ready'); setMsg('Saved to your packet.');
+      setStatus('ready'); setMsg(auto === true ? 'Saved automatically.' : 'Saved to your packet.');
       onSaved && onSaved();
     } catch (e) { setStatus('ready'); setMsg('Could not save. Please try again.'); }
+    busy.current = false;
   };
+  saveRef.current = save;
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el || readOnly) return undefined;
+    const onEdit = e => {
+      if (!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => saveRef.current(true), 1200);
+    };
+    el.addEventListener('change', onEdit, true);
+    el.addEventListener('focusout', onEdit, true);
+    return () => { el.removeEventListener('change', onEdit, true); el.removeEventListener('focusout', onEdit, true); clearTimeout(timer.current); };
+  }, [readOnly]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -87,7 +107,7 @@ export default function PdfFillDrawer({ url, packetId, docKey, readOnly, prefill
       {!readOnly && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', borderTop: '1px solid #e0d8cc', background: '#fff' }}>
           <div style={{ fontSize: 12, color: msg.startsWith('Saved') ? '#15803d' : '#c0392b' }}>{msg}</div>
-          <button className="btn-gold" disabled={status !== 'ready'} onClick={save}>{status === 'saving' ? 'Saving…' : 'Save my answers'}</button>
+          <button className="btn-gold" disabled={status !== 'ready'} onClick={() => save(false)}>{status === 'saving' ? 'Saving…' : 'Save now'}</button>
         </div>
       )}
       {status === 'error' && <div style={{ padding: 14, color: '#c0392b', fontSize: 13 }}>{msg}</div>}
