@@ -32,7 +32,14 @@ export function wagePrefill(f, packet) {
   return { ...p, text, lock, check };
 }
 
-function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, onFormSaved }) {
+// Initials come from the employee's name, e.g. Jordan Ellis becomes JE.
+function initialsOf(name) {
+  const w = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return '';
+  return (w[0][0] + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase();
+}
+
+function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, onFormSaved, personName }) {
   if (f.type === 'pending') {
     return (
       <div style={{ ...FULL, margin: '14px 0 6px', padding: '12px 14px', background: '#ecebe7', border: '1px dashed #bdb7a9', borderRadius: 4, color: '#8a8578' }}>
@@ -74,9 +81,12 @@ function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, on
       <div style={{ ...FULL, display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 240px', fontSize: 14, color: 'var(--text)' }}>
           {f.label}
-          {f.link && <> {'·'} <a href={f.link} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }} onClick={e => { if (f.link.includes('/onboarding/')) { e.preventDefault(); onOpen({ url: f.link, title: f.label }); } }}>Read document</a></>}
+          {f.link && <> {'·'} <a href={f.link} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }} onClick={e => { if (f.link.includes('/onboarding/')) { e.preventDefault(); onOpen({ url: f.link, title: f.label }); } }}>{f.linkText || 'Read document'}</a></>}
         </div>
-        <input value={value || ''} maxLength={4} placeholder="Initials" onChange={e => onChange(e.target.value.toUpperCase())} style={{ ...inputStyle, width: 90, textAlign: 'center', fontWeight: 600 }} />
+        <button type="button" onClick={() => onChange(value ? '' : initialsOf(personName))} aria-pressed={!!value} title={value ? 'Click to remove your initials' : 'Click to initial'}
+          style={{ minWidth: 110, height: 44, padding: '0 14px', cursor: 'pointer', borderRadius: 6, border: value ? '1.5px solid #886c44' : '1.5px dashed #b9ae98', background: value ? '#f7f2e8' : '#fff', color: value ? '#2c2418' : '#8a7e6b', fontFamily: value ? "'Great Vibes', 'Brush Script MT', cursive" : 'inherit', fontSize: value ? 26 : 13, fontWeight: value ? 400 : 600 }}>
+          {value || 'Click to initial'}
+        </button>
       </div>
     );
   }
@@ -193,7 +203,7 @@ export default function Onboarding() {
           </div>
           <div style={{ fontSize: 13, color: '#6b5f4c', fontStyle: 'italic', margin: '8px 0 4px' }}>{s.intro}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', columnGap: 26 }}>
-            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} skipped={!!data['skip_' + f.k]} onSkip={(k, v) => change('skip_' + k, v)} packetId={packet.id} onFormSaved={k => change('doc_' + k, new Date().toISOString())} />)}
+            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} skipped={!!data['skip_' + f.k]} onSkip={(k, v) => change('skip_' + k, v)} packetId={packet.id} personName={packet.person_name} onFormSaved={k => change('doc_' + k, new Date().toISOString())} />)}
           </div>
         </div>
       ))}
