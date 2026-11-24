@@ -23,17 +23,23 @@ function LazyMount({ height, children }) {
   </div>;
 }
 
-function Field({ f, value, onChange, onOpen, done, packetId, onFormSaved }) {
+function Field({ f, value, onChange, onOpen, done, skipped, onSkip, packetId, onFormSaved }) {
   if (f.type === 'form') {
     return (
       <div style={{ ...FULL, margin: '14px 0 6px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{f.label}</div>
-          <div style={{ fontSize: 12, color: done ? '#15803d' : 'var(--muted)' }}>{done ? '\u2713 Saved. You can keep editing and save again.' : 'Fill in the form below, then click Save my answers.'}</div>
+          <div style={{ fontSize: 12, color: done || skipped ? '#15803d' : 'var(--muted)' }}>{skipped ? 'Marked as already turned in.' : done ? '\u2713 Saved. You can keep editing and save again.' : 'Fill in the form below, then click Save my answers.'}</div>
         </div>
-        <LazyMount height="78vh">
-          <PdfFillDrawer url={f.link} packetId={packetId} docKey={f.k} onSaved={() => onFormSaved(f.k)} />
-        </LazyMount>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--text)', margin: '0 0 8px', cursor: 'pointer' }}>
+          <input type="checkbox" checked={!!skipped} onChange={e => onSkip(f.k, e.target.checked)} style={{ width: 17, height: 17 }} />
+          <span>I already turned this in</span>
+        </label>
+        {!skipped && (
+          <LazyMount height="78vh">
+            <PdfFillDrawer url={f.link} packetId={packetId} docKey={f.k} onSaved={() => onFormSaved(f.k)} />
+          </LazyMount>
+        )}
       </div>
     );
   }
@@ -170,7 +176,7 @@ export default function Onboarding() {
           </div>
           <div style={{ fontSize: 13, color: '#6b5f4c', fontStyle: 'italic', margin: '8px 0 4px' }}>{s.intro}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', columnGap: 26 }}>
-            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} packetId={packet.id} onFormSaved={k => change('doc_' + k, new Date().toISOString())} />)}
+            {s.fields.map(f => <Field key={f.k} f={f} value={data[f.k]} onChange={v => change(f.k, v)} onOpen={setDoc} done={!!data['doc_' + f.k]} skipped={!!data['skip_' + f.k]} onSkip={(k, v) => change('skip_' + k, v)} packetId={packet.id} onFormSaved={k => change('doc_' + k, new Date().toISOString())} />)}
           </div>
         </div>
       ))}
