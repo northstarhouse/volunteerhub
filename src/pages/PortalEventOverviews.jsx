@@ -88,7 +88,7 @@ export default function PortalEventOverviews({ navigate, request, initialTab }) 
     // Real website ticket sales -- may not exist yet on installs that haven't
     // run the ticketing migration, so a failure here just means "no ticket
     // data to show" rather than a broken page (same handling as WebsitePaymentsView).
-    fetch(SUPABASE_URL + '/rest/v1/ticket_orders?select=event_title,event_slug,event_date,kind,quantity,amount,paypal_fee,net_amount&limit=5000', {
+    fetch(SUPABASE_URL + '/rest/v1/ticket_orders?status=eq.completed&select=event_title,event_slug,event_date,kind,quantity,amount,paypal_fee,net_amount&limit=5000', {
       headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
     }).then(function(r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); }).then(function(rows) {
       setTicketOrders(Array.isArray(rows) ? rows : []);
